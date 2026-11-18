@@ -1,0 +1,13 @@
+{
+  "name": "endocontrol",
+  "version": "0.1.0",
+  "description": "Lightweight multi-user glucose platform compatible with the Nightscout v1 API: any CGM via xDrip+, Juggluco, LibreLinkUp, Dexcom Share, CSV import.",
+  "main": "server.js",
+  "private": true,
+  "license": "UNLICENSED",
+  "engines": { "node": ">=22.5" },
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test test/api.test.js"
+  }
+}

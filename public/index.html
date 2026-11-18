@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#5b5fe0">
+<title>EndoControl</title>
+<link rel="icon" href="/icon.svg" type="image/svg+xml">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="stylesheet" href="/app.css">
+</head>
+<body>
+<header class="top">
+  <a class="logo" href="#/"><img src="/icon.svg" alt="" width="26" height="26"><span>Endo<b>Control</b></span></a>
+  <nav class="mainnav" id="mainnav"></nav>
+  <div class="topright">
+    <select id="langSel" aria-label="Language"></select>
+    <button class="iconbtn" id="logoutBtn" hidden></button>
+  </div>
+</header>
+<main id="view"><div class="loading">…</div></main>
+<nav class="bottomnav" id="bottomnav"></nav>
+<div id="modal"></div>
+<div id="toast" role="status" aria-live="polite"></div>
+<script src="/i18n.js"></script>
+<script src="/charts.js"></script>
+<script src="/app.js"></script>
+</body>
+</html>

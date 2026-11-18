@@ -1,0 +1,533 @@
+'use strict';
+// EndoControl — a lightweight, multi-user, Nightscout-compatible glucose platform.
+// Requires Node.js 22.5+ (uses the built-in node:sqlite). No npm dependencies.
+
+process.removeAllListeners('warning');
+process.on('warning', w => { if (w.name !== 'ExperimentalWarning') console.warn(w); });
+
+const http = require('node:http');
+const fs = require('node:fs');
+const path = require('node:path');
+const { URL } = require('node:url');
+
+const dbm = require('./lib/db');
+const sec = require('./lib/security');
+const ns = require('./lib/nsdata');
+const bridges = require('./lib/bridges');
+const { parseCsv } = require('./lib/csvimport');
+
+const PORT = Number(process.env.PORT || 1337);
+const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, 'data');
+const PUBLIC_URL = (process.env.PUBLIC_URL || '').replace(/\/+$/, '');
+const APP_NAME = process.env.APP_NAME || 'EndoControl';
+const VERSION = require('./package.json').version;
+const SESSION_DAYS = 30;
+const PUBLIC_DIR = path.join(__dirname, 'public');
+
+sec.initKey(DATA_DIR);
+const db = dbm.open(DATA_DIR);
+
+// ------------------------------------------------------------------ helpers
+class HttpError extends Error { constructor(status, code, msg) { super(msg || code); this.status = status; this.code = code; } }
+const bad = (code, msg) => new HttpError(400, code, msg);
+
+function send(res, status, body, headers = {}) {
+  const isBuf = Buffer.isBuffer(body);
+  const payload = isBuf || typeof body === 'string' ? body : JSON.stringify(body);
+  res.writeHead(status, { 'Content-Type': isBuf || typeof body === 'string' ? (headers['Content-Type'] || 'text/plain; charset=utf-8') : 'application/json; charset=utf-8', ...headers });
+  res.end(payload);
+}
+
+function readBody(req, limit = 5e6) {
+  return new Promise((resolve, reject) => {
+    let size = 0; const chunks = [];
+    req.on('data', c => { size += c.length; if (size > limit) { reject(new HttpError(413, 'too_large')); req.destroy(); } else chunks.push(c); });
+    req.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')));
+    req.on('error', reject);
+  });
+}
+async function jsonBody(req, limit) {
+  const raw = await readBody(req, limit);
+  if (!raw) return {};
+  try { return JSON.parse(raw); } catch { throw bad('bad_json'); }
+}
+function cookies(req) {
+  const out = {};
+  for (const part of String(req.headers.cookie || '').split(';')) {
+    const i = part.indexOf('='); if (i > 0) out[part.slice(0, i).trim()] = decodeURIComponent(part.slice(i + 1).trim());
+  }
+  return out;
+}
+const isHttps = req => req.headers['x-forwarded-proto'] === 'https' || !!req.socket.encrypted;
+function baseUrl(req) {
+  if (PUBLIC_URL) return PUBLIC_URL;
+  return `${isHttps(req) ? 'https' : 'http'}://${req.headers['x-forwarded-host'] || req.headers.host}`;
+}
+const clientIp = req => String(req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').split(',')[0].trim();
+
+// ------------------------------------------------------------------ sessions
+function createSession(res, req, userId) {
+  const token = sec.randomToken(32);
+  db.prepare('INSERT INTO sessions (token_hash, user_id, expires_at) VALUES (?,?,?)').run(sec.sha256(token), userId, Date.now() + SESSION_DAYS * 864e5);
+  res.setHeader('Set-Cookie', `ec_session=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${SESSION_DAYS * 86400}${isHttps(req) ? '; Secure' : ''}`);
+}
+function sessionUser(req) {
+  const t = cookies(req).ec_session;
+  if (!t) return null;
+  const row = db.prepare('SELECT u.* FROM sessions s JOIN users u ON u.id = s.user_id WHERE s.token_hash = ? AND s.expires_at > ?').get(sec.sha256(t), Date.now());
+  return row || null;
+}
+setInterval(() => db.prepare('DELETE FROM sessions WHERE expires_at < ?').run(Date.now()), 3600e3).unref();
+
+// ------------------------------------------------------------------ Nightscout-style auth
+// api-secret header / ?secret= (SHA-1 hex of the user's API secret, as Nightscout uploaders send it) -> read+write
+// ?token= / Authorization: Bearer <share token> -> read only
+function nsAuth(req, url, body) {
+  let secret = req.headers['api-secret'] || url.searchParams.get('secret');
+  if (!secret && body) {
+    if (Array.isArray(body) && body[0] && body[0].secret) secret = body[0].secret;
+    else if (body.secret) secret = body.secret;
+  }
+  if (secret) {
+    secret = String(secret).trim();
+    const hash = /^[0-9a-f]{40}$/i.test(secret) ? secret.toLowerCase() : sec.sha1(secret); // also accept the plain secret
+    const u = db.prepare('SELECT * FROM users WHERE api_secret_sha1 = ?').get(hash);
+    if (u) return { user: u, write: true };
+  }
+  let token = url.searchParams.get('token');
+  const authz = String(req.headers.authorization || '');
+  if (!token && authz.startsWith('Bearer ')) token = authz.slice(7).trim();
+  if (!token && body && !Array.isArray(body) && body.token) token = body.token;
+  if (token) {
+    const s = shareByToken(token);
+    if (s) return { user: db.prepare('SELECT * FROM users WHERE id=?').get(s.user_id), write: false };
+  }
+  return null;
+}
+function shareByToken(token) {
+  const s = db.prepare('SELECT * FROM shares WHERE token = ? AND revoked = 0').get(String(token));
+  if (!s || (s.expires_at && s.expires_at < Date.now())) return null;
+  return s;
+}
+
+// ------------------------------------------------------------------ validation
+const LANGS = ['en', 'zh', 'es', 'ar', 'pt', 'id', 'fr', 'ja', 'ru', 'de', 'kk', 'tr', 'hi', 'ko'];
+const emailOk = e => typeof e === 'string' && e.length <= 200 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
+const str = (v, max = 200) => typeof v === 'string' ? v.trim().slice(0, max) : '';
+function checkPassword(p) {
+  if (typeof p !== 'string' || p.length < 8 || p.length > 200) throw bad('weak_password');
+  if (!/[A-Za-z\p{L}]/u.test(p) || !/\d/.test(p)) throw bad('weak_password');
+}
+function publicUser(u, req) {
+  const secret = sec.decrypt(u.api_secret_enc);
+  const base = baseUrl(req);
+  const host = base.replace(/^https?:\/\//, '');
+  return {
+    id: u.id, email: u.email, name: u.name, role: u.role, patient_name: u.patient_name, birth_year: u.birth_year, diabetes_type: u.diabetes_type,
+    lang: u.lang, units: u.units, target_low: u.target_low, target_high: u.target_high, created_at: u.created_at,
+    upload: {
+      base_url: base, api_secret: secret,
+      xdrip_url: `${base.startsWith('https') ? 'https' : 'http'}://${secret}@${host}/api/v1/`,
+    },
+  };
+}
+
+// ------------------------------------------------------------------ app (web UI) API
+const routes = [];
+const route = (method, pattern, handler, opts = {}) => routes.push({ method, re: new RegExp('^' + pattern.replace(/:(\w+)/g, '(?<$1>[^/]+)') + '$'), handler, opts });
+
+function requireUser(ctx) { if (!ctx.user) throw new HttpError(401, 'unauthorized'); return ctx.user; }
+
+// Which patient's data may this request read? own account, a share token, or (for doctors) a saved share.
+function subjectFor(ctx) {
+  const token = ctx.url.searchParams.get('share');
+  if (token) {
+    const s = shareByToken(token);
+    if (!s) throw new HttpError(404, 'share_not_found');
+    return { userId: s.user_id, write: false, share: s };
+  }
+  const u = requireUser(ctx);
+  return { userId: u.id, write: true };
+}
+
+route('POST', '/app/register', async ctx => {
+  const b = await jsonBody(ctx.req);
+  if (!sec.rateLimit('reg:' + clientIp(ctx.req), 10, 3600e3)) throw new HttpError(429, 'rate_limited');
+  const email = str(b.email).toLowerCase();
+  if (!emailOk(email)) throw bad('bad_email');
+  checkPassword(b.password);
+  const name = str(b.name, 100); if (!name) throw bad('name_required');
+  if (!b.consent) throw bad('consent_required');
+  const role = b.role === 'doctor' ? 'doctor' : 'patient';
+  if (db.prepare('SELECT 1 FROM users WHERE email=?').get(email)) throw new HttpError(409, 'email_taken');
+  const secret = sec.newApiSecret();
+  const lang = LANGS.includes(b.lang) ? b.lang : 'en';
+  const units = b.units === 'mmol' ? 'mmol' : 'mg/dl';
+  const r = db.prepare(`INSERT INTO users (email, pass_hash, name, role, patient_name, birth_year, diabetes_type, lang, units, timezone, api_secret_enc, api_secret_sha1, created_at)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(email, sec.hashPassword(b.password), name, role, str(b.patient_name, 100) || null,
+    Number.isInteger(b.birth_year) && b.birth_year > 1900 && b.birth_year <= new Date().getFullYear() ? b.birth_year : null,
+    ['t1', 't2', 'gestational', 'other'].includes(b.diabetes_type) ? b.diabetes_type : null, lang, units, str(b.timezone, 60) || null,
+    sec.encrypt(secret), sec.sha1(secret), new Date().toISOString());
+  createSession(ctx.res, ctx.req, Number(r.lastInsertRowid));
+  return { ok: true };
+});
+
+route('POST', '/app/login', async ctx => {
+  const b = await jsonBody(ctx.req);
+  const email = str(b.email).toLowerCase();
+  if (!sec.rateLimit('login:' + clientIp(ctx.req), 30, 900e3) || !sec.rateLimit('login:' + email, 10, 900e3)) throw new HttpError(429, 'rate_limited');
+  const u = db.prepare('SELECT * FROM users WHERE email=?').get(email);
+  if (!u || !sec.verifyPassword(String(b.password || ''), u.pass_hash)) throw new HttpError(401, 'bad_credentials');
+  createSession(ctx.res, ctx.req, u.id);
+  return { ok: true };
+});
+
+route('POST', '/app/logout', async ctx => {
+  const t = cookies(ctx.req).ec_session;
+  if (t) db.prepare('DELETE FROM sessions WHERE token_hash=?').run(sec.sha256(t));
+  ctx.res.setHeader('Set-Cookie', 'ec_session=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0');
+  return { ok: true };
+});
+
+route('GET', '/app/me', async ctx => {
+  const u = requireUser(ctx);
+  const br = db.prepare('SELECT kind, status, last_error, last_poll, last_data FROM bridges WHERE user_id=?').all(u.id);
+  const last = db.prepare('SELECT date, sgv, direction, device, source FROM entries WHERE user_id=? AND type=\'sgv\' ORDER BY date DESC LIMIT 1').get(u.id);
+  const count = db.prepare('SELECT COUNT(*) n, MIN(date) first FROM entries WHERE user_id=?').get(u.id);
+  return { user: publicUser(u, ctx.req), bridges: br, last: last || null, stored: count.n, first: count.first, app: { name: APP_NAME, version: VERSION } };
+});
+
+route('PUT', '/app/me', async ctx => {
+  const u = requireUser(ctx); const b = await jsonBody(ctx.req);
+  const lo = Number(b.target_low), hi = Number(b.target_high);
+  db.prepare(`UPDATE users SET name=?, patient_name=?, lang=?, units=?, target_low=?, target_high=?, birth_year=?, diabetes_type=? WHERE id=?`).run(
+    str(b.name, 100) || u.name, b.patient_name !== undefined ? (str(b.patient_name, 100) || null) : u.patient_name,
+    LANGS.includes(b.lang) ? b.lang : u.lang, b.units === 'mmol' || b.units === 'mg/dl' ? b.units : u.units,
+    lo >= 50 && lo <= 120 ? Math.round(lo) : u.target_low, hi >= 120 && hi <= 300 && hi > lo ? Math.round(hi) : u.target_high,
+    Number.isInteger(b.birth_year) ? b.birth_year : u.birth_year, ['t1', 't2', 'gestational', 'other'].includes(b.diabetes_type) ? b.diabetes_type : u.diabetes_type, u.id);
+  return { ok: true };
+});
+
+route('POST', '/app/me/password', async ctx => {
+  const u = requireUser(ctx); const b = await jsonBody(ctx.req);
+  if (!sec.verifyPassword(String(b.current || ''), u.pass_hash)) throw new HttpError(401, 'bad_credentials');
+  checkPassword(b.password);
+  db.prepare('UPDATE users SET pass_hash=? WHERE id=?').run(sec.hashPassword(b.password), u.id);
+  return { ok: true };
+});
+
+route('POST', '/app/me/rotate-secret', async ctx => {
+  const u = requireUser(ctx);
+  const secret = sec.newApiSecret();
+  db.prepare('UPDATE users SET api_secret_enc=?, api_secret_sha1=? WHERE id=?').run(sec.encrypt(secret), sec.sha1(secret), u.id);
+  return { ok: true };
+});
+
+route('POST', '/app/me/delete', async ctx => {
+  const u = requireUser(ctx); const b = await jsonBody(ctx.req);
+  if (!sec.verifyPassword(String(b.password || ''), u.pass_hash)) throw new HttpError(401, 'bad_credentials');
+  db.prepare('DELETE FROM users WHERE id=?').run(u.id);
+  ctx.res.setHeader('Set-Cookie', 'ec_session=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0');
+  return { ok: true };
+});
+
+// Data export (portability): CSV of all glucose values
+route('GET', '/app/export.csv', async ctx => {
+  const u = requireUser(ctx);
+  const rows = db.prepare('SELECT date, sgv, direction, device, source FROM entries WHERE user_id=? AND type=\'sgv\' ORDER BY date').all(u.id);
+  const csv = 'timestamp_utc,glucose_mg_dl,glucose_mmol_l,direction,device,source\n' +
+    rows.map(r => [new Date(r.date).toISOString(), r.sgv, (r.sgv / 18.0182).toFixed(1), r.direction || '', JSON.stringify(r.device || ''), r.source || ''].join(',')).join('\n');
+  return { raw: csv, type: 'text/csv; charset=utf-8', headers: { 'Content-Disposition': 'attachment; filename="glucose-export.csv"' } };
+});
+
+// Glucose + diary for charts (own data, or via ?share=token)
+route('GET', '/app/data', async ctx => {
+  const s = subjectFor(ctx);
+  const to = Number(ctx.url.searchParams.get('to')) || Date.now() + 60e3;
+  const from = Math.max(Number(ctx.url.searchParams.get('from')) || to - 864e5, to - 120 * 864e5);
+  const e = ns.entriesRange(db, s.userId, from, to);
+  const t = db.prepare('SELECT * FROM treatments WHERE user_id=? AND created_at>=? AND created_at<? ORDER BY created_at').all(s.userId, from, to).map(ns.formatTreatment);
+  const u = db.prepare('SELECT name, patient_name, birth_year, diabetes_type, units, target_low, target_high FROM users WHERE id=?').get(s.userId);
+  return { from, to, entries: e.map(x => [x.date, x.sgv, x.direction || null]), treatments: t, patient: u, readOnly: !s.write };
+});
+
+route('POST', '/app/treatments', async ctx => {
+  const u = requireUser(ctx); const b = await jsonBody(ctx.req);
+  const at = ns.toMillis(b.at) ?? Date.now();
+  const kinds = {
+    carbs: { eventType: 'Carb Correction', carbs: Number(b.value) },
+    insulin: { eventType: b.basal ? 'Temp Basal' : 'Correction Bolus', insulin: Number(b.value) },
+    bg: { eventType: 'BG Check', glucose: Number(b.value), glucoseType: 'Finger', units: 'mg/dl' },
+    exercise: { eventType: 'Exercise', duration: Number(b.value) || undefined },
+    note: { eventType: 'Note' },
+  };
+  const k = kinds[b.kind]; if (!k) throw bad('bad_kind');
+  if (b.basal && b.kind === 'insulin') { k.eventType = 'Basal Insulin'; }
+  const doc = { ...k, created_at: new Date(at).toISOString(), notes: str(b.notes, 1000) || undefined, enteredBy: APP_NAME };
+  return ns.insertTreatments(db, u.id, [doc])[0];
+});
+route('DELETE', '/app/treatments/:id', async ctx => {
+  const u = requireUser(ctx);
+  db.prepare('DELETE FROM treatments WHERE id=? AND user_id=?').run(Number(ctx.params.id), u.id);
+  return { ok: true };
+});
+
+// Cloud bridges
+const BRIDGE_KINDS = ['librelinkup', 'dexcom', 'nightscout'];
+route('POST', '/app/bridges', async ctx => {
+  const u = requireUser(ctx); const b = await jsonBody(ctx.req);
+  if (!sec.rateLimit('bridge:' + u.id, 12, 3600e3)) throw new HttpError(429, 'rate_limited');
+  if (!BRIDGE_KINDS.includes(b.kind)) throw bad('bad_kind');
+  const c = b.config || {};
+  let cfg;
+  if (b.kind === 'librelinkup') { if (!emailOk(c.email) || !c.password) throw bad('missing_fields'); cfg = { email: c.email, password: String(c.password), region: str(c.region, 4).toUpperCase() || 'EU' }; }
+  if (b.kind === 'dexcom') { if (!c.username || !c.password) throw bad('missing_fields'); cfg = { username: str(c.username), password: String(c.password), region: ['us', 'ous', 'jp'].includes(c.region) ? c.region : 'ous' }; }
+  if (b.kind === 'nightscout') { if (!/^https:\/\//i.test(c.url || '')) throw bad('bad_url'); cfg = { url: str(c.url, 300), token: str(c.token, 200) || undefined, secret: c.secret ? String(c.secret) : undefined }; }
+  db.prepare(`INSERT INTO bridges (user_id, kind, config_enc, status) VALUES (?,?,?,'pending')
+    ON CONFLICT(user_id, kind) DO UPDATE SET config_enc=excluded.config_enc, status='pending', last_error=NULL, last_poll=NULL`).run(u.id, b.kind, sec.encrypt(JSON.stringify(cfg)));
+  bridges.forget(u.id, b.kind);
+  const row = db.prepare('SELECT * FROM bridges WHERE user_id=? AND kind=?').get(u.id, b.kind);
+  const result = await bridges.runOne(db, row);
+  return result;
+});
+route('DELETE', '/app/bridges/:kind', async ctx => {
+  const u = requireUser(ctx);
+  db.prepare('DELETE FROM bridges WHERE user_id=? AND kind=?').run(u.id, ctx.params.kind);
+  bridges.forget(u.id, ctx.params.kind);
+  return { ok: true };
+});
+
+// CSV import (LibreView, Dexcom Clarity, Medtronic CareLink, Eversense, glucometer exports …)
+route('POST', '/app/import', async ctx => {
+  const u = requireUser(ctx);
+  const text = await readBody(ctx.req, 30e6);
+  const { entries, detected } = parseCsv(text, ctx.url.searchParams.get('tz_offset'));
+  if (!entries.length) throw bad('nothing_imported', detected.error || 'No glucose rows recognised');
+  const saved = ns.insertEntries(db, u.id, entries, 'csv');
+  return { imported: saved.length, detected };
+});
+
+// Sharing with doctors / family (read-only links; also usable as Nightscout ?token=)
+route('GET', '/app/shares', async ctx => {
+  const u = requireUser(ctx);
+  return db.prepare('SELECT token, label, created_at, expires_at FROM shares WHERE user_id=? AND revoked=0 ORDER BY created_at DESC').all(u.id);
+});
+route('POST', '/app/shares', async ctx => {
+  const u = requireUser(ctx); const b = await jsonBody(ctx.req);
+  const days = Number(b.days);
+  const token = 'r-' + sec.randomToken(12);
+  db.prepare('INSERT INTO shares (token, user_id, label, created_at, expires_at) VALUES (?,?,?,?,?)').run(token, u.id, str(b.label, 100) || null, Date.now(), days > 0 ? Date.now() + days * 864e5 : null);
+  return { token };
+});
+route('DELETE', '/app/shares/:token', async ctx => {
+  const u = requireUser(ctx);
+  db.prepare('UPDATE shares SET revoked=1 WHERE token=? AND user_id=?').run(ctx.params.token, u.id);
+  return { ok: true };
+});
+route('GET', '/app/share/:token', async ctx => {
+  const s = shareByToken(ctx.params.token);
+  if (!s) throw new HttpError(404, 'share_not_found');
+  const u = db.prepare('SELECT name, patient_name, birth_year, diabetes_type, units, target_low, target_high FROM users WHERE id=?').get(s.user_id);
+  return { patient: u, label: s.label, expires_at: s.expires_at };
+});
+
+// Doctor workspace: patients added by share link
+route('GET', '/app/patients', async ctx => {
+  const u = requireUser(ctx);
+  const rows = db.prepare(`SELECT dp.share_token token, dp.added_at, u.id uid, u.name, u.patient_name, u.birth_year, u.diabetes_type, u.units, u.target_low, u.target_high
+    FROM doctor_patients dp JOIN shares s ON s.token = dp.share_token AND s.revoked = 0 AND (s.expires_at IS NULL OR s.expires_at > ?)
+    JOIN users u ON u.id = s.user_id WHERE dp.doctor_id = ? ORDER BY dp.added_at DESC`).all(Date.now(), u.id);
+  const since = Date.now() - 14 * 864e5;
+  return rows.map(r => {
+    const st = db.prepare(`SELECT COUNT(*) n, SUM(sgv BETWEEN ? AND ?) inr, SUM(sgv < ?) low, AVG(sgv) mean FROM entries WHERE user_id=? AND type='sgv' AND date>=?`).get(r.target_low, r.target_high, r.target_low, r.uid, since);
+    const last = db.prepare('SELECT date, sgv, direction FROM entries WHERE user_id=? AND type=\'sgv\' ORDER BY date DESC LIMIT 1').get(r.uid);
+    const unread = db.prepare('SELECT COUNT(*) n FROM notes WHERE user_id=? AND author_id=? AND created_at > ?').get(r.uid, r.uid, r.added_at).n;
+    delete r.uid;
+    return { ...r, last: last || null, tir: st.n ? st.inr / st.n * 100 : null, tbr: st.n ? st.low / st.n * 100 : null, mean: st.mean, messages: unread };
+  });
+});
+route('POST', '/app/patients', async ctx => {
+  const u = requireUser(ctx); const b = await jsonBody(ctx.req);
+  let token = str(b.token, 300);
+  const m = /[#/]s\/([\w-]+)/.exec(token) || /token=([\w-]+)/.exec(token); if (m) token = m[1];
+  const s = shareByToken(token); if (!s) throw new HttpError(404, 'share_not_found');
+  db.prepare('INSERT OR IGNORE INTO doctor_patients (doctor_id, share_token, added_at) VALUES (?,?,?)').run(u.id, token, Date.now());
+  return { ok: true, token };
+});
+route('DELETE', '/app/patients/:token', async ctx => {
+  const u = requireUser(ctx);
+  db.prepare('DELETE FROM doctor_patients WHERE doctor_id=? AND share_token=?').run(u.id, ctx.params.token);
+  return { ok: true };
+});
+
+// Messages & conclusions between patient/family and doctor
+route('GET', '/app/notes', async ctx => {
+  const s = subjectFor(ctx);
+  return db.prepare('SELECT n.id, n.kind, n.text, n.created_at, n.author_id, a.name author, a.role author_role FROM notes n JOIN users a ON a.id = n.author_id WHERE n.user_id=? ORDER BY n.created_at').all(s.userId)
+    .map(n => ({ ...n, mine: ctx.user ? n.author_id === ctx.user.id : false }));
+});
+route('POST', '/app/notes', async ctx => {
+  const u = requireUser(ctx); const b = await jsonBody(ctx.req);
+  const text = str(b.text, 5000); if (!text) throw bad('empty');
+  let patientId = u.id;
+  if (b.share) {
+    const s = shareByToken(b.share); if (!s) throw new HttpError(404, 'share_not_found');
+    if (!db.prepare('SELECT 1 FROM doctor_patients WHERE doctor_id=? AND share_token=?').get(u.id, b.share)) throw new HttpError(403, 'forbidden');
+    patientId = s.user_id;
+  }
+  const kind = b.kind === 'conclusion' && u.role === 'doctor' ? 'conclusion' : 'message';
+  db.prepare('INSERT INTO notes (user_id, author_id, kind, text, created_at) VALUES (?,?,?,?,?)').run(patientId, u.id, kind, text, Date.now());
+  return { ok: true };
+});
+
+// ------------------------------------------------------------------ Nightscout v1 API
+const nsRoutes = [];
+const nsRoute = (method, pattern, handler) => nsRoutes.push({ method, re: new RegExp('^/api/v1' + pattern + '$'), handler });
+const ext = p => p.replace(/\.(json|txt|csv|tsv)$/, '');
+function nsSend(ctx, list) {
+  const wantsText = /\.(txt|csv|tsv)$/.test(ctx.url.pathname) || (!/\.json$/.test(ctx.url.pathname) && !String(ctx.req.headers.accept || '').includes('json') && /entries/.test(ctx.url.pathname) && ctx.req.method === 'GET' && String(ctx.req.headers.accept || '').includes('text/plain'));
+  if (wantsText) return { raw: ns.entriesAsText(list), type: 'text/plain; charset=utf-8' };
+  return list;
+}
+function nsNeed(ctx, write) {
+  if (!ctx.ns) throw new HttpError(401, 'unauthorized', 'Unauthorized');
+  if (write && !ctx.ns.write) throw new HttpError(401, 'unauthorized', 'Read-only token cannot write');
+  return ctx.ns.user;
+}
+function statusPayload(ctx) {
+  const u = ctx.ns && ctx.ns.user;
+  const units = u ? u.units : 'mg/dl';
+  const now = new Date();
+  return {
+    status: 'ok', name: APP_NAME, version: `15.0.0-${APP_NAME.toLowerCase()}.${VERSION}`, serverTime: now.toISOString(), serverTimeEpoch: now.getTime(),
+    apiEnabled: true, careportalEnabled: true, boluscalcEnabled: false,
+    settings: { units, timeFormat: 24, customTitle: APP_NAME, theme: 'default', language: u ? u.lang : 'en', enable: ['careportal', 'rawbg', 'iob', 'cob'], authDefaultRoles: 'denied',
+      thresholds: { bgHigh: 260, bgTargetTop: u ? u.target_high : 180, bgTargetBottom: u ? u.target_low : 70, bgLow: 55 } },
+    extendedSettings: {}, authorized: ctx.ns ? { sub: u.email, permissionGroups: [[ctx.ns.write ? '*' : '*:*:read']] } : null,
+  };
+}
+nsRoute('GET', '/status(\\.json)?', ctx => statusPayload(ctx));
+nsRoute('GET', '/verifyauth', ctx => {
+  const ok = !!ctx.ns;
+  return { canRead: ok, canWrite: ok && ctx.ns.write, isAdmin: ok && ctx.ns.write, message: ok ? 'OK' : 'UNAUTHORIZED', rolefound: ok ? 'FOUND' : 'NOTFOUND', permissions: ok ? 'ROLE' : 'DEFAULT' };
+});
+nsRoute('GET', '/entries/current(\\.json)?', ctx => nsSend(ctx, ns.queryEntries(db, nsNeed(ctx).id, new URLSearchParams({ count: '1' }), 'sgv')));
+nsRoute('GET', '/entries(?:\\.(?:json|txt|csv|tsv))?(?:/(?<spec>[^/]+))?', ctx => {
+  const u = nsNeed(ctx);
+  const spec = ctx.params.spec ? ext(ctx.params.spec) : null;
+  if (spec && /^[0-9]+$/.test(spec)) {
+    const r = db.prepare('SELECT * FROM entries WHERE user_id=? AND id=?').get(u.id, Number(spec));
+    return r ? [ns.queryEntries(db, u.id, new URLSearchParams({ 'find[date]': String(r.date), count: '1' }))[0]].filter(Boolean) : [];
+  }
+  return nsSend(ctx, ns.queryEntries(db, u.id, ctx.url.searchParams, spec && ['sgv', 'mbg', 'cal'].includes(spec) ? spec : null));
+});
+nsRoute('POST', '/entries(\\.json)?/?', ctx => {
+  const u = nsNeed(ctx, true);
+  const docs = Array.isArray(ctx.body) ? ctx.body : [ctx.body];
+  if (docs.length > 50000) throw bad('too_many');
+  return ns.insertEntries(db, u.id, docs, 'api').map(e => ({ ...e, dateString: new Date(e.date).toISOString() }));
+});
+nsRoute('DELETE', '/entries(?:/(?<spec>[^/]+))?', ctx => {
+  const u = nsNeed(ctx, true);
+  const spec = ctx.params.spec ? ext(ctx.params.spec) : null;
+  if (spec && /^[0-9]+$/.test(spec)) db.prepare('DELETE FROM entries WHERE user_id=? AND id=?').run(u.id, Number(spec));
+  return { ok: 1 };
+});
+nsRoute('GET', '/treatments(\\.json)?', ctx => ns.queryTreatments(db, nsNeed(ctx).id, ctx.url.searchParams));
+nsRoute('POST', '/treatments(\\.json)?/?', ctx => {
+  const u = nsNeed(ctx, true);
+  return ns.insertTreatments(db, u.id, Array.isArray(ctx.body) ? ctx.body : [ctx.body]);
+});
+nsRoute('PUT', '/treatments(\\.json)?/?', ctx => {
+  const u = nsNeed(ctx, true);
+  return ns.insertTreatments(db, u.id, Array.isArray(ctx.body) ? ctx.body : [ctx.body]);
+});
+nsRoute('DELETE', '/treatments/(?<id>[^/]+)', ctx => {
+  const u = nsNeed(ctx, true);
+  db.prepare('DELETE FROM treatments WHERE user_id=? AND id=?').run(u.id, Number(ext(ctx.params.id)));
+  return { ok: 1 };
+});
+nsRoute('GET', '/devicestatus(\\.json)?', ctx => ns.queryDeviceStatus(db, nsNeed(ctx).id, ctx.url.searchParams));
+nsRoute('POST', '/devicestatus(\\.json)?/?', ctx => {
+  const u = nsNeed(ctx, true);
+  return ns.insertDeviceStatus(db, u.id, Array.isArray(ctx.body) ? ctx.body : [ctx.body]);
+});
+nsRoute('GET', '/profile(\\.json)?', ctx => {
+  const u = nsNeed(ctx);
+  const mmol = u.units === 'mmol';
+  const v = x => mmol ? Math.round(x / 18.0182 * 10) / 10 : x;
+  return [{ _id: 'default', defaultProfile: 'Default', startDate: '2000-01-01T00:00:00.000Z', units: u.units, mills: 0,
+    store: { Default: { units: u.units, timezone: u.timezone || 'UTC', dia: 4, carbratio: [{ time: '00:00', value: 10 }], sens: [{ time: '00:00', value: v(50) }], basal: [{ time: '00:00', value: 0 }],
+      target_low: [{ time: '00:00', value: v(u.target_low) }], target_high: [{ time: '00:00', value: v(u.target_high) }], carbs_hr: 20, delay: 20 } } }];
+});
+
+// ------------------------------------------------------------------ static files
+const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png', '.ico': 'image/x-icon', '.json': 'application/json', '.webmanifest': 'application/manifest+json' };
+function serveStatic(req, res, pathname) {
+  let p = path.normalize(decodeURIComponent(pathname)).replace(/^([/\\])+/, '');
+  if (p.includes('..')) return send(res, 400, 'Bad path');
+  let file = path.join(PUBLIC_DIR, p || 'index.html');
+  if (!fs.existsSync(file) || fs.statSync(file).isDirectory()) file = path.join(PUBLIC_DIR, 'index.html');
+  const ext = path.extname(file);
+  const body = fs.readFileSync(file);
+  send(res, 200, body, { 'Content-Type': MIME[ext] || 'application/octet-stream', 'Cache-Control': ext === '.html' ? 'no-cache' : 'public, max-age=300' });
+}
+
+// ------------------------------------------------------------------ server
+const SECURITY_HEADERS = {
+  'X-Content-Type-Options': 'nosniff', 'Referrer-Policy': 'no-referrer', 'X-Frame-Options': 'DENY',
+  'Content-Security-Policy': "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'",
+  'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
+};
+
+const server = http.createServer(async (req, res) => {
+  for (const [k, v] of Object.entries(SECURITY_HEADERS)) res.setHeader(k, v);
+  const url = new URL(req.url, 'http://local');
+  const pathname = url.pathname.replace(/\/{2,}/g, '/');
+  try {
+    // ---- Nightscout API (CORS open: auth is by header/token, never by cookie)
+    if (pathname.startsWith('/api/v1/') || pathname === '/api/v1') {
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, api-secret, Authorization');
+      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+      if (req.method === 'OPTIONS') return send(res, 204, '');
+      const body = ['POST', 'PUT'].includes(req.method) ? await jsonBody(req, 20e6) : null;
+      const ctx = { req, res, url, body, ns: nsAuth(req, url, body), params: {} };
+      // never store credentials that some uploaders put inside the documents
+      if (Array.isArray(body)) body.forEach(d => { if (d && typeof d === 'object') { delete d.secret; delete d.token; } });
+      else if (body && typeof body === 'object') { delete body.secret; delete body.token; }
+      const r = nsRoutes.find(r => r.method === req.method && r.re.test(pathname));
+      if (!r) return send(res, 404, { status: 404, message: 'Not found' });
+      ctx.params = (r.re.exec(pathname).groups) || {};
+      const out = await r.handler(ctx);
+      if (out && out.raw !== undefined) return send(res, 200, out.raw, { 'Content-Type': out.type });
+      return send(res, 200, out);
+    }
+    // ---- App API
+    if (pathname.startsWith('/app/')) {
+      if (req.method !== 'GET' && req.headers['x-ec'] !== '1') throw new HttpError(403, 'csrf');
+      const r = routes.find(r => r.method === req.method && r.re.test(pathname));
+      if (!r) throw new HttpError(404, 'not_found');
+      const ctx = { req, res, url, user: sessionUser(req), params: r.re.exec(pathname).groups || {} };
+      const out = await r.handler(ctx);
+      res.setHeader('Cache-Control', 'no-store');
+      if (out && out.raw !== undefined) return send(res, 200, out.raw, { 'Content-Type': out.type, ...(out.headers || {}) });
+      return send(res, 200, out);
+    }
+    if (pathname === '/healthz') return send(res, 200, { ok: true, version: VERSION });
+    if (req.method !== 'GET' && req.method !== 'HEAD') return send(res, 405, 'Method not allowed');
+    return serveStatic(req, res, pathname);
+  } catch (e) {
+    if (e instanceof HttpError) return send(res, e.status, { status: e.status, error: e.code, message: e.message });
+    console.error(e);
+    return send(res, 500, { status: 500, error: 'internal' });
+  }
+});
+
+if (require.main === module) {
+  server.listen(PORT, () => {
+    console.log(`${APP_NAME} ${VERSION} listening on http://localhost:${PORT}`);
+    bridges.start(db);
+  });
+}
+module.exports = { server, db };

@@ -1,0 +1,9 @@
+{
+  "name": "EndoControl",
+  "short_name": "EndoControl",
+  "start_url": "/#/",
+  "display": "standalone",
+  "background_color": "#f4f3f0",
+  "theme_color": "#5b5fe0",
+  "icons": [{ "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml" }]
+}
