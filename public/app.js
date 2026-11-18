@@ -56,7 +56,7 @@
     const r = location.hash.split('/')[1] || '';
     let items = [];
     if (S.me && S.me.user.role === 'doctor') items = [['patients', '👥', 'navPatients'], ['settings', '⚙️', 'navSettings']];
-    else if (S.me) items = [['home', '🏠', 'navHome'], ['diary', '📔', 'navDiary'], ['reports', '📊', 'navReports'], ['ai', '✨', 'navAi'], ['share', '🩺', 'navDoctor'], ['settings', '⚙️', 'navSettings']];
+    else if (S.me) items = [['home', '🏠', 'navHome'], ['diary', '📔', 'navDiary'], ['reports', '📊', 'navReports'], ['ai', '✨', 'navAi'], ['school', '🎓', 'navSchool'], ['share', '🩺', 'navDoctor'], ['settings', '⚙️', 'navSettings']];
     const html = items.map(([id, ic, k]) => `<a href="#/${id}" class="${r === id || (id === 'home' && r === 'connect') ? 'on' : ''}"><span>${ic}</span>${esc(t(I.has('en', k + 'Short') ? k + 'Short' : k))}</a>`).join('');
     $('#mainnav').innerHTML = items.map(([id, , k]) => `<a href="#/${id}" class="${r === id ? 'on' : ''}">${esc(t(k))}</a>`).join('');
     $('#bottomnav').innerHTML = html;
@@ -89,9 +89,10 @@
     if (page === 's') { S.me = S.me || await loadMe(); nav(); return sharedView(parts[1]); }
     if (!S.me) await loadMe();
     nav();
+    voiceFab();
     if (!S.me) { if (page === 'register') return register(); return login(); }
     const doc = S.me.user.role === 'doctor';
-    const pages = doc ? { patients, p: doctorPatient, settings } : { home, connect, diary, reports, ai, share, settings };
+    const pages = doc ? { patients, p: doctorPatient, settings } : { home, connect, diary, reports, ai, school, share, settings };
     const fn = pages[page] || (doc ? patients : home);
     if (!pages[page]) history.replaceState(null, '', doc ? '#/patients' : '#/home');
     view.innerHTML = `<div class="loading">${esc(t('loading'))}</div>`;
@@ -511,6 +512,172 @@
     }
     $('#aiForm').onsubmit = e => { e.preventDefault(); const v = $('#aiIn').value; $('#aiIn').value = ''; ask(v); };
     draw();
+  }
+
+  // ------------------------------------------------------------ diabetes school
+  const SCH = window.SCHOOL;
+  const schoolKey = () => 'ec_school_' + (S.me ? S.me.user.id : 'guest');
+  function schoolDone() { try { return JSON.parse(localStorage.getItem(schoolKey()) || '[]'); } catch { return []; } }
+  function markDone(id) {
+    const d = schoolDone(); if (d.includes(id)) return;
+    d.push(id); try { localStorage.setItem(schoolKey(), JSON.stringify(d)); } catch { /* private mode: progress is not kept */ }
+  }
+  function schoolLangNote() {
+    return ['ru', 'en'].includes(S.lang) ? '' : `<p class="tiny muted">${esc(t('schLangNote'))}</p>`;
+  }
+  async function school(parts) {
+    const lessons = SCH.lessons(S.lang);
+    const done = schoolDone();
+    const id = parts && parts[0];
+    const lesson = id && lessons.find(l => l.id === id);
+    if (!lesson) {
+      const n = lessons.filter(l => done.includes(l.id)).length;
+      $('#view').innerHTML = `<h1>🎓 ${esc(t('navSchool'))}</h1>
+        <div class="card"><p style="margin-top:0">${esc(t('schIntro'))}</p>
+          <div class="row small"><b>${esc(t('schProgress', { n, total: lessons.length }))}</b></div>
+          <div class="progress"><div style="width:${(n / lessons.length * 100).toFixed(0)}%"></div></div>${schoolLangNote()}</div>
+        <div class="lessons">${lessons.map((l, i) => `<a class="lesson card" href="#/school/${l.id}">
+          <div class="lic">${l.icon}</div><div class="grow"><div class="tiny muted">${i + 1} · ${esc(t('schMin', { n: l.min }))}${done.includes(l.id) ? ` · <span class="okc">✓ ${esc(t('schDone'))}</span>` : ''}</div>
+          <b>${esc(l.title)}</b><div class="small muted">${esc(l.summary)}</div></div></a>`).join('')}</div>`;
+      return;
+    }
+    const i = lessons.indexOf(lesson), next = lessons[i + 1];
+    const answers = {};
+    $('#view').innerHTML = `<p><a href="#/school">← ${esc(t('schAllLessons'))}</a></p>
+      <h1>${lesson.icon} ${esc(lesson.title)}</h1><p class="muted">${esc(lesson.summary)} · ${esc(t('schMin', { n: lesson.min }))}</p>${schoolLangNote()}
+      <div class="card lessonbody">${lesson.sections.map(sec => `<h2>${esc(sec.h)}</h2>${(sec.p || []).map(x => `<p>${esc(x)}</p>`).join('')}${sec.list ? `<ul>${sec.list.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}`).join('')}</div>
+      <div class="card"><h2>${esc(t('schQuiz'))}</h2>${lesson.quiz.map((q, qi) => `<div class="quiz" data-q="${qi}"><p><b>${esc(q.q)}</b></p>
+        <div class="opts">${q.a.map((a, ai) => `<button type="button" class="opt" data-a="${ai}">${esc(a)}</button>`).join('')}</div><p class="small fb" hidden></p></div>`).join('')}
+        <p class="okc" id="finished" ${done.includes(lesson.id) ? '' : 'hidden'}>✓ ${esc(t('schFinished'))}</p></div>
+      <div class="row" style="gap:10px;flex-wrap:wrap"><button class="btn ghost" id="askVa">🎙️ ${esc(t('schAskVa'))}</button>
+        ${next ? `<a class="btn" href="#/school/${next.id}" style="margin-inline-start:auto">${esc(t('schNext'))} →</a>` : ''}</div>`;
+    document.querySelectorAll('.quiz').forEach(box => {
+      const q = lesson.quiz[+box.dataset.q];
+      box.querySelectorAll('.opt').forEach(b => b.onclick = () => {
+        const ok = +b.dataset.a === q.ok;
+        box.querySelectorAll('.opt').forEach(x => x.classList.remove('right', 'wrong'));
+        b.classList.add(ok ? 'right' : 'wrong');
+        const fb = box.querySelector('.fb'); fb.hidden = false;
+        fb.textContent = `${t(ok ? 'schRight' : 'schWrong')} ${q.why}`;
+        answers[box.dataset.q] = ok;
+        if (lesson.quiz.every((_, k) => answers[k])) { markDone(lesson.id); $('#finished').hidden = false; }
+      });
+    });
+    $('#askVa').onclick = () => openVoice();
+    scrollTo(0, 0);
+  }
+
+  // ------------------------------------------------------------ voice assistant
+  const SPEECH_LOCALE = { ru: 'ru-RU', kk: 'kk-KZ', en: 'en-US', zh: 'zh-CN', es: 'es-ES', ar: 'ar-SA', pt: 'pt-BR', id: 'id-ID', fr: 'fr-FR', ja: 'ja-JP', de: 'de-DE', tr: 'tr-TR', hi: 'hi-IN', ko: 'ko-KR' };
+  const speechLocale = () => SPEECH_LOCALE[S.lang] || 'en-US';
+  const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const VA = { chat: [], speak: true, busy: false, rec: null, listening: false };
+  try { VA.speak = localStorage.getItem('ec_va_speak') !== '0'; } catch { /* keep default */ }
+
+  function voiceFab() {
+    let fab = $('#vafab');
+    const show = S.me && S.me.user.role !== 'doctor' && !location.hash.startsWith('#/s/');
+    if (!show) { if (fab) fab.remove(); return; }
+    if (fab) { fab.setAttribute('aria-label', t('vaTitle')); fab.title = t('vaTitle'); return; }
+    fab = document.createElement('button');
+    fab.id = 'vafab'; fab.className = 'vafab no-print'; fab.type = 'button'; fab.textContent = '🎙️';
+    fab.setAttribute('aria-label', t('vaTitle')); fab.title = t('vaTitle');
+    fab.onclick = () => openVoice();
+    document.body.appendChild(fab);
+  }
+  function stopSpeaking() { try { window.speechSynthesis && speechSynthesis.cancel(); } catch { /* ignore */ } }
+  function speak(text) {
+    if (!VA.speak || !window.speechSynthesis) return;
+    stopSpeaking();
+    const u = new SpeechSynthesisUtterance(text.replace(/\*\*/g, '').replace(/^\s*[-•]\s*/gm, ''));
+    u.lang = speechLocale();
+    const voice = speechSynthesis.getVoices().find(v => v.lang && v.lang.toLowerCase().startsWith(S.lang));
+    if (voice) u.voice = voice;
+    speechSynthesis.speak(u);
+  }
+  // Offline answer: the best-matching Diabetes school lesson.
+  function schoolAnswer(q) {
+    // Rough stems (first 4 letters) so that "низком" matches "низкий", "carbs" matches "carbohydrates".
+    const stem = w => w.toLowerCase().replace(/[^\p{L}\p{N}]/gu, '').slice(0, 4);
+    const words = [...new Set(q.split(/\s+/).map(stem).filter(w => w.length >= 4))];
+    const hits = text => { const h = text.toLowerCase(); return words.reduce((a, w) => a + (h.includes(w) ? 1 : 0), 0); };
+    let best = null, bestScore = 0;
+    for (const l of SCH.lessons(S.lang)) {
+      const score = hits(SCH.text(l)) + 2 * hits(l.title + ' ' + l.summary);
+      if (score > bestScore) { best = l; bestScore = score; }
+    }
+    if (!best) return { text: t('vaNoMatch') };
+    // The two best-matching sections, each in full: cutting a list short could drop a safety threshold.
+    const secs = best.sections.map((x, i) => ({ x, i, score: 2 * hits(x.h) + hits([...(x.p || []), ...(x.list || [])].join(' ')) }))
+      .sort((a, b) => b.score - a.score || a.i - b.i).slice(0, 2).sort((a, b) => a.i - b.i).map(o => o.x);
+    const body = secs.map(sec => [(sec.p || []).join('\n\n'), (sec.list || []).map(x => '- ' + x).join('\n')].filter(Boolean).join('\n\n')).join('\n\n');
+    return { text: `${body}\n\n${t('vaMore', { t: best.title })}`, lesson: best.id };
+  }
+  function openVoice(prefill) {
+    let note = t('vaPrivacy');
+    modal(`<div class="row"><h2 style="margin:0">🎙️ ${esc(t('vaTitle'))}</h2><button class="iconbtn" data-close aria-label="${esc(t('vaClose'))}" style="margin-inline-start:auto">✕</button></div>
+      <p class="small muted">${esc(t('vaIntro'))}</p>
+      <div class="chat" id="vachat"></div><div class="chips" id="vachips"></div>
+      <div class="vamicwrap"><button type="button" class="vamic" id="vamic" aria-label="${esc(t('vaTap'))}">🎙️</button><div class="small muted" id="vastate"></div></div>
+      <form id="vaform" class="aiform"><input id="vain" maxlength="1000" autocomplete="off" placeholder="${esc(t('vaPlaceholder'))}" aria-label="${esc(t('vaPlaceholder'))}"><button class="btn" id="vasend">➤</button></form>
+      <div class="row small" style="margin-top:10px;gap:12px;flex-wrap:wrap"><label class="row" style="gap:6px;width:auto"><input type="checkbox" id="vaspeak" style="width:auto" ${VA.speak ? 'checked' : ''}> ${esc(t('vaSpeak'))}</label>
+        <button type="button" class="btn ghost sm" id="vastop">⏹ ${esc(t('vaStop'))}</button></div>
+      <p class="tiny muted" id="vanote" style="margin-bottom:0"></p>`, () => {
+      const mic = $('#vamic');
+      const draw = () => {
+        const chat = $('#vachat'); if (!chat) return;
+        chat.innerHTML = VA.chat.map(m => `<div class="msg ${m.role === 'user' ? 'u' : 'a'}${m.pending ? ' pending' : ''}">${m.role === 'user' ? esc(m.text) : aiMd(m.text)}${m.lesson ? `<div><a href="#/school/${esc(m.lesson)}" class="small">🎓 ${esc(t('navSchool'))} →</a></div>` : ''}</div>`).join('');
+        $('#vachips').innerHTML = VA.chat.length ? '' : t('vaChips').split('|').map(c => `<button type="button" class="chip">${esc(c)}</button>`).join('');
+        document.querySelectorAll('#vachips .chip').forEach(b => b.onclick = () => ask(b.textContent));
+        chat.querySelectorAll('a').forEach(a => a.onclick = () => { stopListening(); closeModal(); });
+        $('#vasend').disabled = VA.busy;
+        mic.classList.toggle('on', VA.listening);
+        $('#vastate').textContent = !Recognition ? t('vaNoMic') : VA.listening ? t('vaListening') : t('vaTap');
+        $('#vanote').textContent = note;
+        const last = chat.lastElementChild; if (last) last.scrollIntoView({ block: 'nearest' });
+      };
+      async function ask(q) {
+        q = String(q || '').trim();
+        if (!q || VA.busy) return;
+        const history = VA.chat.filter(m => !m.pending && !m.local).map(m => ({ role: m.role, text: m.text }));
+        VA.chat.push({ role: 'user', text: q });
+        const reply = { role: 'assistant', text: t('aiThinking'), pending: true };
+        VA.chat.push(reply); VA.busy = true; draw();
+        try {
+          const r = await api('POST', '/app/assistant', { question: q, history, lang: S.lang, tz: Intl.DateTimeFormat().resolvedOptions().timeZone });
+          if (r.mode === 'off') { Object.assign(reply, schoolAnswer(q), { local: true }); note = t('vaOffline'); }
+          else if (r.refusal || !r.text) { reply.text = t('aiRefusal'); reply.local = true; }
+          else { reply.text = r.text; note = t('vaPrivacy'); }
+        } catch (e) {
+          if (e.code === 'not_found') { Object.assign(reply, schoolAnswer(q)); note = t('vaOffline'); }
+          else reply.text = errText(e);
+          reply.local = true;
+        }
+        reply.pending = false; VA.busy = false;
+        speak(reply.text); draw();
+      }
+      function stopListening() { if (VA.rec) { try { VA.rec.stop(); } catch { /* already stopped */ } } }
+      mic.disabled = !Recognition;
+      mic.onclick = () => {
+        if (VA.listening) return stopListening();
+        stopSpeaking();
+        const rec = VA.rec = new Recognition();
+        rec.lang = speechLocale(); rec.interimResults = true; rec.continuous = false;
+        let heard = '';
+        rec.onresult = e => { heard = [...e.results].map(r => r[0].transcript).join(' '); const inp = $('#vain'); if (inp) inp.value = heard; };
+        rec.onerror = e => { if (e.error === 'not-allowed' || e.error === 'service-not-allowed') { note = t('vaMicDenied'); } };
+        rec.onend = () => { VA.listening = false; const inp = $('#vain'); if (heard.trim()) { if (inp) inp.value = ''; ask(heard); } else draw(); };
+        VA.listening = true; draw();
+        try { rec.start(); } catch { VA.listening = false; draw(); }
+      };
+      $('#vaform').onsubmit = e => { e.preventDefault(); const v = $('#vain').value; $('#vain').value = ''; ask(v); };
+      $('#vaspeak').onchange = e => { VA.speak = e.target.checked; try { localStorage.setItem('ec_va_speak', VA.speak ? '1' : '0'); } catch { /* ignore */ } if (!VA.speak) stopSpeaking(); };
+      $('#vastop').onclick = stopSpeaking;
+      $('#mbg').addEventListener('click', e => { if (e.target.id === 'mbg') { stopListening(); stopSpeaking(); } });
+      document.querySelectorAll('#modal [data-close]').forEach(b => b.addEventListener('click', () => { stopListening(); stopSpeaking(); }));
+      draw();
+      if (prefill) ask(prefill);
+    });
   }
 
   // ------------------------------------------------------------ share with doctor / family

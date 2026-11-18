@@ -238,6 +238,35 @@ th{color:var(--muted);font-weight:700;font-size:12px;text-transform:uppercase;le
 .aiform{display:flex;gap:8px;margin-top:10px}
 .aiform input{flex:1;min-width:0}
 .aiform .btn{padding:10px 18px}
+
+/* ---------- diabetes school ---------- */
+.progress{height:8px;border-radius:99px;background:var(--bg2);overflow:hidden;margin:8px 0 4px}
+.progress div{height:100%;background:var(--grad);border-radius:99px}
+.lessons{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(280px,1fr))}
+.lesson{display:flex;gap:14px;align-items:flex-start;text-decoration:none;color:var(--text);margin:0;transition:.15s}
+.lesson:hover{transform:translateY(-2px)}
+.lic{font-size:30px;line-height:1;width:52px;height:52px;display:grid;place-items:center;background:var(--accent-soft);border-radius:16px;flex:none}
+.okc{color:var(--in);font-weight:700}
+.lessonbody h2{margin-top:18px}.lessonbody h2:first-child{margin-top:0}
+.lessonbody p,.lessonbody li{line-height:1.6}
+.quiz{border-top:1px solid var(--line);padding-top:6px}.quiz:first-of-type{border-top:0}
+.opts{display:flex;flex-wrap:wrap;gap:8px}
+.opt{font:inherit;font-size:14px;border:1.5px solid var(--line);background:var(--card);color:var(--text);padding:9px 14px;border-radius:14px;cursor:pointer;text-align:start}
+.opt:hover{border-color:var(--accent)}
+.opt.right{border-color:var(--in);background:var(--in-soft)}
+.opt.wrong{border-color:var(--low);background:color-mix(in srgb,var(--low) 12%,var(--card))}
+
+/* ---------- voice assistant ---------- */
+.vafab{position:fixed;right:18px;bottom:calc(22px + env(safe-area-inset-bottom));z-index:25;width:58px;height:58px;border-radius:50%;border:0;background:var(--grad);font-size:26px;cursor:pointer;
+  box-shadow:0 10px 26px rgba(91,95,224,.4);transition:.15s}
+.vafab:hover{transform:scale(1.06)}
+@media (max-width:820px){.vafab{bottom:calc(104px + env(safe-area-inset-bottom));right:16px;width:54px;height:54px}}
+.vamicwrap{display:flex;flex-direction:column;align-items:center;gap:6px;margin:10px 0 4px;text-align:center}
+.vamic{width:76px;height:76px;border-radius:50%;border:0;background:var(--grad);font-size:32px;cursor:pointer;box-shadow:0 10px 26px rgba(91,95,224,.35)}
+.vamic:disabled{opacity:.45;cursor:default}
+.vamic.on{animation:vapulse 1.2s ease-in-out infinite;background:linear-gradient(135deg,#de4f8a,#e9a23b)}
+@keyframes vapulse{0%,100%{box-shadow:0 0 0 0 rgba(222,79,138,.45)}50%{box-shadow:0 0 0 16px rgba(222,79,138,0)}}
+@media (prefers-reduced-motion:reduce){.vamic.on{animation:none}}
 </style>
 </head>
 <body>
@@ -286,7 +315,17 @@ th{color:var(--muted);font-weight:700;font-size:12px;text-transform:uppercase;le
     consent: "I agree to the processing of my health data to provide this service. I can export or delete my data at any time.",
     logout: "Log out", loading: "Loading…",
     navHome: "Home", navDiary: "Diary", navReports: "Reports", navDoctor: "Doctor", navSettings: "Settings", navPatients: "Patients",
-    navAi: "AI analyst", navAiShort: "AI", aiIntro: "Looks at the last 14 days of glucose and the diary. It does not replace your doctor: discuss any dose changes with the endocrinologist.",
+    navAi: "AI analyst", navAiShort: "AI",
+    navSchool: "Diabetes school", navSchoolShort: "School",
+    schIntro: "Short lessons for families: read one at a time and check yourself with a mini quiz. The lessons do not replace your diabetes team's plan.",
+    schProgress: "Completed {n} of {total}", schMin: "{n} min", schDone: "Completed", schQuiz: "Check yourself", schRight: "Correct!", schWrong: "Not quite.",
+    schAllLessons: "All lessons", schNext: "Next lesson", schAskVa: "Ask the voice assistant", schFinished: "Lesson completed", schLangNote: "Lessons are shown in English for now.",
+    vaTitle: "Voice assistant", vaIntro: "Ask anything about diabetes — by voice or in writing.", vaTap: "Tap and speak", vaListening: "Listening… tap to stop",
+    vaPlaceholder: "Type a question", vaSpeak: "Read answers aloud", vaStop: "Stop reading", vaClose: "Close",
+    vaNoMic: "Voice input is not supported in this browser, so type your question. Chrome, Edge and Safari support it.", vaMicDenied: "No access to the microphone. Allow it in the browser settings.",
+    vaPrivacy: "Speech is recognised by your browser (in Chrome through Google). The question and a summary of your data are sent to Claude (Anthropic) for the answer.",
+    vaOffline: "The AI is not connected, so the answer comes from the Diabetes school.", vaNoMatch: "I could not find this in the Diabetes school. Try asking differently or open the lessons.",
+    vaMore: "More in the Diabetes school: \"{t}\".", vaChips: "What is a hypo?|How do I count carbs?|When should I check ketones?|How do I store insulin?", aiIntro: "Looks at the last 14 days of glucose and the diary. It does not replace your doctor: discuss any dose changes with the endocrinologist.",
     aiSeen: "What the data shows", aiAsk: "Ask the analyst", aiPlaceholder: "For example: why is glucose high in the morning?", aiSend: "Send", aiThinking: "Analysing the data…",
     aiChips: "Review the last 7 days|Why are there lows at night?|What should I ask the doctor?|How did sport days go?",
     aiPrivacy: "Your question and a summary of the last 14 days are sent to Claude (Anthropic) to prepare the answer.",
@@ -358,7 +397,17 @@ th{color:var(--muted);font-weight:700;font-size:12px;text-transform:uppercase;le
     consent: "Я согласен(на) на обработку данных о здоровье для работы сервиса. Я могу выгрузить или удалить свои данные в любой момент.",
     logout: "Выйти", loading: "Загрузка…",
     navHome: "Главная", navDiary: "Дневник", navReports: "Отчёты", navDoctor: "Врач", navSettings: "Настройки", navPatients: "Пациенты",
-    navAi: "ИИ-аналитик", navAiShort: "ИИ", aiIntro: "Разбирает график сахара и дневник за последние 14 дней. Не заменяет врача: изменения доз обсуждайте с эндокринологом.",
+    navAi: "ИИ-аналитик", navAiShort: "ИИ",
+    navSchool: "Школа диабета", navSchoolShort: "Школа",
+    schIntro: "Короткие уроки для семьи: читайте по одному и проверяйте себя мини-тестом. Уроки не заменяют план, который составил ваш врач.",
+    schProgress: "Пройдено {n} из {total}", schMin: "{n} мин", schDone: "Пройден", schQuiz: "Проверьте себя", schRight: "Верно!", schWrong: "Не совсем.",
+    schAllLessons: "Все уроки", schNext: "Следующий урок", schAskVa: "Спросить голосового помощника", schFinished: "Урок пройден", schLangNote: "Уроки пока на английском языке.",
+    vaTitle: "Голосовой помощник", vaIntro: "Спросите что угодно о диабете — голосом или текстом.", vaTap: "Нажмите и говорите", vaListening: "Слушаю… нажмите, чтобы закончить",
+    vaPlaceholder: "Напишите вопрос", vaSpeak: "Озвучивать ответы", vaStop: "Остановить озвучку", vaClose: "Закрыть",
+    vaNoMic: "Этот браузер не поддерживает голосовой ввод, поэтому напишите вопрос. Голос работает в Chrome, Edge и Safari.", vaMicDenied: "Нет доступа к микрофону. Разрешите его в настройках браузера.",
+    vaPrivacy: "Речь распознаёт браузер (в Chrome — через Google). Для ответа вопрос и сводка ваших данных отправляются в Claude (Anthropic).",
+    vaOffline: "ИИ не подключён, поэтому ответ взят из Школы диабета.", vaNoMatch: "Я не нашёл это в Школе диабета. Спросите иначе или откройте уроки.",
+    vaMore: "Подробнее — в Школе диабета: «{t}».", vaChips: "Что такое гипо?|Как считать углеводы?|Когда проверять кетоны?|Как хранить инсулин?", aiIntro: "Разбирает график сахара и дневник за последние 14 дней. Не заменяет врача: изменения доз обсуждайте с эндокринологом.",
     aiSeen: "Что видно в данных", aiAsk: "Спросите аналитика", aiPlaceholder: "Например: почему утром высокий сахар?", aiSend: "Отправить", aiThinking: "Анализирую данные…",
     aiChips: "Разбери последние 7 дней|Почему бывают ночные гипо?|Что спросить у врача на приёме?|Как прошли дни со спортом?",
     aiPrivacy: "Для ответа вопрос и сводка данных за 14 дней отправляются в Claude (Anthropic).",
@@ -430,7 +479,17 @@ th{color:var(--muted);font-weight:700;font-size:12px;text-transform:uppercase;le
     consent: "Қызмет көрсету үшін денсаулық деректерімнің өңделуіне келісемін. Деректерімді кез келген уақытта жүктеп алып не жоя аламын.",
     logout: "Шығу", loading: "Жүктелуде…",
     navHome: "Басты", navDiary: "Күнделік", navReports: "Есептер", navDoctor: "Дәрігер", navSettings: "Баптаулар", navPatients: "Пациенттер",
-    navAi: "ЖИ-талдаушы", navAiShort: "ЖИ", aiIntro: "Соңғы 14 күндегі қант графигі мен күнделікті талдайды. Дәрігерді алмастырмайды: дозаны өзгертуді эндокринологпен талқылаңыз.",
+    navAi: "ЖИ-талдаушы", navAiShort: "ЖИ",
+    navSchool: "Диабет мектебі", navSchoolShort: "Мектеп",
+    schIntro: "Отбасына арналған қысқа сабақтар: біреуден оқып, шағын тестпен өзіңізді тексеріңіз. Сабақтар дәрігеріңіздің жоспарын алмастырмайды.",
+    schProgress: "{total} сабақтың {n} өтілді", schMin: "{n} мин", schDone: "Өтілді", schQuiz: "Өзіңізді тексеріңіз", schRight: "Дұрыс!", schWrong: "Толық емес.",
+    schAllLessons: "Барлық сабақтар", schNext: "Келесі сабақ", schAskVa: "Дауыстық көмекшіден сұрау", schFinished: "Сабақ өтілді", schLangNote: "Сабақтар әзірге орыс тілінде.",
+    vaTitle: "Дауыстық көмекші", vaIntro: "Диабет туралы кез келген сұрақты дауыспен немесе мәтінмен қойыңыз.", vaTap: "Басып, сөйлеңіз", vaListening: "Тыңдап тұрмын… аяқтау үшін басыңыз",
+    vaPlaceholder: "Сұрақ жазыңыз", vaSpeak: "Жауаптарды дауыстап оқу", vaStop: "Оқуды тоқтату", vaClose: "Жабу",
+    vaNoMic: "Бұл браузер дауыспен енгізуді қолдамайды, сұрақты жазыңыз. Дауыс Chrome, Edge және Safari-де жұмыс істейді.", vaMicDenied: "Микрофонға рұқсат жоқ. Оны браузер баптауларында рұқсат етіңіз.",
+    vaPrivacy: "Сөзді браузер таниды (Chrome-да Google арқылы). Жауап үшін сұрақ пен деректеріңіздің қорытындысы Claude (Anthropic) жүйесіне жіберіледі.",
+    vaOffline: "ЖИ қосылмаған, сондықтан жауап Диабет мектебінен алынды.", vaNoMatch: "Мұны Диабет мектебінен таба алмадым. Басқаша сұраңыз немесе сабақтарды ашыңыз.",
+    vaMore: "Толығырақ — Диабет мектебінде: «{t}».", vaChips: "Гипо деген не?|Көмірсуларды қалай санау керек?|Кетондарды қашан тексеру керек?|Инсулинді қалай сақтау керек?", aiIntro: "Соңғы 14 күндегі қант графигі мен күнделікті талдайды. Дәрігерді алмастырмайды: дозаны өзгертуді эндокринологпен талқылаңыз.",
     aiSeen: "Деректерде не көрінеді", aiAsk: "Талдаушыдан сұраңыз", aiPlaceholder: "Мысалы: неге таңертең қант жоғары?", aiSend: "Жіберу", aiThinking: "Деректерді талдап жатырмын…",
     aiChips: "Соңғы 7 күнді талда|Түнде неге гипо болады?|Дәрігерден не сұрау керек?|Спорт күндері қалай өтті?",
     aiPrivacy: "Жауап дайындау үшін сұрағыңыз бен 14 күндік деректер қорытындысы Claude (Anthropic) жүйесіне жіберіледі.",
@@ -1360,6 +1419,308 @@ th{color:var(--muted);font-weight:700;font-size:12px;text-transform:uppercase;le
   window.Charts = { MMOL, fmtG, unitLabel, color, stats, ARROWS, line, agp, dailyBars, tirBlock, esc };
 })();
 </script>
+<script>'use strict';
+/* "Diabetes school": short lessons with a mini quiz. Russian and English; other languages
+   fall back to Russian (Kazakh) or English. Figures follow ISPAD / ADA consensus guidance.
+   Lesson ids are shared across languages: progress is stored per id. */
+(function () {
+  const ru = [
+    {
+      id: 'basics', icon: '🌱', min: 4,
+      title: 'Что такое диабет 1 типа',
+      summary: 'Почему не хватает инсулина и почему в этом никто не виноват.',
+      sections: [
+        { h: 'Что происходит в организме', p: ['Поджелудочная железа вырабатывает инсулин — гормон, который помогает глюкозе из еды попасть в клетки и дать им энергию.', 'При диабете 1 типа иммунная система по ошибке разрушает клетки, производящие инсулин. Без инсулина глюкоза остаётся в крови, и сахар крови растёт.'] },
+        { h: 'Чем он не вызван', list: ['Диабет 1 типа не возникает из-за сладкого или «неправильного» питания.', 'Им нельзя заразиться.', 'Родители не виноваты: это аутоиммунное заболевание.'] },
+        { h: 'Что это значит для жизни', p: ['Инсулин нужно вводить каждый день — уколами или помпой. Таблетки при 1 типе инсулин не заменяют.', 'С хорошим контролем дети и взрослые с диабетом учатся, занимаются спортом, путешествуют и живут полной жизнью.'] },
+      ],
+      quiz: [
+        { q: 'Почему при диабете 1 типа растёт сахар крови?', a: ['Человек ест много сладкого', 'Организм почти не вырабатывает инсулин', 'Не хватает витаминов'], ok: 1, why: 'Иммунная система разрушает клетки, которые производят инсулин.' },
+        { q: 'Можно ли лечить диабет 1 типа только таблетками?', a: ['Да', 'Нет, нужен инсулин'], ok: 1, why: 'При 1 типе инсулин жизненно необходим каждый день.' },
+      ],
+    },
+    {
+      id: 'targets', icon: '🎯', min: 5,
+      title: 'Сахар крови и цели',
+      summary: 'Ммоль/л и мг/дл, целевой диапазон, время в диапазоне и HbA1c.',
+      sections: [
+        { h: 'Единицы', p: ['Сахар измеряют в ммоль/л или мг/дл. 1 ммоль/л ≈ 18 мг/дл: 5,5 ммоль/л = 100 мг/дл, 10 ммоль/л = 180 мг/дл.'] },
+        { h: 'Целевой диапазон', list: ['Обычная цель — 3,9–10,0 ммоль/л (70–180 мг/дл). Личные цели назначает врач.', 'Время в диапазоне (TIR) — больше 70% суток.', 'Ниже 3,9 ммоль/л — меньше 4% времени, ниже 3,0 ммоль/л — меньше 1%.', 'Выше 10,0 ммоль/л — меньше 25% времени.'] },
+        { h: 'HbA1c и GMI', p: ['Гликированный гемоглобин (HbA1c) показывает средний сахар за 2–3 месяца. Частая цель для детей и взрослых — 7% и ниже.', 'GMI в отчётах приложения — оценка HbA1c по данным датчика. Она может отличаться от анализа крови.'] },
+      ],
+      quiz: [
+        { q: 'Какая обычная цель времени в диапазоне?', a: ['Больше 50%', 'Больше 70%', '100%'], ok: 1, why: 'Международный консенсус: TIR больше 70%, при этом гипо меньше 4%.' },
+        { q: '10 ммоль/л — это примерно сколько мг/дл?', a: ['100', '180', '250'], ok: 1, why: '10 × 18 = 180 мг/дл.' },
+      ],
+    },
+    {
+      id: 'cgm', icon: '📡', min: 4,
+      title: 'Датчики глюкозы (CGM)',
+      summary: 'Как работает датчик, стрелки тренда и когда проверять глюкометром.',
+      sections: [
+        { h: 'Как это работает', p: ['Датчик измеряет глюкозу в межклеточной жидкости под кожей каждые 1–5 минут. Она отстаёт от крови примерно на 5–15 минут, особенно когда сахар быстро меняется.'] },
+        { h: 'Стрелки тренда', list: ['→ сахар стабилен.', '↗ или ↘ меняется примерно на 0,06–0,1 ммоль/л в минуту.', '↑ или ↓ быстро растёт или падает: будьте внимательны.'] },
+        { h: 'Когда проверить глюкометром', list: ['Самочувствие не совпадает с показаниями датчика.', 'В первые сутки после установки нового датчика.', 'Перед важным решением о лечении гипо или коррекции, если так советует врач.'] },
+        { h: 'Сигналы', p: ['Настройте сигналы низкого и высокого сахара в приложении датчика. Ночные сигналы особенно важны для детей.'] },
+      ],
+      quiz: [
+        { q: 'Почему датчик может показывать не то же, что глюкометр?', a: ['Датчик сломан', 'Датчик отстаёт от крови на 5–15 минут', 'Глюкометр всегда ошибается'], ok: 1, why: 'Датчик измеряет межклеточную жидкость, она отстаёт от крови.' },
+        { q: 'Что значит стрелка ↓?', a: ['Сахар быстро падает', 'Сахар стабилен', 'Датчик разряжен'], ok: 0, why: 'Двойная или прямая стрелка вниз — быстрое падение.' },
+      ],
+    },
+    {
+      id: 'insulin', icon: '💉', min: 6,
+      title: 'Инсулин',
+      summary: 'Базальный и болюсный инсулин, места уколов и хранение.',
+      sections: [
+        { h: 'Два вида инсулина', list: ['Базальный (длинный) работает весь день и держит сахар между едой и ночью.', 'Болюсный (короткий или ультракороткий) вводят на еду и для коррекции высокого сахара.', 'Помпа подаёт ультракороткий инсулин и как базальный, и как болюс.'] },
+        { h: 'Когда вводить на еду', p: ['Ультракороткий инсулин обычно вводят за 10–15 минут до еды. Точное время и дозы назначает врач — не меняйте их самостоятельно.'] },
+        { h: 'Места уколов', p: ['Живот, бёдра, ягодицы, плечи. Меняйте место каждый раз: в одном месте появляются уплотнения (липогипертрофия), из которых инсулин всасывается непредсказуемо.'] },
+        { h: 'Хранение', list: ['Запас — в холодильнике при 2–8 °C, не в морозилке.', 'Начатую ручку можно хранить при комнатной температуре до 4 недель (смотрите инструкцию).', 'Не оставляйте инсулин на солнце, в машине или у батареи. Замёрзший или мутный (если должен быть прозрачным) — не используйте.'] },
+      ],
+      quiz: [
+        { q: 'Зачем менять места уколов?', a: ['Чтобы не было уплотнений и инсулин работал предсказуемо', 'Так меньше расход инсулина', 'Это не нужно'], ok: 0, why: 'Липогипертрофия нарушает всасывание инсулина.' },
+        { q: 'Где хранить запас инсулина?', a: ['В морозилке', 'В холодильнике при 2–8 °C', 'На подоконнике'], ok: 1, why: 'Замороженный инсулин теряет активность.' },
+      ],
+    },
+    {
+      id: 'carbs', icon: '🍞', min: 5,
+      title: 'Углеводы и хлебные единицы',
+      summary: 'Что сильнее всего повышает сахар и как считать углеводы.',
+      sections: [
+        { h: 'Что повышает сахар', p: ['Сильнее всего сахар повышают углеводы: хлеб, крупы, картофель, фрукты, сладости, сладкие напитки, молоко. Белки и жиры влияют меньше и позже, но жирная еда может поднять сахар через 3–5 часов.'] },
+        { h: 'Как считать', list: ['Смотрите на упаковке «углеводы на 100 г» и пересчитайте на свою порцию.', '1 хлебная единица (ХЕ) = 10–12 г углеводов (уточните у врача, какую считаете вы).', 'Кухонные весы и таблицы ХЕ помогают в первые месяцы.', 'Записывайте углеводы в дневник приложения: так врач увидит связь еды и сахара.'] },
+        { h: 'Быстрые и медленные', p: ['Сок, сладкие напитки и белый хлеб поднимают сахар быстро. Цельнозерновые продукты и овощи — медленнее. Быстрые углеводы нужны для лечения гипогликемии.'] },
+      ],
+      quiz: [
+        { q: 'Сколько граммов углеводов в 1 ХЕ?', a: ['1–2 г', '10–12 г', '50 г'], ok: 1, why: 'Обычно 1 ХЕ = 10 или 12 г углеводов.' },
+        { q: 'Что быстрее поднимет сахар?', a: ['Сок', 'Кусок сыра', 'Огурец'], ok: 0, why: 'В соке быстрые углеводы.' },
+      ],
+    },
+    {
+      id: 'hypo', icon: '🍬', min: 6,
+      title: 'Гипогликемия (низкий сахар)',
+      summary: 'Признаки, правило 15 и что делать при тяжёлой гипо.',
+      sections: [
+        { h: 'Что это', p: ['Гипогликемия — сахар ниже 3,9 ммоль/л (70 мг/дл). Ниже 3,0 ммоль/л — значимая гипо, её нужно лечить сразу.'] },
+        { h: 'Признаки', list: ['Дрожь, потливость, бледность, голод, сердцебиение.', 'Раздражительность, плач, странное поведение у детей.', 'Слабость, головокружение, спутанность, нечёткая речь.', 'Ночью: кошмары, мокрая от пота подушка, утренняя головная боль.'] },
+        { h: 'Правило 15', list: ['Дайте 15 г быстрых углеводов: 150 мл сока, 3–4 таблетки глюкозы или 1 столовую ложку сахара в воде. Детям — по плану врача (часто 0,3 г на кг веса).', 'Через 15 минут проверьте сахар.', 'Если он всё ещё ниже 3,9 ммоль/л — повторите.', 'Когда сахар выше 3,9 и до еды далеко — съешьте медленные углеводы (хлеб, печенье).'] },
+        { h: 'Тяжёлая гипогликемия', p: ['Если человек без сознания, у него судороги или он не может глотать: ничего не давайте в рот, уложите на бок, введите глюкагон (укол или назальный спрей, если есть) и вызовите скорую — 103 или 112.', 'Глюкагон должен быть всегда под рукой, а близкие и учителя — знать, как его применять.'] },
+      ],
+      quiz: [
+        { q: 'Сахар 3,2 ммоль/л. Что делать сначала?', a: ['Ввести инсулин', 'Дать 15 г быстрых углеводов', 'Подождать час'], ok: 1, why: 'Сначала быстрые углеводы, через 15 минут — проверить сахар.' },
+        { q: 'Человек без сознания при гипо. Что нельзя делать?', a: ['Вызывать скорую', 'Вливать сок в рот', 'Вводить глюкагон'], ok: 1, why: 'Без сознания он может захлебнуться: только глюкагон и скорая.' },
+      ],
+    },
+    {
+      id: 'hyper', icon: '🔥', min: 6,
+      title: 'Высокий сахар и кетоны',
+      summary: 'Когда проверять кетоны и как распознать кетоацидоз.',
+      sections: [
+        { h: 'Почему сахар высокий', list: ['Пропущен или недостаточен инсулин, перебит учёт углеводов.', 'Болезнь, стресс, гормоны, рост.', 'Помпа: перегиб или выпадение катетера, испорченный инсулин.'] },
+        { h: 'Когда проверять кетоны', p: ['Если сахар выше 13,9 ммоль/л (250 мг/дл) больше 1–2 часов, при болезни, тошноте или рвоте. Кетоны в крови:'], list: ['ниже 0,6 ммоль/л — норма;', '0,6–1,5 — повышены: действуйте по плану врача, пейте воду;', '1,5–3,0 — высокий риск: срочно свяжитесь с врачом;', 'выше 3,0 — опасно, нужна неотложная помощь.'] },
+        { h: 'Признаки кетоацидоза (ДКА)', p: ['Тошнота, рвота, боль в животе, запах ацетона изо рта, глубокое частое дыхание, сонливость. Это угрожает жизни: вызывайте скорую 103 или 112.'] },
+      ],
+      quiz: [
+        { q: 'Сахар 15 ммоль/л уже 2 часа. Что проверить?', a: ['Кетоны', 'Давление', 'Ничего'], ok: 0, why: 'При сахаре выше 13,9 больше 1–2 часов проверяют кетоны.' },
+        { q: 'Кетоны крови 3,5 ммоль/л и рвота. Что делать?', a: ['Лечь спать', 'Срочно обратиться за неотложной помощью', 'Выпить сок'], ok: 1, why: 'Это признаки кетоацидоза — нужна скорая.' },
+      ],
+    },
+    {
+      id: 'sport', icon: '⚽', min: 4,
+      title: 'Спорт и активность',
+      summary: 'Как заниматься спортом без гипо.',
+      sections: [
+        { h: 'Перед тренировкой', list: ['Проверьте сахар. Если он ниже 5–7 ммоль/л — съешьте 10–20 г углеводов (уточните цифры с врачом).', 'Если сахар высокий и есть кетоны — тренировку отложите.', 'Возьмите с собой быстрые углеводы и глюкометр.'] },
+        { h: 'Во время и после', p: ['Длительная нагрузка снижает сахар. После спорта он может упасть позже — через несколько часов и даже ночью. Смотрите на график и сигналы датчика вечером.', 'Интенсивные короткие нагрузки (спринт, соревнования) иногда временно поднимают сахар.'] },
+      ],
+      quiz: [
+        { q: 'Когда после футбола может случиться гипо?', a: ['Только во время игры', 'Через несколько часов и даже ночью', 'Никогда'], ok: 1, why: 'Отсроченная гипогликемия бывает до 24 часов после нагрузки.' },
+        { q: 'Сахар высокий и кетоны повышены. Тренироваться?', a: ['Да, сахар снизится', 'Нет, отложить'], ok: 1, why: 'Нагрузка при кетонах может ухудшить состояние.' },
+      ],
+    },
+    {
+      id: 'sick', icon: '🤒', min: 4,
+      title: 'Дни болезни',
+      summary: 'Простуда, температура, рвота: правила на время болезни.',
+      sections: [
+        { h: 'Главные правила', list: ['Никогда не отменяйте базальный инсулин, даже если человек не ест.', 'Проверяйте сахар каждые 2–4 часа, а кетоны — при сахаре выше 13,9 ммоль/л.', 'Пейте больше жидкости: воду, а при низком сахаре — напитки с сахаром.', 'Дозы на время болезни меняют по плану врача.'] },
+        { h: 'Когда срочно к врачу', list: ['Рвота больше одного раза или ребёнок не может пить.', 'Кетоны крови выше 1,5 ммоль/л или растут.', 'Боль в животе, тяжёлое дыхание, сонливость.', 'Сахар не снижается или повторяются гипо.'] },
+      ],
+      quiz: [
+        { q: 'Ребёнок заболел и не ест. Базальный инсулин…', a: ['отменить', 'продолжать, дозу обсудить с врачом'], ok: 1, why: 'Без базального инсулина быстро растут кетоны.' },
+        { q: 'Как часто проверять сахар при болезни?', a: ['Раз в день', 'Каждые 2–4 часа'], ok: 1, why: 'Болезнь быстро меняет потребность в инсулине.' },
+      ],
+    },
+    {
+      id: 'life', icon: '🎒', min: 5,
+      title: 'Школа, поездки и поддержка',
+      summary: 'Детский сад и школа, путешествия, эмоции и выгорание.',
+      sections: [
+        { h: 'Школа и детский сад', list: ['Составьте с врачом письменный план: цели сахара, как лечить гипо, кому звонить.', 'Учитель и медсестра должны знать признаки гипо и где лежат быстрые углеводы и глюкагон.', 'Ребёнку можно есть и проверять сахар на уроке — это не нарушение.', 'Доступ к графику в приложении поможет родителям видеть сахар удалённо.'] },
+        { h: 'Поездки', list: ['Инсулин и расходники — в ручную кладь, с двойным запасом.', 'Возьмите справку от врача на английском для перелётов.', 'При смене часовых поясов заранее обсудите с врачом время базального инсулина.'] },
+        { h: 'Эмоции', p: ['Диабет — это много ежедневных решений. Усталость, злость и «выгорание» бывают у детей и родителей. Говорите о них с врачом и психологом, найдите сообщество семей с диабетом.'] },
+      ],
+      quiz: [
+        { q: 'Где везти инсулин в самолёте?', a: ['В багаже', 'В ручной клади'], ok: 1, why: 'В багажном отсеке инсулин может замёрзнуть или потеряться.' },
+        { q: 'Кто в школе должен знать признаки гипо?', a: ['Только ребёнок', 'Учитель и школьная медсестра'], ok: 1, why: 'Ребёнок при гипо может не суметь помочь себе сам.' },
+      ],
+    },
+  ];
+
+  const en = [
+    {
+      id: 'basics', icon: '🌱', min: 4,
+      title: 'What type 1 diabetes is',
+      summary: 'Why insulin runs short, and why nobody is to blame.',
+      sections: [
+        { h: 'What happens in the body', p: ['The pancreas makes insulin, a hormone that lets glucose from food enter the cells and give them energy.', 'In type 1 diabetes the immune system destroys the insulin-making cells by mistake. Without insulin, glucose stays in the blood and blood glucose rises.'] },
+        { h: 'What does not cause it', list: ['Type 1 diabetes is not caused by sweets or a "wrong" diet.', 'It is not contagious.', 'Parents are not to blame: it is an autoimmune disease.'] },
+        { h: 'What it means for life', p: ['Insulin is needed every day, by injections or a pump. In type 1, tablets do not replace insulin.', 'With good management, children and adults with diabetes study, play sports, travel and live full lives.'] },
+      ],
+      quiz: [
+        { q: 'Why does blood glucose rise in type 1 diabetes?', a: ['Eating too many sweets', 'The body makes almost no insulin', 'A lack of vitamins'], ok: 1, why: 'The immune system destroys the insulin-making cells.' },
+        { q: 'Can type 1 diabetes be treated with tablets alone?', a: ['Yes', 'No, insulin is needed'], ok: 1, why: 'In type 1, insulin is vital every day.' },
+      ],
+    },
+    {
+      id: 'targets', icon: '🎯', min: 5,
+      title: 'Glucose and targets',
+      summary: 'mmol/L and mg/dL, target range, time in range and HbA1c.',
+      sections: [
+        { h: 'Units', p: ['Glucose is measured in mmol/L or mg/dL. 1 mmol/L ≈ 18 mg/dL: 5.5 mmol/L = 100 mg/dL, 10 mmol/L = 180 mg/dL.'] },
+        { h: 'Target range', list: ['The usual target is 3.9–10.0 mmol/L (70–180 mg/dL). Your doctor sets personal targets.', 'Time in range (TIR): more than 70% of the day.', 'Below 3.9 mmol/L: less than 4% of the time; below 3.0 mmol/L: less than 1%.', 'Above 10.0 mmol/L: less than 25% of the time.'] },
+        { h: 'HbA1c and GMI', p: ['HbA1c shows average glucose over 2–3 months. A common target for children and adults is 7% or lower.', 'GMI in the app reports estimates HbA1c from sensor data. It may differ from the lab test.'] },
+      ],
+      quiz: [
+        { q: 'What is the usual time-in-range goal?', a: ['More than 50%', 'More than 70%', '100%'], ok: 1, why: 'International consensus: TIR above 70% with lows under 4%.' },
+        { q: 'About how many mg/dL is 10 mmol/L?', a: ['100', '180', '250'], ok: 1, why: '10 × 18 = 180 mg/dL.' },
+      ],
+    },
+    {
+      id: 'cgm', icon: '📡', min: 4,
+      title: 'Glucose sensors (CGM)',
+      summary: 'How a sensor works, trend arrows and when to check with a meter.',
+      sections: [
+        { h: 'How it works', p: ['The sensor measures glucose in the fluid under the skin every 1–5 minutes. It lags blood by about 5–15 minutes, especially when glucose changes fast.'] },
+        { h: 'Trend arrows', list: ['→ glucose is steady.', '↗ or ↘ changing by about 1–2 mg/dL per minute.', '↑ or ↓ rising or falling fast: pay attention.'] },
+        { h: 'When to use a meter', list: ['How you feel does not match the sensor.', 'During the first day of a new sensor.', 'Before an important treatment decision, if your doctor advises it.'] },
+        { h: 'Alarms', p: ['Set low and high alarms in the sensor app. Night alarms matter most for children.'] },
+      ],
+      quiz: [
+        { q: 'Why may the sensor differ from the meter?', a: ['The sensor is broken', 'The sensor lags blood by 5–15 minutes', 'Meters are always wrong'], ok: 1, why: 'The sensor reads fluid under the skin, which lags blood.' },
+        { q: 'What does ↓ mean?', a: ['Glucose is falling fast', 'Glucose is steady', 'The sensor battery is low'], ok: 0, why: 'A straight or double down arrow means a fast fall.' },
+      ],
+    },
+    {
+      id: 'insulin', icon: '💉', min: 6,
+      title: 'Insulin',
+      summary: 'Basal and bolus insulin, injection sites and storage.',
+      sections: [
+        { h: 'Two kinds of insulin', list: ['Basal (long-acting) works all day and holds glucose between meals and at night.', 'Bolus (rapid-acting) is taken for meals and to correct high glucose.', 'A pump delivers rapid-acting insulin both as basal and as boluses.'] },
+        { h: 'When to inject for meals', p: ['Rapid-acting insulin is usually given 10–15 minutes before eating. Your doctor sets the timing and doses — do not change them on your own.'] },
+        { h: 'Injection sites', p: ['Belly, thighs, buttocks, upper arms. Rotate every time: injecting in one spot causes lumps (lipohypertrophy) that absorb insulin unpredictably.'] },
+        { h: 'Storage', list: ['Keep spare insulin in the fridge at 2–8 °C, never in the freezer.', 'An opened pen can stay at room temperature for up to 4 weeks (check the leaflet).', 'Keep insulin out of the sun, hot cars and away from heaters. Do not use it if it froze or turned cloudy when it should be clear.'] },
+      ],
+      quiz: [
+        { q: 'Why rotate injection sites?', a: ['To avoid lumps so insulin works predictably', 'To use less insulin', 'There is no need'], ok: 0, why: 'Lipohypertrophy disturbs insulin absorption.' },
+        { q: 'Where should spare insulin be stored?', a: ['In the freezer', 'In the fridge at 2–8 °C', 'On a windowsill'], ok: 1, why: 'Frozen insulin loses its effect.' },
+      ],
+    },
+    {
+      id: 'carbs', icon: '🍞', min: 5,
+      title: 'Carbohydrates and carb counting',
+      summary: 'What raises glucose most and how to count carbs.',
+      sections: [
+        { h: 'What raises glucose', p: ['Carbohydrates raise glucose most: bread, grains, potatoes, fruit, sweets, sugary drinks, milk. Protein and fat matter less and later, but a fatty meal can raise glucose 3–5 hours afterwards.'] },
+        { h: 'How to count', list: ['Read "carbohydrate per 100 g" on the label and scale it to your portion.', 'Some countries use bread units: 1 unit = 10–12 g of carbs.', 'Kitchen scales and carb tables help in the first months.', 'Log carbs in the app diary so the doctor can see how food affects glucose.'] },
+        { h: 'Fast and slow', p: ['Juice, sugary drinks and white bread raise glucose fast. Whole grains and vegetables act slower. Fast carbs are what you need to treat a low.'] },
+      ],
+      quiz: [
+        { q: 'How many grams of carbs are in 1 bread unit?', a: ['1–2 g', '10–12 g', '50 g'], ok: 1, why: 'One bread unit is usually 10 or 12 g of carbs.' },
+        { q: 'What raises glucose faster?', a: ['Juice', 'A piece of cheese', 'A cucumber'], ok: 0, why: 'Juice contains fast carbs.' },
+      ],
+    },
+    {
+      id: 'hypo', icon: '🍬', min: 6,
+      title: 'Hypoglycaemia (low glucose)',
+      summary: 'Signs, the rule of 15 and what to do in a severe low.',
+      sections: [
+        { h: 'What it is', p: ['Hypoglycaemia is glucose below 3.9 mmol/L (70 mg/dL). Below 3.0 mmol/L (54 mg/dL) is a significant low that must be treated at once.'] },
+        { h: 'Signs', list: ['Shaking, sweating, pale skin, hunger, a racing heart.', 'Irritability, crying or odd behaviour in children.', 'Weakness, dizziness, confusion, slurred speech.', 'At night: nightmares, a sweaty pillow, a headache in the morning.'] },
+        { h: 'The rule of 15', list: ['Take 15 g of fast carbs: 150 ml of juice, 3–4 glucose tablets or a tablespoon of sugar in water. For children follow the doctor\'s plan (often 0.3 g per kg).', 'Check glucose after 15 minutes.', 'If it is still below 3.9 mmol/L, repeat.', 'Once above 3.9 and the next meal is far off, eat slow carbs (bread, crackers).'] },
+        { h: 'Severe hypoglycaemia', p: ['If the person is unconscious, having a seizure or cannot swallow: give nothing by mouth, turn them on their side, give glucagon (injection or nasal spray, if available) and call emergency services.', 'Keep glucagon at hand, and make sure family and teachers know how to use it.'] },
+      ],
+      quiz: [
+        { q: 'Glucose is 3.2 mmol/L. What comes first?', a: ['Inject insulin', 'Take 15 g of fast carbs', 'Wait an hour'], ok: 1, why: 'Fast carbs first, then check again after 15 minutes.' },
+        { q: 'Someone is unconscious from a low. What must you not do?', a: ['Call an ambulance', 'Pour juice into their mouth', 'Give glucagon'], ok: 1, why: 'They could choke: only glucagon and emergency help.' },
+      ],
+    },
+    {
+      id: 'hyper', icon: '🔥', min: 6,
+      title: 'High glucose and ketones',
+      summary: 'When to check ketones and how to spot DKA.',
+      sections: [
+        { h: 'Why glucose runs high', list: ['Missed or too little insulin, carbs miscounted.', 'Illness, stress, hormones, growth.', 'Pump: a kinked or dislodged cannula, spoiled insulin.'] },
+        { h: 'When to check ketones', p: ['When glucose stays above 13.9 mmol/L (250 mg/dL) for more than 1–2 hours, and during illness, nausea or vomiting. Blood ketones:'], list: ['below 0.6 mmol/L — normal;', '0.6–1.5 — raised: follow your doctor\'s plan, drink water;', '1.5–3.0 — high risk: contact your doctor now;', 'above 3.0 — dangerous, needs emergency care.'] },
+        { h: 'Signs of DKA', p: ['Nausea, vomiting, stomach pain, fruity breath, deep fast breathing, drowsiness. This is life-threatening: call emergency services.'] },
+      ],
+      quiz: [
+        { q: 'Glucose has been 15 mmol/L for 2 hours. What to check?', a: ['Ketones', 'Blood pressure', 'Nothing'], ok: 0, why: 'Check ketones when glucose stays above 13.9 for 1–2 hours.' },
+        { q: 'Blood ketones are 3.5 mmol/L with vomiting. What to do?', a: ['Go to sleep', 'Get emergency care now', 'Drink juice'], ok: 1, why: 'These are signs of DKA — call an ambulance.' },
+      ],
+    },
+    {
+      id: 'sport', icon: '⚽', min: 4,
+      title: 'Sport and activity',
+      summary: 'How to be active without lows.',
+      sections: [
+        { h: 'Before exercise', list: ['Check glucose. If it is below 5–7 mmol/L (90–125 mg/dL), eat 10–20 g of carbs (confirm numbers with your doctor).', 'If glucose is high and ketones are present, postpone exercise.', 'Carry fast carbs and a meter.'] },
+        { h: 'During and after', p: ['Long activity lowers glucose. It can drop later too — hours afterwards and even at night. Watch the chart and sensor alarms in the evening.', 'Short intense efforts (sprints, competitions) sometimes raise glucose for a while.'] },
+      ],
+      quiz: [
+        { q: 'When can a low happen after football?', a: ['Only during the game', 'Hours later and even at night', 'Never'], ok: 1, why: 'Delayed lows can occur up to 24 hours after exercise.' },
+        { q: 'Glucose is high and ketones are raised. Exercise?', a: ['Yes, glucose will fall', 'No, postpone'], ok: 1, why: 'Exercise with ketones can make things worse.' },
+      ],
+    },
+    {
+      id: 'sick', icon: '🤒', min: 4,
+      title: 'Sick days',
+      summary: 'Colds, fever, vomiting: rules for days of illness.',
+      sections: [
+        { h: 'Key rules', list: ['Never stop basal insulin, even if not eating.', 'Check glucose every 2–4 hours, and ketones when glucose is above 13.9 mmol/L.', 'Drink plenty: water, or sugary drinks if glucose is low.', 'Doses for sick days follow your doctor\'s plan.'] },
+        { h: 'Get help urgently when', list: ['Vomiting more than once, or a child cannot drink.', 'Blood ketones above 1.5 mmol/L or rising.', 'Stomach pain, laboured breathing, drowsiness.', 'Glucose will not come down, or lows keep happening.'] },
+      ],
+      quiz: [
+        { q: 'A child is ill and not eating. Basal insulin should be…', a: ['stopped', 'continued, with the dose discussed with the doctor'], ok: 1, why: 'Without basal insulin ketones rise quickly.' },
+        { q: 'How often to check glucose when ill?', a: ['Once a day', 'Every 2–4 hours'], ok: 1, why: 'Illness changes insulin needs fast.' },
+      ],
+    },
+    {
+      id: 'life', icon: '🎒', min: 5,
+      title: 'School, travel and support',
+      summary: 'Nursery and school, travel, emotions and burnout.',
+      sections: [
+        { h: 'School and nursery', list: ['Make a written plan with your doctor: glucose targets, how to treat lows, whom to call.', 'Teachers and the school nurse should know the signs of a low and where fast carbs and glucagon are kept.', 'A child may eat and check glucose in class — that is not breaking the rules.', 'Sharing the chart from this app lets parents follow glucose remotely.'] },
+        { h: 'Travel', list: ['Carry insulin and supplies in hand luggage, with twice what you need.', 'Take a doctor\'s letter for flights.', 'When crossing time zones, agree basal insulin timing with your doctor in advance.'] },
+        { h: 'Emotions', p: ['Diabetes means many decisions every day. Tiredness, anger and burnout happen to children and parents alike. Talk about it with your doctor or a psychologist, and find a community of families living with diabetes.'] },
+      ],
+      quiz: [
+        { q: 'Where should insulin travel on a plane?', a: ['In checked baggage', 'In hand luggage'], ok: 1, why: 'In the hold insulin can freeze or get lost.' },
+        { q: 'Who at school should know the signs of a low?', a: ['Only the child', 'Teachers and the school nurse'], ok: 1, why: 'During a low a child may be unable to help themselves.' },
+      ],
+    },
+  ];
+
+  const BY_LANG = { ru, en };
+  const FALLBACK = { kk: 'ru' };
+  window.SCHOOL = {
+    lessons(lang) { return BY_LANG[lang] || BY_LANG[FALLBACK[lang]] || en; },
+    // Plain text of a lesson, used by the voice assistant's offline answers.
+    text(lesson) { return lesson.sections.map(s => [s.h, ...(s.p || []), ...(s.list || [])].join('\n')).join('\n'); },
+  };
+})();
+</script>
 <script>(function(){'use strict';
 // Imports glucose history from CSV exports of any sensor or meter:
 // LibreView (FreeStyle Libre), Dexcom Clarity, Medtronic CareLink, Eversense, Glooko, Tidepool, xDrip+, generic tables.
@@ -1711,7 +2072,7 @@ window.ECCsv = { parseCsv, parseDateTime };
     const r = location.hash.split('/')[1] || '';
     let items = [];
     if (S.me && S.me.user.role === 'doctor') items = [['patients', '👥', 'navPatients'], ['settings', '⚙️', 'navSettings']];
-    else if (S.me) items = [['home', '🏠', 'navHome'], ['diary', '📔', 'navDiary'], ['reports', '📊', 'navReports'], ['ai', '✨', 'navAi'], ['share', '🩺', 'navDoctor'], ['settings', '⚙️', 'navSettings']];
+    else if (S.me) items = [['home', '🏠', 'navHome'], ['diary', '📔', 'navDiary'], ['reports', '📊', 'navReports'], ['ai', '✨', 'navAi'], ['school', '🎓', 'navSchool'], ['share', '🩺', 'navDoctor'], ['settings', '⚙️', 'navSettings']];
     const html = items.map(([id, ic, k]) => `<a href="#/${id}" class="${r === id || (id === 'home' && r === 'connect') ? 'on' : ''}"><span>${ic}</span>${esc(t(I.has('en', k + 'Short') ? k + 'Short' : k))}</a>`).join('');
     $('#mainnav').innerHTML = items.map(([id, , k]) => `<a href="#/${id}" class="${r === id ? 'on' : ''}">${esc(t(k))}</a>`).join('');
     $('#bottomnav').innerHTML = html;
@@ -1744,9 +2105,10 @@ window.ECCsv = { parseCsv, parseDateTime };
     if (page === 's') { S.me = S.me || await loadMe(); nav(); return sharedView(parts[1]); }
     if (!S.me) await loadMe();
     nav();
+    voiceFab();
     if (!S.me) { if (page === 'register') return register(); return login(); }
     const doc = S.me.user.role === 'doctor';
-    const pages = doc ? { patients, p: doctorPatient, settings } : { home, connect, diary, reports, ai, share, settings };
+    const pages = doc ? { patients, p: doctorPatient, settings } : { home, connect, diary, reports, ai, school, share, settings };
     const fn = pages[page] || (doc ? patients : home);
     if (!pages[page]) history.replaceState(null, '', doc ? '#/patients' : '#/home');
     view.innerHTML = `<div class="loading">${esc(t('loading'))}</div>`;
@@ -2166,6 +2528,172 @@ window.ECCsv = { parseCsv, parseDateTime };
     }
     $('#aiForm').onsubmit = e => { e.preventDefault(); const v = $('#aiIn').value; $('#aiIn').value = ''; ask(v); };
     draw();
+  }
+
+  // ------------------------------------------------------------ diabetes school
+  const SCH = window.SCHOOL;
+  const schoolKey = () => 'ec_school_' + (S.me ? S.me.user.id : 'guest');
+  function schoolDone() { try { return JSON.parse(localStorage.getItem(schoolKey()) || '[]'); } catch { return []; } }
+  function markDone(id) {
+    const d = schoolDone(); if (d.includes(id)) return;
+    d.push(id); try { localStorage.setItem(schoolKey(), JSON.stringify(d)); } catch { /* private mode: progress is not kept */ }
+  }
+  function schoolLangNote() {
+    return ['ru', 'en'].includes(S.lang) ? '' : `<p class="tiny muted">${esc(t('schLangNote'))}</p>`;
+  }
+  async function school(parts) {
+    const lessons = SCH.lessons(S.lang);
+    const done = schoolDone();
+    const id = parts && parts[0];
+    const lesson = id && lessons.find(l => l.id === id);
+    if (!lesson) {
+      const n = lessons.filter(l => done.includes(l.id)).length;
+      $('#view').innerHTML = `<h1>🎓 ${esc(t('navSchool'))}</h1>
+        <div class="card"><p style="margin-top:0">${esc(t('schIntro'))}</p>
+          <div class="row small"><b>${esc(t('schProgress', { n, total: lessons.length }))}</b></div>
+          <div class="progress"><div style="width:${(n / lessons.length * 100).toFixed(0)}%"></div></div>${schoolLangNote()}</div>
+        <div class="lessons">${lessons.map((l, i) => `<a class="lesson card" href="#/school/${l.id}">
+          <div class="lic">${l.icon}</div><div class="grow"><div class="tiny muted">${i + 1} · ${esc(t('schMin', { n: l.min }))}${done.includes(l.id) ? ` · <span class="okc">✓ ${esc(t('schDone'))}</span>` : ''}</div>
+          <b>${esc(l.title)}</b><div class="small muted">${esc(l.summary)}</div></div></a>`).join('')}</div>`;
+      return;
+    }
+    const i = lessons.indexOf(lesson), next = lessons[i + 1];
+    const answers = {};
+    $('#view').innerHTML = `<p><a href="#/school">← ${esc(t('schAllLessons'))}</a></p>
+      <h1>${lesson.icon} ${esc(lesson.title)}</h1><p class="muted">${esc(lesson.summary)} · ${esc(t('schMin', { n: lesson.min }))}</p>${schoolLangNote()}
+      <div class="card lessonbody">${lesson.sections.map(sec => `<h2>${esc(sec.h)}</h2>${(sec.p || []).map(x => `<p>${esc(x)}</p>`).join('')}${sec.list ? `<ul>${sec.list.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}`).join('')}</div>
+      <div class="card"><h2>${esc(t('schQuiz'))}</h2>${lesson.quiz.map((q, qi) => `<div class="quiz" data-q="${qi}"><p><b>${esc(q.q)}</b></p>
+        <div class="opts">${q.a.map((a, ai) => `<button type="button" class="opt" data-a="${ai}">${esc(a)}</button>`).join('')}</div><p class="small fb" hidden></p></div>`).join('')}
+        <p class="okc" id="finished" ${done.includes(lesson.id) ? '' : 'hidden'}>✓ ${esc(t('schFinished'))}</p></div>
+      <div class="row" style="gap:10px;flex-wrap:wrap"><button class="btn ghost" id="askVa">🎙️ ${esc(t('schAskVa'))}</button>
+        ${next ? `<a class="btn" href="#/school/${next.id}" style="margin-inline-start:auto">${esc(t('schNext'))} →</a>` : ''}</div>`;
+    document.querySelectorAll('.quiz').forEach(box => {
+      const q = lesson.quiz[+box.dataset.q];
+      box.querySelectorAll('.opt').forEach(b => b.onclick = () => {
+        const ok = +b.dataset.a === q.ok;
+        box.querySelectorAll('.opt').forEach(x => x.classList.remove('right', 'wrong'));
+        b.classList.add(ok ? 'right' : 'wrong');
+        const fb = box.querySelector('.fb'); fb.hidden = false;
+        fb.textContent = `${t(ok ? 'schRight' : 'schWrong')} ${q.why}`;
+        answers[box.dataset.q] = ok;
+        if (lesson.quiz.every((_, k) => answers[k])) { markDone(lesson.id); $('#finished').hidden = false; }
+      });
+    });
+    $('#askVa').onclick = () => openVoice();
+    scrollTo(0, 0);
+  }
+
+  // ------------------------------------------------------------ voice assistant
+  const SPEECH_LOCALE = { ru: 'ru-RU', kk: 'kk-KZ', en: 'en-US', zh: 'zh-CN', es: 'es-ES', ar: 'ar-SA', pt: 'pt-BR', id: 'id-ID', fr: 'fr-FR', ja: 'ja-JP', de: 'de-DE', tr: 'tr-TR', hi: 'hi-IN', ko: 'ko-KR' };
+  const speechLocale = () => SPEECH_LOCALE[S.lang] || 'en-US';
+  const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const VA = { chat: [], speak: true, busy: false, rec: null, listening: false };
+  try { VA.speak = localStorage.getItem('ec_va_speak') !== '0'; } catch { /* keep default */ }
+
+  function voiceFab() {
+    let fab = $('#vafab');
+    const show = S.me && S.me.user.role !== 'doctor' && !location.hash.startsWith('#/s/');
+    if (!show) { if (fab) fab.remove(); return; }
+    if (fab) { fab.setAttribute('aria-label', t('vaTitle')); fab.title = t('vaTitle'); return; }
+    fab = document.createElement('button');
+    fab.id = 'vafab'; fab.className = 'vafab no-print'; fab.type = 'button'; fab.textContent = '🎙️';
+    fab.setAttribute('aria-label', t('vaTitle')); fab.title = t('vaTitle');
+    fab.onclick = () => openVoice();
+    document.body.appendChild(fab);
+  }
+  function stopSpeaking() { try { window.speechSynthesis && speechSynthesis.cancel(); } catch { /* ignore */ } }
+  function speak(text) {
+    if (!VA.speak || !window.speechSynthesis) return;
+    stopSpeaking();
+    const u = new SpeechSynthesisUtterance(text.replace(/\*\*/g, '').replace(/^\s*[-•]\s*/gm, ''));
+    u.lang = speechLocale();
+    const voice = speechSynthesis.getVoices().find(v => v.lang && v.lang.toLowerCase().startsWith(S.lang));
+    if (voice) u.voice = voice;
+    speechSynthesis.speak(u);
+  }
+  // Offline answer: the best-matching Diabetes school lesson.
+  function schoolAnswer(q) {
+    // Rough stems (first 4 letters) so that "низком" matches "низкий", "carbs" matches "carbohydrates".
+    const stem = w => w.toLowerCase().replace(/[^\p{L}\p{N}]/gu, '').slice(0, 4);
+    const words = [...new Set(q.split(/\s+/).map(stem).filter(w => w.length >= 4))];
+    const hits = text => { const h = text.toLowerCase(); return words.reduce((a, w) => a + (h.includes(w) ? 1 : 0), 0); };
+    let best = null, bestScore = 0;
+    for (const l of SCH.lessons(S.lang)) {
+      const score = hits(SCH.text(l)) + 2 * hits(l.title + ' ' + l.summary);
+      if (score > bestScore) { best = l; bestScore = score; }
+    }
+    if (!best) return { text: t('vaNoMatch') };
+    // The two best-matching sections, each in full: cutting a list short could drop a safety threshold.
+    const secs = best.sections.map((x, i) => ({ x, i, score: 2 * hits(x.h) + hits([...(x.p || []), ...(x.list || [])].join(' ')) }))
+      .sort((a, b) => b.score - a.score || a.i - b.i).slice(0, 2).sort((a, b) => a.i - b.i).map(o => o.x);
+    const body = secs.map(sec => [(sec.p || []).join('\n\n'), (sec.list || []).map(x => '- ' + x).join('\n')].filter(Boolean).join('\n\n')).join('\n\n');
+    return { text: `${body}\n\n${t('vaMore', { t: best.title })}`, lesson: best.id };
+  }
+  function openVoice(prefill) {
+    let note = t('vaPrivacy');
+    modal(`<div class="row"><h2 style="margin:0">🎙️ ${esc(t('vaTitle'))}</h2><button class="iconbtn" data-close aria-label="${esc(t('vaClose'))}" style="margin-inline-start:auto">✕</button></div>
+      <p class="small muted">${esc(t('vaIntro'))}</p>
+      <div class="chat" id="vachat"></div><div class="chips" id="vachips"></div>
+      <div class="vamicwrap"><button type="button" class="vamic" id="vamic" aria-label="${esc(t('vaTap'))}">🎙️</button><div class="small muted" id="vastate"></div></div>
+      <form id="vaform" class="aiform"><input id="vain" maxlength="1000" autocomplete="off" placeholder="${esc(t('vaPlaceholder'))}" aria-label="${esc(t('vaPlaceholder'))}"><button class="btn" id="vasend">➤</button></form>
+      <div class="row small" style="margin-top:10px;gap:12px;flex-wrap:wrap"><label class="row" style="gap:6px;width:auto"><input type="checkbox" id="vaspeak" style="width:auto" ${VA.speak ? 'checked' : ''}> ${esc(t('vaSpeak'))}</label>
+        <button type="button" class="btn ghost sm" id="vastop">⏹ ${esc(t('vaStop'))}</button></div>
+      <p class="tiny muted" id="vanote" style="margin-bottom:0"></p>`, () => {
+      const mic = $('#vamic');
+      const draw = () => {
+        const chat = $('#vachat'); if (!chat) return;
+        chat.innerHTML = VA.chat.map(m => `<div class="msg ${m.role === 'user' ? 'u' : 'a'}${m.pending ? ' pending' : ''}">${m.role === 'user' ? esc(m.text) : aiMd(m.text)}${m.lesson ? `<div><a href="#/school/${esc(m.lesson)}" class="small">🎓 ${esc(t('navSchool'))} →</a></div>` : ''}</div>`).join('');
+        $('#vachips').innerHTML = VA.chat.length ? '' : t('vaChips').split('|').map(c => `<button type="button" class="chip">${esc(c)}</button>`).join('');
+        document.querySelectorAll('#vachips .chip').forEach(b => b.onclick = () => ask(b.textContent));
+        chat.querySelectorAll('a').forEach(a => a.onclick = () => { stopListening(); closeModal(); });
+        $('#vasend').disabled = VA.busy;
+        mic.classList.toggle('on', VA.listening);
+        $('#vastate').textContent = !Recognition ? t('vaNoMic') : VA.listening ? t('vaListening') : t('vaTap');
+        $('#vanote').textContent = note;
+        const last = chat.lastElementChild; if (last) last.scrollIntoView({ block: 'nearest' });
+      };
+      async function ask(q) {
+        q = String(q || '').trim();
+        if (!q || VA.busy) return;
+        const history = VA.chat.filter(m => !m.pending && !m.local).map(m => ({ role: m.role, text: m.text }));
+        VA.chat.push({ role: 'user', text: q });
+        const reply = { role: 'assistant', text: t('aiThinking'), pending: true };
+        VA.chat.push(reply); VA.busy = true; draw();
+        try {
+          const r = await api('POST', '/app/assistant', { question: q, history, lang: S.lang, tz: Intl.DateTimeFormat().resolvedOptions().timeZone });
+          if (r.mode === 'off') { Object.assign(reply, schoolAnswer(q), { local: true }); note = t('vaOffline'); }
+          else if (r.refusal || !r.text) { reply.text = t('aiRefusal'); reply.local = true; }
+          else { reply.text = r.text; note = t('vaPrivacy'); }
+        } catch (e) {
+          if (e.code === 'not_found') { Object.assign(reply, schoolAnswer(q)); note = t('vaOffline'); }
+          else reply.text = errText(e);
+          reply.local = true;
+        }
+        reply.pending = false; VA.busy = false;
+        speak(reply.text); draw();
+      }
+      function stopListening() { if (VA.rec) { try { VA.rec.stop(); } catch { /* already stopped */ } } }
+      mic.disabled = !Recognition;
+      mic.onclick = () => {
+        if (VA.listening) return stopListening();
+        stopSpeaking();
+        const rec = VA.rec = new Recognition();
+        rec.lang = speechLocale(); rec.interimResults = true; rec.continuous = false;
+        let heard = '';
+        rec.onresult = e => { heard = [...e.results].map(r => r[0].transcript).join(' '); const inp = $('#vain'); if (inp) inp.value = heard; };
+        rec.onerror = e => { if (e.error === 'not-allowed' || e.error === 'service-not-allowed') { note = t('vaMicDenied'); } };
+        rec.onend = () => { VA.listening = false; const inp = $('#vain'); if (heard.trim()) { if (inp) inp.value = ''; ask(heard); } else draw(); };
+        VA.listening = true; draw();
+        try { rec.start(); } catch { VA.listening = false; draw(); }
+      };
+      $('#vaform').onsubmit = e => { e.preventDefault(); const v = $('#vain').value; $('#vain').value = ''; ask(v); };
+      $('#vaspeak').onchange = e => { VA.speak = e.target.checked; try { localStorage.setItem('ec_va_speak', VA.speak ? '1' : '0'); } catch { /* ignore */ } if (!VA.speak) stopSpeaking(); };
+      $('#vastop').onclick = stopSpeaking;
+      $('#mbg').addEventListener('click', e => { if (e.target.id === 'mbg') { stopListening(); stopSpeaking(); } });
+      document.querySelectorAll('#modal [data-close]').forEach(b => b.addEventListener('click', () => { stopListening(); stopSpeaking(); }));
+      draw();
+      if (prefill) ask(prefill);
+    });
   }
 
   // ------------------------------------------------------------ share with doctor / family

@@ -25,7 +25,7 @@ test('register, upload like xDrip+, read via share token', async () => {
   server.close();
 });
 
-test('AI analyst answers mode off without an API key', async () => {
+test('AI analyst and voice assistant answer mode off without an API key', async () => {
   delete process.env.ANTHROPIC_API_KEY; delete process.env.ANTHROPIC_AUTH_TOKEN;
   await new Promise(r => server.listen(0, r));
   const base = `http://127.0.0.1:${server.address().port}`;
@@ -35,6 +35,10 @@ test('AI analyst answers mode off without an API key', async () => {
   r = await fetch(base + '/app/ai', { method: 'POST', headers: { ...j, cookie }, body: JSON.stringify({ question: 'How was the week?' }) });
   assert.equal(r.status, 200);
   assert.equal((await r.json()).mode, 'off');
+  r = await fetch(base + '/app/assistant', { method: 'POST', headers: { ...j, cookie }, body: JSON.stringify({ question: 'What is a hypo?' }) });
+  assert.equal((await r.json()).mode, 'off');
+  r = await fetch(base + '/', {});
+  assert.match(r.headers.get('permissions-policy'), /microphone=\(self\)/);
   r = await fetch(base + '/app/ai', { method: 'POST', headers: { ...j, cookie }, body: JSON.stringify({ question: '  ' }) });
   assert.equal(r.status, 400);
   r = await fetch(base + '/app/ai', { method: 'POST', headers: j, body: JSON.stringify({ question: 'x' }) });

@@ -256,7 +256,7 @@ route('GET', '/app/data', async ctx => {
 // ---- AI analyst (Claude). Off without an API key: the client then shows its rule-based analysis.
 route('GET', '/app/ai', async ctx => { requireUser(ctx); return { enabled: ai.enabled() }; });
 
-route('POST', '/app/ai', async ctx => {
+const aiRoute = assistant => async ctx => {
   const u = requireUser(ctx);
   const s = subjectFor(ctx);
   const b = await jsonBody(ctx.req, 1e5);
@@ -265,13 +265,16 @@ route('POST', '/app/ai', async ctx => {
   if (!ai.enabled()) return { mode: 'off' };
   if (!ai.allow(u.id)) throw new HttpError(429, 'ai_limit');
   try {
-    return { mode: 'ai', ...(await ai.ask(db, ns, s.userId, { question, history: b.history, lang: str(b.lang, 16), tz: str(b.tz, 64) })) };
+    return { mode: 'ai', ...(await ai.ask(db, ns, s.userId, { question, history: b.history, lang: str(b.lang, 16), tz: str(b.tz, 64), assistant })) };
   } catch (e) {
     const [status, code] = ai.errorCode(e);
-    console.error('AI analyst:', e && e.message);
+    console.error('AI:', e && e.message);
     throw new HttpError(status, code);
   }
-});
+};
+route('POST', '/app/ai', aiRoute(false));
+// Voice assistant: general diabetes questions, short spoken answers.
+route('POST', '/app/assistant', aiRoute(true));
 
 route('POST', '/app/treatments', async ctx => {
   const u = requireUser(ctx); const b = await jsonBody(ctx.req);
@@ -499,7 +502,7 @@ function serveStatic(req, res, pathname) {
 const SECURITY_HEADERS = {
   'X-Content-Type-Options': 'nosniff', 'Referrer-Policy': 'no-referrer', 'X-Frame-Options': 'DENY',
   'Content-Security-Policy': "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'",
-  'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
+  'Permissions-Policy': 'camera=(), microphone=(self), geolocation=()',
 };
 
 const server = http.createServer(async (req, res) => {
