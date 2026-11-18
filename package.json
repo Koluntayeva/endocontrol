@@ -5,9 +5,14 @@
   "main": "server.js",
   "private": true,
   "license": "UNLICENSED",
-  "engines": { "node": ">=22.5" },
+  "engines": {
+    "node": ">=22.5"
+  },
   "scripts": {
     "start": "node server.js",
     "test": "node --test test/api.test.js"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^1.10.0"
   }
 }

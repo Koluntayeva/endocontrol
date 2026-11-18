@@ -24,3 +24,20 @@ test('register, upload like xDrip+, read via share token', async () => {
   assert.equal(r.status, 401);
   server.close();
 });
+
+test('AI analyst answers mode off without an API key', async () => {
+  delete process.env.ANTHROPIC_API_KEY; delete process.env.ANTHROPIC_AUTH_TOKEN;
+  await new Promise(r => server.listen(0, r));
+  const base = `http://127.0.0.1:${server.address().port}`;
+  const j = { 'Content-Type': 'application/json', 'X-EC': '1' };
+  let r = await fetch(base + '/app/register', { method: 'POST', headers: j, body: JSON.stringify({ email: 'ai@e.st', password: 'abcd1234', name: 'A', consent: true }) });
+  const cookie = r.headers.get('set-cookie').split(';')[0];
+  r = await fetch(base + '/app/ai', { method: 'POST', headers: { ...j, cookie }, body: JSON.stringify({ question: 'How was the week?' }) });
+  assert.equal(r.status, 200);
+  assert.equal((await r.json()).mode, 'off');
+  r = await fetch(base + '/app/ai', { method: 'POST', headers: { ...j, cookie }, body: JSON.stringify({ question: '  ' }) });
+  assert.equal(r.status, 400);
+  r = await fetch(base + '/app/ai', { method: 'POST', headers: j, body: JSON.stringify({ question: 'x' }) });
+  assert.equal(r.status, 401);
+  server.close();
+});

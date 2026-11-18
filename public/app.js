@@ -56,8 +56,8 @@
     const r = location.hash.split('/')[1] || '';
     let items = [];
     if (S.me && S.me.user.role === 'doctor') items = [['patients', '👥', 'navPatients'], ['settings', '⚙️', 'navSettings']];
-    else if (S.me) items = [['home', '🏠', 'navHome'], ['diary', '📔', 'navDiary'], ['reports', '📊', 'navReports'], ['share', '🩺', 'navDoctor'], ['settings', '⚙️', 'navSettings']];
-    const html = items.map(([id, ic, k]) => `<a href="#/${id}" class="${r === id || (id === 'home' && r === 'connect') ? 'on' : ''}"><span>${ic}</span>${esc(t(k))}</a>`).join('');
+    else if (S.me) items = [['home', '🏠', 'navHome'], ['diary', '📔', 'navDiary'], ['reports', '📊', 'navReports'], ['ai', '✨', 'navAi'], ['share', '🩺', 'navDoctor'], ['settings', '⚙️', 'navSettings']];
+    const html = items.map(([id, ic, k]) => `<a href="#/${id}" class="${r === id || (id === 'home' && r === 'connect') ? 'on' : ''}"><span>${ic}</span>${esc(t(I.has('en', k + 'Short') ? k + 'Short' : k))}</a>`).join('');
     $('#mainnav').innerHTML = items.map(([id, , k]) => `<a href="#/${id}" class="${r === id ? 'on' : ''}">${esc(t(k))}</a>`).join('');
     $('#bottomnav').innerHTML = html;
     $('#bottomnav').style.display = items.length ? '' : 'none';
@@ -91,7 +91,7 @@
     nav();
     if (!S.me) { if (page === 'register') return register(); return login(); }
     const doc = S.me.user.role === 'doctor';
-    const pages = doc ? { patients, p: doctorPatient, settings } : { home, connect, diary, reports, share, settings };
+    const pages = doc ? { patients, p: doctorPatient, settings } : { home, connect, diary, reports, ai, share, settings };
     const fn = pages[page] || (doc ? patients : home);
     if (!pages[page]) history.replaceState(null, '', doc ? '#/patients' : '#/home');
     view.innerHTML = `<div class="loading">${esc(t('loading'))}</div>`;
@@ -444,6 +444,73 @@
       $('#rep').outerHTML = `<div id="rep">${await reportHtml(null, days)}</div>`;
     };
     await draw();
+  }
+
+  // ------------------------------------------------------------ AI analyst
+  // Light markdown for answers: **bold**, "- " / "1. " lists, paragraphs. Escapes everything first.
+  function aiMd(text) {
+    return esc(text).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').split(/\n{2,}/).map(par => {
+      const lines = par.split('\n').filter(l => l.trim());
+      if (lines.length && lines.every(l => /^\s*([-•*]|\d+[.)])\s/.test(l))) {
+        const tag = /^\s*\d/.test(lines[0]) ? 'ol' : 'ul';
+        return `<${tag}>${lines.map(l => `<li>${l.replace(/^\s*([-•*]|\d+[.)])\s/, '')}</li>`).join('')}</${tag}>`;
+      }
+      return `<p>${lines.join('<br>')}</p>`;
+    }).join('');
+  }
+  async function ai() {
+    const me = S.me;
+    const to = Date.now() + 60e3, from = to - 14 * 864e5;
+    const [d, status] = await Promise.all([getData(from, to), api('GET', '/app/ai').catch(() => ({ enabled: false }))]);
+    const { lo, hi } = targets(me.user);
+    const st = C.stats(d.entries.map(e => e[1]), lo, hi);
+    const found = insights(d.entries, lo, hi);
+    const ruleAnswer = q => {
+      const recent = /\b7\b/.test(q) ? d.entries.filter(e => e[0] >= to - 7 * 864e5) : d.entries;
+      return insights(recent, lo, hi).map(x => '- ' + x).join('\n') + '\n\n' + t('aiRuleNote');
+    };
+    const chat = S.aiChat = S.aiChat || [];
+    let busy = false, note = status.enabled ? t('aiPrivacy') : t('aiOff');
+    const chips = t('aiChips').split('|');
+    $('#view').innerHTML = `<h1>✨ ${esc(t('navAi'))}</h1>
+      <div class="card"><p class="muted small" style="margin-top:0">${esc(t('aiIntro'))}</p>${metricsHtml(st, lo, hi)}
+        <h2 style="margin-top:16px">${esc(t('aiSeen'))}</h2>${found.map(x => `<div class="ins">${esc(x)}</div>`).join('')}</div>
+      <div class="card"><h2>${esc(t('aiAsk'))}</h2><div class="chat" id="chat"></div><div class="chips" id="chips"></div>
+        <form id="aiForm" class="aiform"><input id="aiIn" maxlength="2000" autocomplete="off" placeholder="${esc(t('aiPlaceholder'))}" aria-label="${esc(t('aiAsk'))}">
+          <button class="btn" id="aiSend" aria-label="${esc(t('aiSend'))}">➤</button></form>
+        <p class="tiny muted" id="aiNote" style="margin-bottom:0"></p></div>`;
+    const draw = () => {
+      $('#chat').innerHTML = chat.map(m => `<div class="msg ${m.role === 'user' ? 'u' : 'a'}${m.pending ? ' pending' : ''}">${m.role === 'user' ? esc(m.text) : aiMd(m.text)}</div>`).join('');
+      $('#chips').innerHTML = chat.length ? '' : chips.map(c => `<button type="button" class="chip">${esc(c)}</button>`).join('');
+      document.querySelectorAll('#chips .chip').forEach(b => b.onclick = () => ask(b.textContent));
+      $('#aiSend').disabled = busy;
+      $('#aiNote').textContent = note;
+      const last = $('#chat').lastElementChild; if (last) last.scrollIntoView({ block: 'nearest' });
+    };
+    async function ask(q) {
+      q = String(q || '').trim();
+      if (!q || busy) return;
+      const history = chat.filter(m => !m.pending && !m.local).map(m => ({ role: m.role, text: m.text }));
+      chat.push({ role: 'user', text: q });
+      const reply = { role: 'assistant', text: t('aiThinking'), pending: true };
+      chat.push(reply); busy = true; draw();
+      try {
+        const r = await api('POST', '/app/ai', { question: q, history, lang: S.lang, tz: Intl.DateTimeFormat().resolvedOptions().timeZone });
+        if (r.mode === 'off') { reply.text = ruleAnswer(q); reply.local = true; note = t('aiOff'); }
+        else if (r.refusal || !r.text) { reply.text = t('aiRefusal'); reply.local = true; }
+        else { reply.text = r.text; note = t('aiPrivacy'); }
+      } catch (e) {
+        // The offline demo has no AI endpoint: fall back to the rule-based review.
+        if (e.code === 'not_found') { reply.text = ruleAnswer(q); note = t('aiOff'); }
+        else reply.text = errText(e);
+        reply.local = true;
+      }
+      reply.pending = false; busy = false;
+      const chatEl = $('#chat');
+      if (chatEl) draw();
+    }
+    $('#aiForm').onsubmit = e => { e.preventDefault(); const v = $('#aiIn').value; $('#aiIn').value = ''; ask(v); };
+    draw();
   }
 
   // ------------------------------------------------------------ share with doctor / family

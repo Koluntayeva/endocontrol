@@ -1,6 +1,7 @@
 'use strict';
 // EndoControl — a lightweight, multi-user, Nightscout-compatible glucose platform.
-// Requires Node.js 22.5+ (uses the built-in node:sqlite). No npm dependencies.
+// Requires Node.js 22.5+ (uses the built-in node:sqlite). The only npm dependency,
+// @anthropic-ai/sdk, is optional: it powers the AI analyst when ANTHROPIC_API_KEY is set.
 
 process.removeAllListeners('warning');
 process.on('warning', w => { if (w.name !== 'ExperimentalWarning') console.warn(w); });
@@ -15,6 +16,7 @@ const sec = require('./lib/security');
 const ns = require('./lib/nsdata');
 const bridges = require('./lib/bridges');
 const { parseCsv } = require('./lib/csvimport');
+const ai = require('./lib/ai');
 
 const PORT = Number(process.env.PORT || 1337);
 const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, 'data');
@@ -249,6 +251,26 @@ route('GET', '/app/data', async ctx => {
   const t = db.prepare('SELECT * FROM treatments WHERE user_id=? AND created_at>=? AND created_at<? ORDER BY created_at').all(s.userId, from, to).map(ns.formatTreatment);
   const u = db.prepare('SELECT name, patient_name, birth_year, diabetes_type, units, target_low, target_high FROM users WHERE id=?').get(s.userId);
   return { from, to, entries: e.map(x => [x.date, x.sgv, x.direction || null]), treatments: t, patient: u, readOnly: !s.write };
+});
+
+// ---- AI analyst (Claude). Off without an API key: the client then shows its rule-based analysis.
+route('GET', '/app/ai', async ctx => { requireUser(ctx); return { enabled: ai.enabled() }; });
+
+route('POST', '/app/ai', async ctx => {
+  const u = requireUser(ctx);
+  const s = subjectFor(ctx);
+  const b = await jsonBody(ctx.req, 1e5);
+  const question = str(b.question, 2000);
+  if (!question) throw bad('empty_question');
+  if (!ai.enabled()) return { mode: 'off' };
+  if (!ai.allow(u.id)) throw new HttpError(429, 'ai_limit');
+  try {
+    return { mode: 'ai', ...(await ai.ask(db, ns, s.userId, { question, history: b.history, lang: str(b.lang, 16), tz: str(b.tz, 64) })) };
+  } catch (e) {
+    const [status, code] = ai.errorCode(e);
+    console.error('AI analyst:', e && e.message);
+    throw new HttpError(status, code);
+  }
 });
 
 route('POST', '/app/treatments', async ctx => {

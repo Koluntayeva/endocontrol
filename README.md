@@ -15,14 +15,16 @@ doctor access, messages and printable reports.
 | Any sensor | **Cloud bridges** (server pulls every 5 min): LibreLinkUp (FreeStyle Libre 1/2/3), Dexcom Share (G6/G7/ONE, US/OUS/JP), another Nightscout site · **Uploaders** (push to us): xDrip+, Juggluco, Spike, Diabox, Tomato, Shuggah, Loop, Trio, iAPS, AndroidAPS (NSClient v1) · **CSV import**: LibreView, Dexcom Clarity, Medtronic CareLink, Eversense, Glooko, Tidepool, meters |
 | Patient app | Current value with trend arrow, 3/6/12/24 h chart, diary (carbs, insulin, finger stick, exercise, notes), today's metrics |
 | Reports | Time in ranges (international consensus), GMI, CV, AGP, TIR by day, a full chart for every day; 7/14/30/90 days; **PDF** via the browser's print dialog |
+| AI analyst | Chat about the last 14 days: patterns by time of day, meals, activity and lows, questions to ask the doctor. Uses Claude (Anthropic) when `ANTHROPIC_API_KEY` is set; otherwise shows a rule-based review. Never suggests doses |
 | Doctors | Patient sends a read-only link → doctor adds it → patient list sorted with TIR/hypo flags, full history, reports, messages and written conclusions |
 | Languages | English, 简体中文, Español, العربية (RTL), Português, Bahasa Indonesia, Français, 日本語, Русский, Deutsch, Қазақша, Türkçe, हिन्दी, 한국어 · units mg/dL or mmol/L per user |
 
 ## Run it locally
 
-Requirements: **Node.js 22.5 or newer** (uses the built-in `node:sqlite`; there are no npm dependencies).
+Requirements: **Node.js 22.5 or newer** (uses the built-in `node:sqlite`). The only npm package, `@anthropic-ai/sdk`, is needed just for the AI analyst.
 
 ```bash
+npm install               # only needed for the AI analyst
 node scripts/demo.js      # optional: demo accounts with 30 days of data
 node server.js            # http://localhost:1337
 ```
@@ -61,6 +63,9 @@ Environment variables:
 | `SECRET_KEY` | 64 hex chars; encrypts sensor-cloud passwords and API secrets. If unset, one is generated in `DATA_DIR/secret.key` — **keep it**, without it stored passwords cannot be decrypted |
 | `PUBLIC_URL` | public address shown to users (otherwise taken from the request) |
 | `APP_NAME` | product name shown in the UI and to Nightscout clients |
+| `ANTHROPIC_API_KEY` | turns on the AI analyst (Claude). Without it the analyst shows a rule-based review. The question and a 14-day data summary are sent to Anthropic, so cover this in the privacy policy |
+| `AI_MODEL` | Claude model for the analyst (default `claude-opus-5-5`) |
+| `AI_LIMIT_PER_HOUR` | questions per user per hour (default 30) |
 
 ## Nightscout API compatibility
 
@@ -80,6 +85,7 @@ lib/security.js      password hashing, encryption at rest, tokens, rate limiting
 lib/nsdata.js        Nightscout data model: entries, treatments, devicestatus
 lib/bridges.js       LibreLinkUp, Dexcom Share, Nightscout pull (every 5 min)
 lib/csvimport.js     CSV import with automatic column/unit detection
+lib/ai.js            AI analyst: 14-day data summary and the Claude request
 public/              web app: index.html, app.js, charts.js, i18n.js (translations), app.css
 scripts/demo.js      demo data
 ```
