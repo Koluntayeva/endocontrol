@@ -4,6 +4,9 @@
   const C = window.Charts, I = window.I18N;
   const esc = C.esc;
   const $ = s => document.querySelector(s);
+  const IMG = n => (window.EC_IMG && window.EC_IMG[n]) || '/img/' + n + '.webp';
+  // A colourful page header with an illustration: tone = violet | mint | peach | sky | pink.
+  const banner = (tone, img, title, text, extra = '') => `<div class="banner ${tone}"><div class="btxt"><h1>${title}</h1>${text ? `<p>${esc(text)}</p>` : ''}${extra}</div><img src="${IMG(img)}" alt="" loading="lazy"></div>`;
   const S = { me: null, lang: I.detect(), units: 'mg/dl', timer: null };
 
   // ------------------------------------------------------------ i18n
@@ -105,7 +108,8 @@
 
   function login() {
     $('#view').innerHTML = `<div class="auth">
-      <div class="hero"><img src="/icon.svg" alt=""><h1>${esc(t('welcome'))}</h1><div class="muted">${esc(t('tagline'))}</div></div>
+      <img class="authart" src="${IMG('welcome')}" alt="">
+      <div class="hero"><h1>${esc(t('welcome'))}</h1><div class="muted">${esc(t('tagline'))}</div></div>
       <form class="card" id="f">
         <div class="fld"><label for="em">${esc(t('email'))}</label><input id="em" type="email" autocomplete="username" required></div>
         <div class="fld"><label for="pw">${esc(t('password'))}</label><input id="pw" type="password" autocomplete="current-password" required></div>
@@ -234,7 +238,13 @@
       <div class="grid g2" style="margin-top:12px">
         <div class="card"><h2>${esc(t('today'))}</h2>${metricsHtml(st, lo, hi)}</div>
         <div class="card"><h2>${esc(t('dataSources'))}</h2>${sourcesHtml(me)}<a class="btn ghost sm" href="#/connect" style="margin-top:8px">${esc(t('connectSensor'))}</a></div>
+      </div>
+      <div class="discover no-print">
+        <a class="dcard violet" href="#/ai"><img src="${IMG('ai')}" alt="" loading="lazy"><b>${esc(t('navAi'))}</b><span>${esc(t('aiSeen'))}</span></a>
+        <a class="dcard mint" href="#/school"><img src="${IMG('home')}" alt="" loading="lazy"><b>${esc(t('navSchool'))}</b><span>${esc(t('schProgress', { n: schoolDone().length, total: SCH.lessons(S.lang).length }))}</span></a>
+        <button type="button" class="dcard pink" id="dvoice"><img src="${IMG('voice')}" alt="" loading="lazy"><b>${esc(t('vaTitle'))}</b><span>${esc(t('vaTap'))}</span></button>
       </div>`;
+      const dv = $('#dvoice'); if (dv) dv.onclick = () => openVoice();
       document.querySelectorAll('#rng button').forEach(b => b.onclick = () => { range = +b.dataset.h; sessionStorage.setItem('range', range); draw(); });
       document.querySelectorAll('[data-q]').forEach(b => b.onclick = () => addEntry(b.dataset.q, draw));
     };
@@ -473,8 +483,8 @@
     const chat = S.aiChat = S.aiChat || [];
     let busy = false, note = status.enabled ? t('aiPrivacy') : t('aiOff');
     const chips = t('aiChips').split('|');
-    $('#view').innerHTML = `<h1>✨ ${esc(t('navAi'))}</h1>
-      <div class="card"><p class="muted small" style="margin-top:0">${esc(t('aiIntro'))}</p>${metricsHtml(st, lo, hi)}
+    $('#view').innerHTML = `${banner('violet', 'ai', esc(t('navAi')), t('aiIntro'))}
+      <div class="card">${metricsHtml(st, lo, hi)}
         <h2 style="margin-top:16px">${esc(t('aiSeen'))}</h2>${found.map(x => `<div class="ins">${esc(x)}</div>`).join('')}</div>
       <div class="card"><h2>${esc(t('aiAsk'))}</h2><div class="chat" id="chat"></div><div class="chips" id="chips"></div>
         <form id="aiForm" class="aiform"><input id="aiIn" maxlength="2000" autocomplete="off" placeholder="${esc(t('aiPlaceholder'))}" aria-label="${esc(t('aiAsk'))}">
@@ -532,19 +542,17 @@
     const lesson = id && lessons.find(l => l.id === id);
     if (!lesson) {
       const n = lessons.filter(l => done.includes(l.id)).length;
-      $('#view').innerHTML = `<h1>🎓 ${esc(t('navSchool'))}</h1>
-        <div class="card"><p style="margin-top:0">${esc(t('schIntro'))}</p>
-          <div class="row small"><b>${esc(t('schProgress', { n, total: lessons.length }))}</b></div>
-          <div class="progress"><div style="width:${(n / lessons.length * 100).toFixed(0)}%"></div></div>${schoolLangNote()}</div>
-        <div class="lessons">${lessons.map((l, i) => `<a class="lesson card" href="#/school/${l.id}">
-          <div class="lic">${l.icon}</div><div class="grow"><div class="tiny muted">${i + 1} · ${esc(t('schMin', { n: l.min }))}${done.includes(l.id) ? ` · <span class="okc">✓ ${esc(t('schDone'))}</span>` : ''}</div>
+      $('#view').innerHTML = `${banner('mint', 'home', esc(t('navSchool')), t('schIntro'), `<div class="bprog"><b>${esc(t('schProgress', { n, total: lessons.length }))}</b>
+          <div class="progress"><div style="width:${(n / lessons.length * 100).toFixed(0)}%"></div></div></div>`)}${schoolLangNote()}
+        <div class="lessons">${lessons.map((l, i) => `<a class="lesson tone${i % 5}" href="#/school/${l.id}">
+          <img src="${IMG('l-' + l.id)}" alt="" loading="lazy"><div class="lbody"><div class="tiny lmeta">${l.icon} ${i + 1} · ${esc(t('schMin', { n: l.min }))}${done.includes(l.id) ? ` · <span class="okc">✓ ${esc(t('schDone'))}</span>` : ''}</div>
           <b>${esc(l.title)}</b><div class="small muted">${esc(l.summary)}</div></div></a>`).join('')}</div>`;
       return;
     }
     const i = lessons.indexOf(lesson), next = lessons[i + 1];
     const answers = {};
     $('#view').innerHTML = `<p><a href="#/school">← ${esc(t('schAllLessons'))}</a></p>
-      <h1>${lesson.icon} ${esc(lesson.title)}</h1><p class="muted">${esc(lesson.summary)} · ${esc(t('schMin', { n: lesson.min }))}</p>${schoolLangNote()}
+      ${banner('tone' + (i % 5), 'l-' + lesson.id, esc(lesson.title), `${lesson.summary} · ${t('schMin', { n: lesson.min })}`)}${schoolLangNote()}
       <div class="card lessonbody">${lesson.sections.map(sec => `<h2>${esc(sec.h)}</h2>${(sec.p || []).map(x => `<p>${esc(x)}</p>`).join('')}${sec.list ? `<ul>${sec.list.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}`).join('')}</div>
       <div class="card"><h2>${esc(t('schQuiz'))}</h2>${lesson.quiz.map((q, qi) => `<div class="quiz" data-q="${qi}"><p><b>${esc(q.q)}</b></p>
         <div class="opts">${q.a.map((a, ai) => `<button type="button" class="opt" data-a="${ai}">${esc(a)}</button>`).join('')}</div><p class="small fb" hidden></p></div>`).join('')}
@@ -616,7 +624,7 @@
   function openVoice(prefill) {
     let note = t('vaPrivacy');
     modal(`<div class="row"><h2 style="margin:0">🎙️ ${esc(t('vaTitle'))}</h2><button class="iconbtn" data-close aria-label="${esc(t('vaClose'))}" style="margin-inline-start:auto">✕</button></div>
-      <p class="small muted">${esc(t('vaIntro'))}</p>
+      <div class="vahead"><img src="${IMG('voice')}" alt=""><p class="small muted">${esc(t('vaIntro'))}</p></div>
       <div class="chat" id="vachat"></div><div class="chips" id="vachips"></div>
       <div class="vamicwrap"><button type="button" class="vamic" id="vamic" aria-label="${esc(t('vaTap'))}">🎙️</button><div class="small muted" id="vastate"></div></div>
       <form id="vaform" class="aiform"><input id="vain" maxlength="1000" autocomplete="off" placeholder="${esc(t('vaPlaceholder'))}" aria-label="${esc(t('vaPlaceholder'))}"><button class="btn" id="vasend">➤</button></form>
