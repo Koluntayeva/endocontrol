@@ -92,6 +92,22 @@
       ],
     },
     {
+      id: 'glucagon', img: 'l-hypo', icon: '💉', min: 6,
+      title: 'Глюкагон: спасение при тяжёлой гипо',
+      summary: 'Когда нужен, какие бывают формы, дозы и как вводить.',
+      sections: [
+        { h: 'Что это и когда нужен', p: ['Глюкагон — гормон, который заставляет печень быстро выбросить глюкозу в кровь. Его вводят при тяжёлой гипогликемии, когда человек без сознания, у него судороги или он не может безопасно глотать. Сладкое в рот в этот момент давать нельзя — можно захлебнуться.'] },
+        { h: 'Формы и дозы', list: ['Набор для укола (ГлюкаГен ГипоКит и аналоги): порошок + растворитель в шприце. Детям до 25 кг (или младше 6–8 лет) — 0,5 мг (половина), от 25 кг и взрослым — 1 мг (весь шприц).', 'Назальный глюкагон (Баксими): 3 мг в одну ноздрю, от 4 лет; вдыхать не нужно, работает и при насморке.', 'Готовые шприц-ручки (Gvoke, Зегалог) — по инструкции. Какая форма доступна в вашей стране — уточните у врача и в аптеке.'] },
+        { h: 'Как ввести укол', list: ['Введите растворитель в флакон с порошком, покачайте до прозрачности и наберите нужную дозу обратно.', 'Уколите в бедро, плечо или ягодицу — под кожу или в мышцу, можно через одежду.', 'Уложите человека на бок: после глюкагона часто бывает рвота.', 'Вызовите скорую (103 или 112).'] },
+        { h: 'После введения', p: ['Обычно человек приходит в себя через 10–15 минут. Как только сможет глотать — дайте сок или сахар, затем медленные углеводы: действие глюкагона короткое, сахар может снова упасть.', 'Если через 15 минут не стало лучше — ждите скорую, вторую дозу вводят только по указанию врача. Глюкагон хуже работает после долгого голодания и алкоголя.'] },
+        { h: 'Практические советы', list: ['Глюкагон всегда должен быть рядом: дома, в школе, в поездках, в спортивной сумке.', 'Научите родных, учителей, тренера: покажите набор и потренируйтесь на учебном.', 'Проверяйте срок годности; храните по инструкции (ГлюкаГен — при комнатной температуре до 25 °C или в холодильнике, не замораживать).', 'После любого применения глюкагона сообщите эндокринологу — нужно разобраться в причине.', 'При болезни с рвотой врач иногда назначает «мини-дозы» глюкагона, чтобы предотвратить гипо, — только по его схеме.'] },
+      ],
+      quiz: [
+        { q: 'Ребёнок весом 20 кг без сознания из-за гипо. Какая доза ГлюкаГена?', a: ['0,5 мг', '1 мг', '2 мг'], ok: 0, why: 'Детям до 25 кг — 0,5 мг, от 25 кг и взрослым — 1 мг.' },
+        { q: 'Что сделать сразу после укола глюкагона?', a: ['Дать сок, пока без сознания', 'Уложить на бок и вызвать скорую', 'Ввести инсулин'], ok: 1, why: 'Без сознания ничего в рот; на бок — из-за возможной рвоты; скорая — обязательно.' },
+      ],
+    },
+    {
       id: 'hyper', icon: '🔥', min: 6,
       title: 'Высокий сахар и кетоны',
       summary: 'Когда проверять кетоны и как распознать кетоацидоз.',
@@ -233,6 +249,22 @@
       quiz: [
         { q: 'Glucose is 3.2 mmol/L. What comes first?', a: ['Inject insulin', 'Take 15 g of fast carbs', 'Wait an hour'], ok: 1, why: 'Fast carbs first, then check again after 15 minutes.' },
         { q: 'Someone is unconscious from a low. What must you not do?', a: ['Call an ambulance', 'Pour juice into their mouth', 'Give glucagon'], ok: 1, why: 'They could choke: only glucagon and emergency help.' },
+      ],
+    },
+    {
+      id: 'glucagon', img: 'l-hypo', icon: '💉', min: 6,
+      title: 'Glucagon: rescue in a severe low',
+      summary: 'When it is needed, the forms, doses and how to give it.',
+      sections: [
+        { h: 'What it is and when to use it', p: ['Glucagon is a hormone that makes the liver release glucose into the blood quickly. It is given in severe hypoglycaemia, when the person is unconscious, having a seizure or cannot swallow safely. Do not put anything sweet in their mouth then — they could choke.'] },
+        { h: 'Forms and doses', list: ['Injection kit (GlucaGen HypoKit and similar): powder plus solvent in a syringe. Children under 25 kg (or younger than 6–8 years) — 0.5 mg (half), from 25 kg and adults — 1 mg (the whole syringe).', 'Nasal glucagon (Baqsimi): 3 mg into one nostril, from 4 years; no need to sniff, works with a blocked nose.', 'Ready-to-use pens (Gvoke, Zegalogue) — follow the leaflet. Ask your doctor and pharmacy which forms are available where you live.'] },
+        { h: 'Giving the injection', list: ['Inject the solvent into the powder vial, swirl until clear and draw the dose back up.', 'Inject into the thigh, upper arm or buttock — under the skin or into the muscle, even through clothing.', 'Turn the person on their side: vomiting after glucagon is common.', 'Call emergency services.'] },
+        { h: 'Afterwards', p: ['Most people wake up in 10–15 minutes. As soon as they can swallow, give juice or sugar, then slow carbs: glucagon works only briefly and glucose can fall again.', 'If there is no improvement after 15 minutes, wait for the ambulance; a second dose is given only on medical advice. Glucagon works less well after long fasting and alcohol.'] },
+        { h: 'Practical tips', list: ['Keep glucagon close: at home, at school, when travelling, in the sports bag.', 'Teach family, teachers and coaches: show them the kit and practise with a trainer.', 'Check the expiry date; store as the leaflet says (GlucaGen at room temperature up to 25 °C or in the fridge, never frozen).', 'Tell the endocrinologist after every use of glucagon — the cause needs looking into.', 'During illness with vomiting a doctor sometimes prescribes "mini-doses" of glucagon to prevent lows — only on their schedule.'] },
+      ],
+      quiz: [
+        { q: 'A 20 kg child is unconscious from a low. Which GlucaGen dose?', a: ['0.5 mg', '1 mg', '2 mg'], ok: 0, why: 'Under 25 kg — 0.5 mg; from 25 kg and adults — 1 mg.' },
+        { q: 'What comes right after the glucagon injection?', a: ['Juice while still unconscious', 'Turn on the side and call an ambulance', 'Inject insulin'], ok: 1, why: 'Nothing by mouth while unconscious; on the side in case of vomiting; always call an ambulance.' },
       ],
     },
     {

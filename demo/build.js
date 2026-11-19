@@ -13,8 +13,8 @@ let html = R('public/index.html')
   .replace('<link rel="icon" href="/icon.svg" type="image/svg+xml">', `<link rel="icon" href="${icon}">`)
   .replace('<title>EndoControl</title>', '<title>EndoControl — demo</title>')
   .replace('<link rel="stylesheet" href="/app.css">', `<style>${R('public/app.css')}</style>`)
-  .replace(/<script src="\/i18n.js"><\/script>\s*<script src="\/charts.js"><\/script>\s*<script src="\/school.js"><\/script>\s*<script src="\/explain.js"><\/script>\s*<script src="\/app.js"><\/script>/,
-    () => ['public/i18n.js', 'public/charts.js', 'public/school.js', 'public/explain.js'].map(f => `<script>${R(f)}</script>`).join('\n') + `\n<script>window.EC_IMG=${JSON.stringify(images)};</script>\n<script>(function(){${csv}})();</script>\n<script>${R('demo/mock.js')}</script>\n<script>${R('public/app.js').split('/icon.svg').join(icon)}</script>`);
+  .replace(/<script src="\/i18n.js"><\/script>\s*<script src="\/charts.js"><\/script>\s*<script src="\/school.js"><\/script>\s*<script src="\/explain.js"><\/script>\s*<script src="\/urgent.js"><\/script>\s*<script src="\/app.js"><\/script>/,
+    () => ['public/i18n.js', 'public/charts.js', 'public/school.js', 'public/explain.js', 'public/urgent.js'].map(f => `<script>${R(f)}</script>`).join('\n') + `\n<script>window.EC_IMG=${JSON.stringify(images)};</script>\n<script>(function(){${csv}})();</script>\n<script>${R('demo/mock.js')}</script>\n<script>${R('public/app.js').split('/icon.svg').join(icon)}</script>`);
 html = html.split('src="/icon.svg"').join(`src="${icon}"`);
 fs.mkdirSync(path.join(__dirname, '..', 'dist'), { recursive: true });
 fs.writeFileSync(path.join(__dirname, '..', 'dist', 'endocontrol-demo.html'), html);

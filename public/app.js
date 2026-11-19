@@ -44,6 +44,50 @@
   }
   const errText = e => (e && e.code && I.has(S.lang, 'e_' + e.code)) ? t('e_' + e.code) : (e && e.detail) || t('e_generic');
 
+  // ------------------------------------------------------------ hypo timer (15 min), shown on every page
+  const HT = { key: 'ec_hypo_timer', tick: null, onDone: null, rang: false };
+  function htEnd() { try { return Number(localStorage.getItem(HT.key)) || 0; } catch { return 0; } }
+  function htSet(v) { try { if (v) localStorage.setItem(HT.key, String(v)); else localStorage.removeItem(HT.key); } catch { /* private mode: timer lives until reload */ HT.mem = v; } }
+  function startHypoTimer(min = 15) {
+    htSet(Date.now() + min * 60e3); HT.rang = false;
+    try { if (window.Notification && Notification.permission === 'default') Notification.requestPermission(); } catch { /* not supported */ }
+    hypoTimerDraw();
+  }
+  function beep() {
+    try {
+      const A = new (window.AudioContext || window.webkitAudioContext)();
+      [0, 0.35, 0.7, 1.4, 1.75, 2.1].forEach(d => {
+        const o = A.createOscillator(), g = A.createGain(); o.frequency.value = 880; o.connect(g); g.connect(A.destination);
+        g.gain.setValueAtTime(0.0001, A.currentTime + d); g.gain.exponentialRampToValueAtTime(0.3, A.currentTime + d + 0.02);
+        g.gain.exponentialRampToValueAtTime(0.0001, A.currentTime + d + 0.25); o.start(A.currentTime + d); o.stop(A.currentTime + d + 0.3);
+      });
+    } catch { /* no audio */ }
+  }
+  function hypoTimerDraw() {
+    let el = $('#hypotimer');
+    let end = htEnd() || HT.mem || 0;
+    if (end && Date.now() - end > 30 * 60e3) { htSet(0); end = 0; } // forgotten long ago
+    if (!end) { if (el) el.remove(); clearInterval(HT.tick); HT.tick = null; return; }
+    if (!el) { el = document.createElement('div'); el.id = 'hypotimer'; el.className = 'hypotimer no-print'; el.setAttribute('role', 'status'); document.body.appendChild(el); }
+    const left = end - Date.now();
+    if (left > 0) {
+      const m = Math.floor(left / 60e3), sec = Math.floor((left % 60e3) / 1000);
+      el.classList.remove('done');
+      el.innerHTML = `<span>${esc(t('tmLeft', { m: `${m}:${String(sec).padStart(2, '0')}` }))}</span><button type="button" class="tmx">${esc(t('tmCancel'))}</button>`;
+    } else {
+      if (!HT.rang) {
+        HT.rang = true; el.classList.add('done'); beep();
+        try { if (navigator.vibrate) navigator.vibrate([400, 200, 400, 200, 400]); } catch { /* no vibration */ }
+        try { if (window.Notification && Notification.permission === 'granted') new Notification('EndoControl', { body: t('tmDone'), requireInteraction: true }); } catch { /* no notifications */ }
+        if (HT.onDone && HT.onDone()) return;
+      }
+      el.innerHTML = `<span>${esc(t('tmDone'))}</span><a class="btn sm" href="#/ai" id="tmcheck">${esc(t('tmCheck'))}</a><button type="button" class="tmx">${esc(t('tmCancel'))}</button>`;
+      el.querySelector('#tmcheck').onclick = () => { S.pendingRecheck = true; htSet(0); hypoTimerDraw(); };
+    }
+    el.querySelector('.tmx').onclick = () => { htSet(0); HT.mem = 0; hypoTimerDraw(); };
+    if (!HT.tick) HT.tick = setInterval(hypoTimerDraw, 1000);
+  }
+
   function toast(msg) { const el = $('#toast'); el.textContent = msg; el.classList.add('show'); clearTimeout(toast.t); toast.t = setTimeout(() => el.classList.remove('show'), 2800); }
   async function copy(text) { try { await navigator.clipboard.writeText(text); toast(t('copied')); } catch { toast(text); } }
   function modal(html, onMount) {
@@ -86,6 +130,7 @@
   // ------------------------------------------------------------ router
   async function route() {
     clearInterval(S.timer);
+    HT.onDone = null;
     if (ROBOT) { ROBOT.destroy(); ROBOT = null; }
     const parts = location.hash.replace(/^#\/?/, '').split('/');
     const page = parts[0] || '';
@@ -515,25 +560,42 @@
       return { text: insights(recent, lo, hi).map(x => '- ' + x).join('\n') + '\n\n' + t('aiRuleNote') };
     };
     const chat = S.aiChat = S.aiChat || [];
+    // Emergency help runs locally, instantly, with or without the AI.
+    const urg = S.urgent = S.urgent || { state: (() => { try { const c = localStorage.getItem('ec_country'); return c ? { country: c } : {}; } catch { return {}; } })() };
+    const latest = async () => {
+      try { const x = await getData(Date.now() - 30 * 60e3, Date.now() + 60e3); const e = x.entries[x.entries.length - 1]; return e ? { t: e[0], v: e[1], dir: (C.ARROWS && C.ARROWS[e[2]]) || '' } : null; }
+      catch { return null; }
+    };
+    const uctx = (reading, extra = {}) => ({ t, g: G, unit: UL(), mmol: S.units === 'mmol', reading, now: Date.now(), state: urg.state, tz: Intl.DateTimeFormat().resolvedOptions().timeZone, lang: S.lang, ...extra });
+    const keepState = st => { urg.state = st; try { if (st.country) localStorage.setItem('ec_country', st.country); } catch { /* not kept */ } };
+    async function recheck() {
+      const r = window.Urgent.recheck(uctx(await latest()));
+      keepState(r.state);
+      chat.push({ role: 'assistant', text: r.text, actions: r.actions, level: r.level, local: true });
+      if (ROBOT) ROBOT.setMode('idle');
+      draw();
+    }
     let busy = false, note = status.enabled ? t('aiPrivacy') : t('aiOff') + ' ' + t('aiNoKeyShort');
     const chips = t('aiChips').split('|');
     $('#view').innerHTML = `<div class="banner violet"><div class="btxt"><h1>${esc(t('navAi'))}</h1><p>${esc(t('aiIntro'))}</p></div>
         <div class="robotbox" id="robotbox" aria-hidden="true"><img src="${IMG('ai')}" alt=""></div></div>
       <div class="card">${metricsHtml(st, lo, hi)}
         <h2 style="margin-top:16px">${esc(t('aiSeen'))}</h2>${found.map(x => `<div class="ins">${esc(x)}</div>`).join('')}</div>
-      <div class="card"><h2>${esc(t('aiAsk'))}</h2><div class="chat" id="chat"></div><div class="chips" id="chips"></div>
+      <div class="card"><div class="row" style="gap:10px;flex-wrap:wrap;align-items:center"><h2 style="margin:0">${esc(t('aiAsk'))}</h2><button type="button" class="btn red sm" id="sos" style="margin-inline-start:auto">${esc(t('urSos'))}</button></div>
+        <div class="chat" id="chat"></div><div class="chips" id="chips"></div>
         <form id="aiForm" class="aiform"><input id="aiIn" maxlength="2000" autocomplete="off" placeholder="${esc(t('aiPlaceholder'))}" aria-label="${esc(t('aiAsk'))}">
           <button class="btn" id="aiSend" aria-label="${esc(t('aiSend'))}">➤</button></form>
         <p class="tiny muted" id="aiNote" style="margin-bottom:0"></p></div>`;
     const draw = () => {
-      $('#chat').innerHTML = chat.map(m => `<div class="msg ${m.role === 'user' ? 'u' : 'a'}${m.pending ? ' pending' : ''}">${m.role === 'user' ? esc(m.text) : aiMd(m.text)}${m.lesson ? `<div><a href="#/school/${esc(m.lesson)}" class="small">🎓 ${esc(t('navSchool'))} →</a></div>` : ''}</div>`).join('');
+      $('#chat').innerHTML = chat.map(m => `<div class="msg ${m.role === 'user' ? 'u' : 'a'}${m.pending ? ' pending' : ''}${m.level ? ' urgent lv-' + esc(m.level) : ''}">${m.role === 'user' ? esc(m.text) : aiMd(m.text)}${m.lesson ? `<div><a href="#/school/${esc(m.lesson)}" class="small">🎓 ${esc(t('navSchool'))} →</a></div>` : ''}${m.actions && m.actions.length ? `<div class="uract">${m.actions.map(a => a.kind === 'call' ? `<a class="btn red sm" href="tel:${esc(a.tel)}">${esc(a.label)}</a>` : `<button type="button" class="btn sm" data-timer="1">${esc(a.label)}</button>`).join('')}</div>` : ''}</div>`).join('');
+      document.querySelectorAll('#chat [data-timer]').forEach(b => b.onclick = () => { startHypoTimer(15); toast(t('tmLeft', { m: '15:00' })); });
       $('#chips').innerHTML = chat.length ? '' : chips.map(c => `<button type="button" class="chip">${esc(c)}</button>`).join('');
       document.querySelectorAll('#chips .chip').forEach(b => b.onclick = () => ask(b.textContent));
       $('#aiSend').disabled = busy;
       $('#aiNote').textContent = note;
       const last = $('#chat').lastElementChild; if (last) last.scrollIntoView({ block: 'nearest' });
     };
-    async function ask(q) {
+    async function ask(q, force = false) {
       q = String(q || '').trim();
       if (!q || busy) return;
       const history = chat.filter(m => !m.pending && !m.local).map(m => ({ role: m.role, text: m.text }));
@@ -541,6 +603,13 @@
       const reply = { role: 'assistant', text: t('aiThinking'), pending: true };
       chat.push(reply); busy = true; draw();
       if (ROBOT) ROBOT.setMode('thinking');
+      const u = window.Urgent.assess(q, uctx(await latest(), { force }));
+      if (u) {
+        keepState(u.state);
+        Object.assign(reply, { text: u.text, actions: u.actions, level: u.level, local: true, pending: false });
+        busy = false; if (ROBOT) ROBOT.setMode('quote'); draw();
+        return;
+      }
       try {
         const r = await api('POST', '/app/ai', { question: q, history, lang: S.lang, tz: Intl.DateTimeFormat().resolvedOptions().timeZone });
         if (r.mode === 'off') { Object.assign(reply, ruleAnswer(q)); reply.local = true; note = t('aiOff') + ' ' + t('aiNoKeyShort'); }
@@ -558,8 +627,12 @@
       if (chatEl) draw();
     }
     $('#aiForm').onsubmit = e => { e.preventDefault(); const v = $('#aiIn').value; $('#aiIn').value = ''; ask(v); };
+    $('#sos').onclick = () => ask(t('urSos'), true);
+    // When the 15-minute timer ends on this page, check the sensor straight away.
+    HT.onDone = () => { if (!location.hash.startsWith('#/ai')) return false; htSet(0); hypoTimerDraw(); recheck(); return true; };
     draw();
     mountRobot($('#robotbox'));
+    if (S.pendingRecheck) { S.pendingRecheck = false; recheck(); }
   }
 
   // ------------------------------------------------------------ diabetes school
@@ -583,14 +656,14 @@
       $('#view').innerHTML = `${banner('mint', 'home', esc(t('navSchool')), t('schIntro'), `<div class="bprog"><b>${esc(t('schProgress', { n, total: lessons.length }))}</b>
           <div class="progress"><div style="width:${(n / lessons.length * 100).toFixed(0)}%"></div></div></div>`)}${schoolLangNote()}
         <div class="lessons">${lessons.map((l, i) => `<a class="lesson tone${i % 5}" href="#/school/${l.id}">
-          <img src="${IMG('l-' + l.id)}" alt="" loading="lazy"><div class="lbody"><div class="tiny lmeta">${l.icon} ${i + 1} · ${esc(t('schMin', { n: l.min }))}${done.includes(l.id) ? ` · <span class="okc">✓ ${esc(t('schDone'))}</span>` : ''}</div>
+          <img src="${IMG(l.img || 'l-' + l.id)}" alt="" loading="lazy"><div class="lbody"><div class="tiny lmeta">${l.icon} ${i + 1} · ${esc(t('schMin', { n: l.min }))}${done.includes(l.id) ? ` · <span class="okc">✓ ${esc(t('schDone'))}</span>` : ''}</div>
           <b>${esc(l.title)}</b><div class="small muted">${esc(l.summary)}</div></div></a>`).join('')}</div>`;
       return;
     }
     const i = lessons.indexOf(lesson), next = lessons[i + 1];
     const answers = {};
     $('#view').innerHTML = `<p><a href="#/school">← ${esc(t('schAllLessons'))}</a></p>
-      ${banner('tone' + (i % 5), 'l-' + lesson.id, esc(lesson.title), `${lesson.summary} · ${t('schMin', { n: lesson.min })}`)}${schoolLangNote()}
+      ${banner('tone' + (i % 5), lesson.img || 'l-' + lesson.id, esc(lesson.title), `${lesson.summary} · ${t('schMin', { n: lesson.min })}`)}${schoolLangNote()}
       <div class="card lessonbody">${lesson.sections.map(sec => `<h2>${esc(sec.h)}</h2>${(sec.p || []).map(x => `<p>${esc(x)}</p>`).join('')}${sec.list ? `<ul>${sec.list.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}`).join('')}</div>
       <div class="card"><h2>${esc(t('schQuiz'))}</h2>${lesson.quiz.map((q, qi) => `<div class="quiz" data-q="${qi}"><p><b>${esc(q.q)}</b></p>
         <div class="opts">${q.a.map((a, ai) => `<button type="button" class="opt" data-a="${ai}">${esc(a)}</button>`).join('')}</div><p class="small fb" hidden></p></div>`).join('')}
@@ -745,4 +818,5 @@
   fillLangs();
   window.addEventListener('hashchange', route);
   route();
+  hypoTimerDraw();
 })();
