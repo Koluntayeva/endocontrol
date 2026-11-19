@@ -64,15 +64,28 @@
     worse: /хуже|рвот|стошнил|не дыш|синеет|судорог|worse|vomit|not breathing|нашарла|құсты/i,
   };
 
-  // A glucose value written in the question, in mg/dL. "2,1" / "2.1" in mmol units, "38" in mg/dL.
+  // A glucose value written in the question, in mg/dL. Only a number that is clearly glucose counts:
+  // it has units ("2,1 ммоль"), a decimal part ("2,1"), sits next to "сахар/glucose/қант", or is the
+  // whole message. Numbers of hours, minutes, grams, units, percent or a clock time are ignored.
   function parseValue(q, mmolUnits) {
-    const m = String(q).match(/(\d{1,3}(?:[.,]\d)?)\s*(ммоль|mmol|мг|mg)?/gi);
-    if (!m) return null;
-    for (const raw of m) {
-      const x = raw.match(/(\d{1,3}(?:[.,]\d)?)\s*(ммоль|mmol|мг|mg)?/i);
-      const n = parseFloat(x[1].replace(',', '.')), unit = (x[2] || '').toLowerCase();
+    const text = String(q);
+    const rx = /(\d{1,3}(?:[.,]\d{1,2})?)(\s*)(ммоль|mmol|мг|mg)?/gi;
+    const notGlucose = /^\s*(-?х\s*)?(час|ч\b|h\b|hour|мин|min|сек|сағ|минут|дн|день|day|week|недел|апта|лет|год|year|жас|г\b|гр|грамм|g\b|xe|хе|ед|u\b|unit|бірл|%|раз|time|кг|kg|мл|ml|таблет|tab|:|\.\d)/i;
+    const near = /(сахар|глюкоз|glucose|sugar|\bbg\b|қант|показ|датчик|sensor|reading)/i;
+    const only = /^\s*\d{1,3}(?:[.,]\d{1,2})?\s*(ммоль\/?л?|mmol\/?l?|мг\/?дл?|mg\/?dl)?\s*[.!?]*\s*$/i.test(text);
+    let m;
+    while ((m = rx.exec(text))) {
+      const raw = m[1], unit = (m[3] || '').toLowerCase();
+      const after = text.slice(m.index + m[0].length);
+      if (!unit && notGlucose.test(after)) continue;
+      const before = text.slice(Math.max(0, m.index - 2), m.index);
+      if (/[:\d]$/.test(before)) continue; // part of a clock time or a longer number
+      const decimal = /[.,]/.test(raw);
+      const ctx = near.test(text.slice(Math.max(0, m.index - 30), m.index + m[0].length + 20));
+      if (!unit && !decimal && !ctx && !only) continue;
+      const n = parseFloat(raw.replace(',', '.'));
       if (unit.startsWith('мг') || unit.startsWith('mg')) { if (n >= 15 && n <= 600) return n; continue; }
-      if (unit.startsWith('ммоль') || unit.startsWith('mmol') || mmolUnits) { if (n >= 0.5 && n <= 35) return Math.round(n * 18.0182); continue; }
+      if (unit.startsWith('ммоль') || unit.startsWith('mmol') || (mmolUnits && n <= 35)) { if (n >= 0.5 && n <= 35) return Math.round(n * 18.0182); continue; }
       if (n >= 15 && n <= 600) return n;
     }
     return null;

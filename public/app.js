@@ -19,7 +19,17 @@
     bg: '<path d="M12 3.5s6 6.4 6 10.8a6 6 0 0 1-12 0C6 9.9 12 3.5 12 3.5z"/><path d="M9.5 14.5a2.5 2.5 0 0 0 2.5 2.5"/>',
     exercise: '<path d="M3 12h4l2.5-6.5 5 13L17 12h4"/>',
     note: '<path d="M4.5 19.5h4l11-11a2.1 2.1 0 0 0-3-3l-11 11z"/><path d="m14.5 7 2.5 2.5"/>',
+    sensor: '<circle cx="12" cy="12" r="7.5"/><circle cx="12" cy="12" r="2.5"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2"/>',
+    pump: '<rect x="4" y="6" width="12" height="13" rx="3"/><path d="M8 10h4M16 9.5h2a2 2 0 0 1 2 2V14"/><path d="M20 14c0 3-2 5-5 5"/>',
+    moon: '<path d="M19.5 14.5A7.5 7.5 0 0 1 9.5 4.5a7.5 7.5 0 1 0 10 10z"/>',
+    link: '<path d="M10 14a4.5 4.5 0 0 0 6.4 0l3-3a4.5 4.5 0 0 0-6.4-6.4l-1 1"/><path d="M14 10a4.5 4.5 0 0 0-6.4 0l-3 3a4.5 4.5 0 0 0 6.4 6.4l1-1"/>',
+    chat: '<path d="M4.5 5.5h15a1.5 1.5 0 0 1 1.5 1.5v9a1.5 1.5 0 0 1-1.5 1.5H10l-4.5 3.5V17.5h-1A1.5 1.5 0 0 1 3 16V7a1.5 1.5 0 0 1 1.5-1.5z"/>',
+    lock: '<rect x="5" y="10.5" width="14" height="10" rx="2.5"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5"/>',
+    calendar: '<rect x="3.5" y="5" width="17" height="15.5" rx="3"/><path d="M3.5 9.5h17M8 3v4M16 3v4"/>',
+    left: '<path d="m14.5 6-6 6 6 6"/>', right: '<path d="m9.5 6 6 6-6 6"/>',
   };
+  // One page header for every screen: a line icon in a tinted circle, the title and a short line.
+  const pageHead = (ic, title, sub, tone = 'sky', extra = '') => `<div class="phead ${tone}"><span class="pico">${icon(ic)}</span><div class="grow"><h1>${title}</h1>${sub ? `<p>${esc(sub)}</p>` : ''}</div>${extra}</div>`;
   const icon = n => `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[n] || ''}</svg>`;
   const IMG = n => (window.EC_IMG && window.EC_IMG[n]) || '/img/' + n + '.webp';
   // A colourful page header with an illustration: tone = violet | yellow | peach | sky | blue.
@@ -290,6 +300,8 @@
     const me = S.me = await api('GET', '/app/me');
     S.units = me.user.units;
     let range = Number(sessionStorage.getItem('range') || 24);
+    // The 3D robot lives in one element that is moved into each redraw, so it is built once per visit.
+    let rbox = null;
     const draw = async () => {
       const now = Date.now();
       const d = await getData(now - range * 3600e3, now + 60e3);
@@ -302,25 +314,40 @@
       $('#view').innerHTML = `
       ${noSource ? `<div class="cta"><h2>${esc(t('connectFirst'))}</h2><p>${esc(t('connectFirstText'))}</p><a class="btn" href="#/connect">${esc(t('connectSensor'))}</a></div>` : ''}
       ${heroHtml(last, lo, hi, me.user.patient_name || me.user.name, (last ? esc(ago(last[0])) : esc(t('noData'))) + (stale && last ? ` · ${esc(t('stale'))}` : ''), `<div class="seg" id="rng">${[3, 6, 12, 24].map(h => `<button data-h="${h}" class="${h === range ? 'on' : ''}">${h}${esc(t('hShort'))}</button>`).join('')}</div>`)}
-      <div class="card chartcard">
+      <div class="card chartcard indigo">
       ${C.line(d.entries, now - range * 3600e3, now + 5 * 60e3, { lo, hi, units: S.units, treatments: d.treatments, locale: locale(), label: t('glucose') })}
       <div class="legend"><i style="background:var(--ins)"></i>${esc(t('tInsulin'))}<i style="background:var(--carb)"></i>${esc(t('tCarbs'))}<i style="background:var(--in-soft);border:1px solid var(--in)"></i>${esc(t('targetRange'))} ${G(lo)}–${G(hi)}</div>
       </div>
       <div class="quick no-print">${[['meal', '🍽', 'tMealEntry'], ['insulin', '💉', 'tBolus'], ['bg', '🩸', 'tBg'], ['exercise', '🏃', 'tExercise'], ['note', '📝', 'tNote']].map(q => `<button data-q="${q[0]}"><span>${icon(q[0])}</span>${esc(t(q[2]))}</button>`).join('')}</div>
+      <div class="card aihome no-print">
+        <div class="row aihead"><div class="hrobot" id="hrobot" aria-hidden="true"></div><div class="grow"><h2>${esc(t('navAi'))}</h2><div class="small muted">${esc(t('aiSeen'))}</div></div>
+          <button type="button" class="btn red sm" id="hsos">${esc(t('urSos'))}</button></div>
+        ${insights(d.entries, lo, hi).slice(0, 3).map(x => `<div class="ins">${esc(x)}</div>`).join('')}
+        <form id="hask" class="aiform"><input id="haskIn" maxlength="2000" autocomplete="off" placeholder="${esc(t('aiPlaceholder'))}" aria-label="${esc(t('aiAsk'))}"><button class="btn" aria-label="${esc(t('aiSend'))}">➤</button></form>
+        <div class="chips">${t('aiChips').split('|').slice(0, 3).map(c => `<button type="button" class="chip" data-hq="${esc(c)}">${esc(c)}</button>`).join('')}</div>
+      </div>
       <div class="grid g2" style="margin-top:12px">
         <div class="card"><h2>${esc(t('today'))}</h2>${metricsHtml(st, lo, hi)}</div>
         <div class="card"><h2>${esc(t('dataSources'))}</h2>${sourcesHtml(me)}<a class="btn ghost sm" href="#/connect" style="margin-top:8px">${esc(t('connectSensor'))}</a></div>
       </div>
       <div class="discover no-print">
-        <a class="dcard violet" href="#/ai"><img src="${IMG('ai')}" alt="" loading="lazy"><b>${esc(t('navAi'))}</b><span>${esc(t('aiSeen'))}</span></a>
         <a class="dcard yellow" href="#/school"><img src="${IMG('home')}" alt="" loading="lazy"><b>${esc(t('navSchool'))}</b><span>${esc(t('schProgress', { n: schoolDone().length, total: SCH.lessons(S.lang).length }))}</span></a>
         <a class="dcard peach" href="#/reports"><img src="${IMG('l-targets')}" alt="" loading="lazy"><b>${esc(t('navReports'))}</b><span>${esc(t('timeInRanges'))}</span></a>
       </div>`;
       document.querySelectorAll('#rng button').forEach(b => b.onclick = () => { range = +b.dataset.h; sessionStorage.setItem('range', range); draw(); });
       document.querySelectorAll('[data-q]').forEach(b => b.onclick = () => addEntry(b.dataset.q, draw));
+      // Questions asked here open the analyst with the answer.
+      const toAi = (q, force = false) => { if (!q || !q.trim()) return; S.pendingQuestion = { q: q.trim(), force }; location.hash = '#/ai'; };
+      $('#hask').onsubmit = e => { e.preventDefault(); toAi($('#haskIn').value); };
+      document.querySelectorAll('[data-hq]').forEach(b => b.onclick = () => toAi(b.dataset.hq));
+      $('#hsos').onclick = () => toAi(t('urSos'), true);
+      if (!rbox) { rbox = document.createElement('div'); rbox.className = 'robotbox homebot'; rbox.innerHTML = `<img src="${IMG('ai')}" alt="">`; }
+      $('#hrobot').appendChild(rbox);
+      if (!ROBOT) mountRobot(rbox);
     };
     await draw();
-    S.timer = setInterval(() => { if (!$('#modal').innerHTML) draw().catch(() => { }); }, 60e3);
+    // Refresh every minute, but not while a dialog is open or a question is being typed.
+    S.timer = setInterval(() => { const typing = document.activeElement && document.activeElement.id === 'haskIn' && document.activeElement.value; if (!$('#modal').innerHTML && !typing) draw().catch(() => { }); }, 60e3);
   }
 
   function sourcesHtml(me) {
@@ -468,27 +495,27 @@
     csv: { title: t('csvTitle'), csv: true },
   };
   const BRANDS = [
-    { id: 'libre', ic: '🟡', name: 'FreeStyle Libre', models: 'Libre 1 · 2 · 2 Plus · 3 · 3 Plus', methods: ['llu', 'juggluco', 'xdrip', 'csv'] },
-    { id: 'dexcom', ic: '🟢', name: 'Dexcom', models: 'G6 · G7 · ONE · ONE+ · Stelo', methods: ['dexshare', 'xdrip', 'iosapps', 'csv'] },
-    { id: 'medtronic', ic: '🔵', name: 'Medtronic', models: 'Guardian 3 · 4 · Simplera · 780G', methods: ['csv', 'nspull'] },
-    { id: 'eversense', ic: '⚪', name: 'Eversense', models: 'E3 · 365', methods: ['xdrip', 'csv'] },
-    { id: 'other', ic: '📡', name: 'otherCgm', models: 'Sibionics · Aidex · Ottai · Syai · Linx · Glunovo · Yuwell · i3 · Medtrum', methods: ['juggluco', 'xdrip', 'iosapps', 'csv'] },
-    { id: 'pump', ic: '⚙️', name: 'aidSystems', models: 'Loop · Trio · iAPS · AndroidAPS · Omnipod 5 (CSV)', methods: ['loop', 'csv'] },
-    { id: 'ns', ic: '🌙', name: 'Nightscout', models: 'nsModels', methods: ['nspull', 'xdrip'] },
-    { id: 'meter', ic: '🩸', name: 'meterName', models: 'meterModels', methods: ['csv'] },
+    { id: 'libre', ic: 'sensor', name: 'FreeStyle Libre', models: 'Libre 1 · 2 · 2 Plus · 3 · 3 Plus', methods: ['llu', 'juggluco', 'xdrip', 'csv'] },
+    { id: 'dexcom', ic: 'sensor', name: 'Dexcom', models: 'G6 · G7 · ONE · ONE+ · Stelo', methods: ['dexshare', 'xdrip', 'iosapps', 'csv'] },
+    { id: 'medtronic', ic: 'pump', name: 'Medtronic', models: 'Guardian 3 · 4 · Simplera · 780G', methods: ['csv', 'nspull'] },
+    { id: 'eversense', ic: 'sensor', name: 'Eversense', models: 'E3 · 365', methods: ['xdrip', 'csv'] },
+    { id: 'other', ic: 'sensor', name: 'otherCgm', models: 'Sibionics · Aidex · Ottai · Syai · Linx · Glunovo · Yuwell · i3 · Medtrum', methods: ['juggluco', 'xdrip', 'iosapps', 'csv'] },
+    { id: 'pump', ic: 'pump', name: 'aidSystems', models: 'Loop · Trio · iAPS · AndroidAPS · Omnipod 5 (CSV)', methods: ['loop', 'csv'] },
+    { id: 'ns', ic: 'moon', name: 'Nightscout', models: 'nsModels', methods: ['nspull', 'xdrip'] },
+    { id: 'meter', ic: 'bg', name: 'meterName', models: 'meterModels', methods: ['csv'] },
   ];
   async function connect(args) {
     const me = S.me = await api('GET', '/app/me');
     const brand = BRANDS.find(b => b.id === args[0]);
     const tn = s => I.has(S.lang, s) ? t(s) : s;
     if (!brand) {
-      $('#view').innerHTML = `<h1>${esc(t('connectSensor'))}</h1><p class="muted">${esc(t('connectIntro'))}</p>
-        <div class="brands">${BRANDS.map(b => `<a class="brand" href="#/connect/${b.id}" style="text-decoration:none"><div class="ic">${b.ic}</div><b>${esc(tn(b.name))}</b><div class="small muted">${esc(tn(b.models))}</div></a>`).join('')}</div>
+      $('#view').innerHTML = `${pageHead('sensor', esc(t('connectSensor')), t('connectIntro'), 'sky')}
+        <div class="brands">${BRANDS.map(b => `<a class="brand" href="#/connect/${b.id}" style="text-decoration:none"><div class="ic">${icon(b.ic)}</div><b>${esc(tn(b.name))}</b><div class="small muted">${esc(tn(b.models))}</div></a>`).join('')}</div>
         <div class="card" style="margin-top:14px"><h2>${esc(t('dataSources'))}</h2>${sourcesHtml(me)}</div>`;
       return;
     }
     const u = me.user.upload;
-    $('#view').innerHTML = `<p><a href="#/connect">← ${esc(t('allSensors'))}</a></p><h1>${brand.ic} ${esc(tn(brand.name))}</h1><p class="muted">${esc(t('chooseMethod'))}</p>
+    $('#view').innerHTML = `<p><a href="#/connect">← ${esc(t('allSensors'))}</a></p>${pageHead(brand.ic, esc(tn(brand.name)), t('chooseMethod'), 'sky')}
       ${brand.methods.map((m, i) => { const M = METHODS[m]; return `<div class="method"><h2 style="margin:0 0 6px">${i + 1}. ${esc(M.title)}${M.badge ? `<span class="tag">${esc(t('easiest'))}</span>` : ''}</h2>
         ${M.form === 'librelinkup' ? `<ol class="steps">${t('stepsLlu').split('|').map(s => `<li>${esc(s)}</li>`).join('')}</ol>
           <form data-bridge="librelinkup" class="grid g3"><div><label>${esc(t('lluEmail'))}</label><input name="email" type="email" required autocomplete="off"></div>
@@ -542,10 +569,9 @@
       const { lo, hi } = targets(d.patient);
       const st = C.stats(d.entries.map(e => e[1]), lo, hi);
       const carbs = d.treatments.reduce((a, x) => a + (+x.carbs || 0), 0), ins = d.treatments.reduce((a, x) => a + (+x.insulin || 0), 0);
-      $('#view').innerHTML = `<div class="row" style="margin-bottom:10px"><button class="btn ghost sm" id="prev">←</button>
-        <h1 class="grow" style="margin:0;text-align:center">${esc(fmtDate(day, { weekday: 'long', day: 'numeric', month: 'long' }))}</h1>
-        <button class="btn ghost sm" id="next" ${day >= dayStart(Date.now()) ? 'disabled' : ''}>→</button></div>
-        <div class="card">${C.line(d.entries, day, dayStart(day, 1), { lo, hi, units: S.units, treatments: d.treatments, locale: locale() })}
+      $('#view').innerHTML = `${pageHead('calendar', esc(fmtDate(day, { weekday: 'long', day: 'numeric', month: 'long' })), t('navDiary'), 'sky',
+          `<div class="daynav"><button class="navbtn" id="prev" aria-label="←">${icon('left')}</button><button class="navbtn" id="next" aria-label="→" ${day >= dayStart(Date.now()) ? 'disabled' : ''}>${icon('right')}</button></div>`)}
+        <div class="card chartcard indigo">${C.line(d.entries, day, dayStart(day, 1), { lo, hi, units: S.units, treatments: d.treatments, locale: locale() })}
         <div class="grid g4" style="margin-top:8px">
           <div class="metric"><div class="l">${esc(t('tir'))}</div><div class="v">${st.n ? st.tir.toFixed(0) + '%' : '—'}</div></div>
           <div class="metric"><div class="l">${esc(t('mean'))}</div><div class="v">${G(st.mean)}</div><div class="t">${UL()}</div></div>
@@ -582,9 +608,9 @@
       <div style="margin-top:12px">${metricsHtml(st, lo, hi)}</div></div>
       ${st.n ? `<div class="grid g2"><div class="card"><h2>${esc(t('timeInRanges'))}</h2>${C.tirBlock(st, t, units, lo, hi)}</div>
         <div class="card"><h2>${esc(t('patterns'))}</h2>${insights(d.entries, lo, hi).map(x => `<p class="small" style="margin:6px 0">• ${esc(x)}</p>`).join('')}</div></div>
-      <div class="card"><h2>AGP · ${days} ${esc(t('days'))}</h2>${C.agp(d.entries, { lo, hi, units, empty: t('noData') })}<div class="legend">${esc(t('agpLegend'))}</div></div>
-      <div class="card"><h2>${esc(t('tirByDay'))}</h2>${C.dailyBars(perDay)}</div>
-      <div class="card allowbreak"><h2>${esc(t('dailyCharts'))}</h2><div class="days">${[...perDay].reverse().map(x => `<div class="daycard"><div class="row small"><b>${esc(fmtDate(x.a, { weekday: 'short', day: '2-digit', month: '2-digit' }))}</b><span class="muted" style="margin-inline-start:auto">${esc(t('tir'))} ${x.st.n ? x.st.tir.toFixed(0) + '%' : '—'} · ${esc(t('mean'))} ${G(x.st.mean)}</span></div>
+      <div class="card indigo"><h2>AGP · ${days} ${esc(t('days'))}</h2>${C.agp(d.entries, { lo, hi, units, empty: t('noData') })}<div class="legend">${esc(t('agpLegend'))}</div></div>
+      <div class="card indigo"><h2>${esc(t('tirByDay'))}</h2>${C.dailyBars(perDay)}</div>
+      <div class="card indigo allowbreak"><h2>${esc(t('dailyCharts'))}</h2><div class="days">${[...perDay].reverse().map(x => `<div class="daycard"><div class="row small"><b>${esc(fmtDate(x.a, { weekday: 'short', day: '2-digit', month: '2-digit' }))}</b><span class="muted" style="margin-inline-start:auto">${esc(t('tir'))} ${x.st.n ? x.st.tir.toFixed(0) + '%' : '—'} · ${esc(t('mean'))} ${G(x.st.mean)}</span></div>
         ${C.line(x.es, x.a, x.b, { lo, hi, units, treatments: x.ts, locale: locale(), height: 170, thin: true })}
         ${x.ts.length ? `<div class="tiny muted">${x.ts.map(tr => `${fmtTime(tr.mills)} ${esc(trTitle(tr))} ${esc(trValue(tr))}`).join(' · ')}</div>` : ''}</div>`).join('')}</div></div>` : ''}
       <p class="tiny muted">${esc(t('reportFooter', { date: fmtDT(Date.now()) }))}</p>`;
@@ -614,7 +640,7 @@
   async function reports() {
     let days = 14;
     const draw = async () => {
-      $('#view').innerHTML = `<h1 class="no-print">${esc(t('navReports'))}</h1>${reportControls(null, days)}<div id="rep" class="loading">${esc(t('loading'))}</div>`;
+      $('#view').innerHTML = `<div class="no-print">${pageHead('reports', esc(t('navReports')), t('timeInRanges'), 'peach')}</div>${reportControls(null, days)}<div id="rep" class="loading">${esc(t('loading'))}</div>`;
       wireReport(n => { days = n; draw(); });
       $('#rep').outerHTML = `<div id="rep">${await reportHtml(null, days)}</div>`;
     };
@@ -753,6 +779,7 @@
     draw();
     mountRobot($('#robotbox'));
     if (S.pendingRecheck) { S.pendingRecheck = false; recheck(); }
+    if (S.pendingQuestion) { const pq = S.pendingQuestion; S.pendingQuestion = null; ask(pq.q, pq.force); }
   }
 
   // ------------------------------------------------------------ diabetes school
@@ -809,15 +836,15 @@
   async function share() {
     const [list, notes] = await Promise.all([api('GET', '/app/shares'), api('GET', '/app/notes')]);
     const link = tok => `${location.origin}/#/s/${tok}`;
-    $('#view').innerHTML = `<h1>${esc(t('navDoctor'))}</h1>
-      <div class="card"><h2>🔗 ${esc(t('shareTitle'))}</h2><p class="small muted">${esc(t('shareText'))}</p>
+    $('#view').innerHTML = `${pageHead('share', esc(t('navDoctor')), t('shareTitle'), 'violet')}
+      <div class="card"><h2 class="hic">${icon('link')}${esc(t('shareTitle'))}</h2><p class="small muted">${esc(t('shareText'))}</p>
         ${list.map(s => `<div class="status"><div class="grow"><b>${esc(s.label || t('shareLink'))}</b><div class="copy"><code>${esc(link(s.token))}</code><button class="btn sm ghost" data-copy="${esc(link(s.token))}">${esc(t('copy'))}</button></div>
           <div class="tiny muted">${esc(t('created'))} ${esc(fmtDate(s.created_at))}${s.expires_at ? ' · ' + esc(t('validUntil')) + ' ' + esc(fmtDate(s.expires_at)) : ''} · Nightscout token: <code>${esc(s.token)}</code></div></div>
           <button class="btn sm red" data-rev="${esc(s.token)}">${esc(t('revoke'))}</button></div>`).join('') || `<div class="muted small">${esc(t('noShares'))}</div>`}
         <form id="nf" class="grid g3" style="margin-top:12px"><div><label>${esc(t('shareFor'))}</label><input name="label" placeholder="${esc(t('shareForHint'))}"></div>
           <div><label>${esc(t('validity'))}</label><select name="days"><option value="0">${esc(t('noExpiry'))}</option><option value="7">7 ${esc(t('days'))}</option><option value="30">30 ${esc(t('days'))}</option><option value="90">90 ${esc(t('days'))}</option></select></div>
           <div style="align-self:end"><button class="btn">${esc(t('createLink'))}</button></div></form></div>
-      <div class="card"><h2>💬 ${esc(t('messages'))}</h2>
+      <div class="card"><h2 class="hic">${icon('chat')}${esc(t('messages'))}</h2>
         ${notes.map(n => `<div class="note ${n.author_role === 'doctor' ? 'doc' : ''}"><div class="meta">${n.kind === 'conclusion' ? '📋 ' + esc(t('conclusion')) + ' · ' : ''}${esc(n.author)} · ${esc(fmtDT(n.created_at))}</div>${esc(n.text)}</div>`).join('') || `<div class="muted small">${esc(t('noMessages'))}</div>`}
         <form id="mf"><textarea id="mt" placeholder="${esc(t('msgHint'))}"></textarea><button class="btn" style="margin-top:6px">${esc(t('send'))}</button></form></div>`;
     document.querySelectorAll('[data-copy]').forEach(b => b.onclick = () => copy(b.dataset.copy));
@@ -829,7 +856,7 @@
   // ------------------------------------------------------------ doctor
   async function patients() {
     const list = await api('GET', '/app/patients');
-    $('#view').innerHTML = `<h1>${esc(t('navPatients'))}</h1>
+    $('#view').innerHTML = `${pageHead('patients', esc(t('navPatients')), '', 'violet')}
       <form class="card row" id="af"><div class="grow"><label for="tk">${esc(t('addPatient'))}</label><input id="tk" placeholder="${esc(t('addPatientHint'))}" required></div><button class="btn" style="align-self:end">${esc(t('add'))}</button><div class="err" id="aerr" style="flex-basis:100%"></div></form>
       ${list.map(p => {
         const flags = [];
@@ -905,7 +932,7 @@
     const me = S.me = await api('GET', '/app/me');
     const u = me.user; const doc = u.role === 'doctor';
     const v = mg => S.units === 'mmol' ? (mg / C.MMOL).toFixed(1) : mg;
-    $('#view').innerHTML = `<h1>${esc(t('navSettings'))}</h1>
+    $('#view').innerHTML = `${pageHead('settings', esc(t('navSettings')), '', 'yellow')}
       <form class="card" id="pf"><h2>${esc(t('profile'))}</h2>
         <div class="grid g2"><div class="fld"><label>${esc(t(doc ? 'yourNameDoctor' : 'yourName'))}</label><input name="name" value="${esc(u.name)}"></div>
         ${doc ? '' : `<div class="fld"><label>${esc(t('patientName'))}</label><input name="patient_name" value="${esc(u.patient_name || '')}"></div>`}
@@ -915,7 +942,7 @@
         <button class="btn" style="margin-top:10px">${esc(t('save'))}</button></form>
       ${doc ? '' : `<div class="card"><h2>📡 ${esc(t('uploadSettings'))}</h2><p class="small muted">${esc(t('uploadSettingsText'))}</p>${uploaderBox(u.upload)}
         <div class="row"><button class="btn sm red" id="rot">${esc(t('newSecret'))}</button>${window.EC_DEMO ? '' : `<a class="btn sm ghost" href="/app/export.csv">${esc(t('exportCsv'))}</a>`}</div></div>`}
-      <form class="card" id="cp"><h2>🔒 ${esc(t('changePassword'))}</h2><div class="grid g2"><div class="fld"><label>${esc(t('currentPassword'))}</label><input type="password" name="current" autocomplete="current-password" required></div>
+      <form class="card" id="cp"><h2 class="hic">${icon('lock')}${esc(t('changePassword'))}</h2><div class="grid g2"><div class="fld"><label>${esc(t('currentPassword'))}</label><input type="password" name="current" autocomplete="current-password" required></div>
         <div class="fld"><label>${esc(t('newPassword'))}</label><input type="password" name="password" autocomplete="new-password" required></div></div><div class="err" id="cperr"></div><button class="btn">${esc(t('save'))}</button></form>
       <form class="card" id="del"><h2>${esc(t('deleteAccount'))}</h2><p class="small muted">${esc(t('deleteText'))}</p><div class="row"><input type="password" name="password" placeholder="${esc(t('password'))}" required style="max-width:260px"><button class="btn red">${esc(t('deleteAccount'))}</button></div><div class="err" id="delerr"></div></form>
       <p class="tiny muted">${esc(me.app.name)} ${esc(me.app.version)} · ${esc(t('compatNote'))}</p>`;

@@ -396,3 +396,74 @@ h1{font-weight:700}h2{font-weight:650}
 .quick button:nth-child(4) span{background:var(--t-yellow);color:#b98400}
 .quick button:nth-child(5) span{background:var(--t-mix);color:var(--accent)}
 @media (prefers-color-scheme:dark){.quick button:nth-child(4) span{color:var(--sun)}}
+
+
+/* ---------- glucose chart on the main screen: the card's indigo, bright zone colours ---------- */
+.chartcard.indigo{color:#fff;border:0;
+  background:radial-gradient(520px 260px at 100% 0%,rgba(110,160,255,.35),transparent 65%),linear-gradient(160deg,#25288f 0%,#2f32b8 55%,#3b34cf 100%);
+  box-shadow:0 18px 40px rgba(52,55,201,.28);
+  --line:rgba(255,255,255,.13);--muted:rgba(255,255,255,.66);--text:#fff;--card:#2c2fae;
+  --in:#5ee0a0;--in2:#4fd6e3;--in-soft:rgba(94,224,160,.18);--high:#ffc04d;--vhigh:#ff8a3d;--low:#ff6fa8;--vlow:#ff3d7a;
+  --ins:#8fa8ff;--carb:#ffb547;--accent:#c3b5ff}
+.chartcard.indigo .legend{color:rgba(255,255,255,.72)}
+.hero-card + .chartcard.indigo{margin-top:-6px}
+
+/* ---------- AI analyst card on the home screen ---------- */
+.aihome{margin-top:12px}
+.aihome .aihead{gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:6px}
+.aihome h2{margin:0}
+.aiava{width:52px;height:52px;border-radius:16px;object-fit:cover;box-shadow:0 6px 16px rgba(52,55,201,.25)}
+.aihome .ins{background:var(--t-violet)}
+.aihome .chips{margin-bottom:0}
+.discover{grid-template-columns:repeat(2,1fr)}
+@media (max-width:560px){.discover{grid-template-columns:1fr 1fr}.discover .dcard:last-child{grid-column:auto}}
+
+/* the 3D robot in the home analyst card */
+.hrobot{flex:none;width:122px;height:156px;margin:-22px -4px -16px -8px}
+.robotbox.homebot{width:122px;height:156px;margin:0}
+.robotbox.homebot img{width:64px;height:64px;border-radius:18px;inset:auto auto 26px 26px}
+@media (max-width:560px){.hrobot,.robotbox.homebot{width:96px;height:112px}}
+
+/* ---------- one style for every screen ---------- */
+/* page header: line icon in a tinted circle, title, short line */
+.phead{display:flex;align-items:center;gap:14px;border-radius:26px;padding:16px 18px;margin:4px 0 14px;background:linear-gradient(135deg,var(--tint),var(--tint2));position:relative;overflow:hidden}
+.phead::after{content:"";position:absolute;left:22px;right:22px;bottom:0;height:3px;border-radius:3px 3px 0 0;background:var(--grad-brand);opacity:.5}
+.phead h1{margin:0;font-size:24px;line-height:1.15}
+.phead h1::first-letter{text-transform:uppercase}
+.phead p{margin:3px 0 0;font-size:13.5px;color:var(--muted)}
+.pico{flex:none;display:grid;place-items:center;width:48px;height:48px;border-radius:50%;background:var(--card);color:var(--accent);box-shadow:0 4px 14px rgba(52,96,240,.15)}
+.pico svg{width:24px;height:24px}
+.phead.peach .pico{color:var(--warm)}.phead.yellow .pico{color:#b98400}.phead.violet .pico{color:var(--accent2)}
+@media (prefers-color-scheme:dark){.phead.yellow .pico{color:var(--sun)}}
+.daynav{display:flex;gap:8px}
+.navbtn{display:grid;place-items:center;width:42px;height:42px;border-radius:50%;border:1px solid var(--line);background:var(--card);color:var(--text);cursor:pointer}
+.navbtn:disabled{opacity:.35;cursor:default}
+.navbtn svg{width:20px;height:20px}
+/* section titles with an icon */
+h2.hic{display:flex;align-items:center;gap:8px}
+h2.hic svg{width:20px;height:20px;color:var(--accent)}
+/* sensor brand tiles: line icons in tinted circles */
+.brand .ic{font-size:0;border-radius:50%}
+.brand .ic svg{width:24px;height:24px}
+.brand:nth-child(4n+1) .ic{background:var(--t-sky);color:var(--accent)}
+.brand:nth-child(4n+2) .ic{background:var(--t-violet);color:var(--accent2)}
+.brand:nth-child(4n+3) .ic{background:var(--t-peach);color:var(--warm)}
+.brand:nth-child(4n+4) .ic{background:var(--t-yellow);color:#b98400}
+/* every glucose chart panel on indigo, like the main screen */
+.card.indigo{color:#fff;border:0;
+  background:radial-gradient(520px 260px at 100% 0%,rgba(110,160,255,.32),transparent 65%),linear-gradient(160deg,#25288f 0%,#2f32b8 55%,#3b34cf 100%);
+  box-shadow:0 18px 40px rgba(52,55,201,.24);
+  --line:rgba(255,255,255,.13);--muted:rgba(255,255,255,.66);--text:#fff;--card:#2c2fae;--bg2:rgba(255,255,255,.08);
+  --in:#5ee0a0;--in2:#4fd6e3;--in-soft:rgba(94,224,160,.18);--high:#ffc04d;--vhigh:#ff8a3d;--low:#ff6fa8;--vlow:#ff3d7a;
+  --ins:#8fa8ff;--carb:#ffb547;--accent:#c3b5ff}
+.card.indigo h2{color:#fff}
+.card.indigo .legend{color:rgba(255,255,255,.72)}
+.card.indigo .daycard{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.12)}
+.card.indigo .metric{background:rgba(255,255,255,.08)}
+/* printed reports stay light */
+@media print{
+  .card.indigo,.chartcard.indigo{background:#fff!important;color:#000;box-shadow:none;border:1px solid #ddd;
+    --line:#ddd;--muted:#555;--text:#000;--card:#fff;--bg2:#f4f4f4;--in:#2e9d63;--in2:#2b8f8a;--in-soft:#e2f3e9;--high:#d08a1c;--vhigh:#d0601c;--low:#c8336f;--vlow:#9c2058;--ins:#4f46e5;--carb:#d08a1c}
+  .card.indigo h2{color:#000}.card.indigo .daycard{background:#fff;border-color:#ddd}
+  .phead{background:none;padding:0}.phead .pico,.phead::after,.daynav{display:none}
+}

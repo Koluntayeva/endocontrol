@@ -81,3 +81,11 @@ test('meal entry: decimal dose with a comma, glucose at the meal and 2 h later f
   assert.equal(r.status, 400);
   server.close();
 });
+
+test('emergency helper reads only real glucose values from a message', () => {
+  const U = require('../public/urgent.js');
+  const cases = [['Почему сегодня через 2 часа после завтрака сахар начал снижаться?', null], ['сахар упал до 2,1 что делать?', 38], ['2,1', 38],
+    ['сахар 3', 54], ['дала 15 г сока', null], ['вколола 6,5 ед', null], ['в 8:30 был завтрак', null], ['сахар 16 и рвота', 288],
+    ['glucose 54 mg/dl', 54], ['уже 30 минут не поднимается', null], ['ребёнку 9 лет, сахар 2.8', 50], ['TIR 70% это хорошо?', null]];
+  for (const [q, want] of cases) assert.equal(U.parseValue(q, true), want, q);
+});
