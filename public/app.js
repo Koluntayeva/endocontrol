@@ -280,7 +280,7 @@
     const st = v == null ? 'none' : v < 54 ? 'vlow' : v < lo ? 'low' : v <= hi ? 'in' : v <= 250 ? 'high' : 'vhigh';
     const label = { none: '', vlow: t('veryLow'), low: t('low'), in: t('inRange'), high: t('high'), vhigh: t('veryHigh') }[st];
     return `<div class="hero-card st-${st}"><div class="now">
-      <div class="valbox"><div class="val">${v != null ? G(v) : '—'}<span class="arrow">${last ? (C.ARROWS[last[2]] || '') : ''}</span></div><div class="unit">${UL()}${label ? ` · <b>${esc(label)}</b>` : ''}</div></div>
+      <div class="valbox"><div class="val">${v != null ? G(v) : '—'}<span class="arrow">${last ? (C.ARROWS[last[2]] || '') : ''}</span></div><div class="unit">${UL()}${label ? `<span class="zone z-${st}"><i></i>${esc(label)}</span>` : ''}</div></div>
       <div class="grow"><div class="who">${esc(name)}</div><div class="meta">${metaHtml}</div></div>
       ${extra || ''}</div></div>`;
   }

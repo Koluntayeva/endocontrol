@@ -1,9 +1,8 @@
-/* Onest (UI text, Cyrillic incl. Kazakh) and Doto (dot-matrix glucose number), both SIL OFL 1.1, served from /fonts */
+/* Onest (UI text, Cyrillic incl. Kazakh), SIL OFL 1.1, served from /fonts */
 @font-face{font-family:"Onest";font-style:normal;font-display:swap;font-weight:100 900;src:url(/fonts/onest-cyrillic-ext-wght-normal.woff2) format("woff2-variations");unicode-range:U+0460-052F,U+1C80-1C8A,U+20B4,U+2DE0-2DFF,U+A640-A69F,U+FE2E-FE2F}
 @font-face{font-family:"Onest";font-style:normal;font-display:swap;font-weight:100 900;src:url(/fonts/onest-cyrillic-wght-normal.woff2) format("woff2-variations");unicode-range:U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116}
 @font-face{font-family:"Onest";font-style:normal;font-display:swap;font-weight:100 900;src:url(/fonts/onest-latin-ext-wght-normal.woff2) format("woff2-variations");unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}
 @font-face{font-family:"Onest";font-style:normal;font-display:swap;font-weight:100 900;src:url(/fonts/onest-latin-wght-normal.woff2) format("woff2-variations");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
-@font-face{font-family:"Doto";font-style:normal;font-display:swap;font-weight:700;src:url(/fonts/doto-latin-700-normal.woff2) format("woff2");unicode-range:U+0000-00FF,U+2000-206F}
 /* EndoControl — bright, friendly theme (cards & KPI tiles inspired by dashboard tools such as Shaper) */
 :root{
   --bg:#f4f3f0;--bg2:#efeeea;--card:#fbfaf8;--text:#22223a;--muted:#6f6f86;--line:#e6e4df;
@@ -360,12 +359,23 @@ body{background-image:radial-gradient(700px 420px at 100% -5%,rgba(255,191,31,.1
 .okc{color:var(--in)}
 
 
-/* ---------- type: Onest everywhere, dot-matrix glucose number ---------- */
+/* ---------- type: Onest everywhere ---------- */
 h1,h2,h3,.logo{letter-spacing:-.025em}
 h1{font-weight:700}h2{font-weight:650}
 .btn,.seg button,.chip,.witem{letter-spacing:-.005em}
 .metric .v{font-weight:700;letter-spacing:-.02em}
-.now .val{font-family:"Doto","Onest",monospace;font-weight:700;font-size:76px;letter-spacing:.01em;line-height:.95}
+.now .val{font-weight:300;font-size:78px;letter-spacing:-.045em;line-height:.95;font-variant-numeric:tabular-nums lining-nums}
+.now .arrow{font-weight:300;font-size:44px;opacity:.85}
+
+/* ---------- glucose card: deep indigo; the zone is shown by a coloured dot + label ---------- */
+.hero-card,.hero-card.st-in,.hero-card.st-high,.hero-card.st-vhigh,.hero-card.st-low,.hero-card.st-vlow,.hero-card.st-none{
+  background:radial-gradient(420px 260px at 92% 0%,rgba(110,160,255,.55),transparent 65%),linear-gradient(135deg,#23268f 0%,#3437c9 48%,#4f3fe6 100%);
+  box-shadow:0 18px 40px rgba(52,55,201,.35)}
+.hero-card::after{background:rgba(255,255,255,.07)}
+.zone{display:inline-flex;align-items:center;gap:7px;padding:4px 11px 4px 9px;border-radius:999px;background:rgba(255,255,255,.14);font-weight:650;font-size:13px}
+.zone i{width:9px;height:9px;border-radius:50%;box-shadow:0 0 0 3px rgba(255,255,255,.18)}
+.zone.z-in i{background:#5ee0a0}.zone.z-high i{background:#ffc04d}.zone.z-vhigh i{background:#ff8a3d}.zone.z-low i{background:#ff6fa8}.zone.z-vlow i{background:#ff3d7a}
+.now .unit{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:8px}
 
 /* ---------- bottom menu: dark glass bar, thin line icons in circles ---------- */
 @media (max-width:820px){
