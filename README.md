@@ -64,7 +64,7 @@ Environment variables:
 | `SECRET_KEY` | 64 hex chars; encrypts sensor-cloud passwords and API secrets. If unset, one is generated in `DATA_DIR/secret.key` — **keep it**, without it stored passwords cannot be decrypted |
 | `PUBLIC_URL` | public address shown to users (otherwise taken from the request) |
 | `APP_NAME` | product name shown in the UI and to Nightscout clients |
-| `ANTHROPIC_API_KEY` | turns on the AI analyst (Claude). Without it the analyst shows a rule-based review. The question and a 14-day data summary are sent to Anthropic, so cover this in the privacy policy |
+| `ANTHROPIC_API_KEY` | turns on the AI analyst (Claude); can also go in a `.env` file next to `server.js`, which git and Docker ignore. Without it the analyst shows a rule-based review. The question and a 14-day data summary are sent to Anthropic, so cover this in the privacy policy |
 | `AI_MODEL` | Claude model for the analyst (default `claude-opus-5-5`) |
 | `AI_LIMIT_PER_HOUR` | questions per user per hour (default 30) |
 

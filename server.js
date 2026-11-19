@@ -11,6 +11,11 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { URL } = require('node:url');
 
+// Settings such as ANTHROPIC_API_KEY can live in a .env file next to server.js (never committed).
+// Variables already set in the environment win.
+try { if (fs.existsSync(path.join(__dirname, '.env'))) process.loadEnvFile(path.join(__dirname, '.env')); }
+catch (e) { console.warn('.env could not be read:', e.message); }
+
 const dbm = require('./lib/db');
 const sec = require('./lib/security');
 const ns = require('./lib/nsdata');
