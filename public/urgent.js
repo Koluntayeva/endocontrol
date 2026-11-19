@@ -57,6 +57,11 @@
     ketones: /кетон|ацетон|ketone|рвот|vomit|құс/i,
     now: /сейчас|now|қазір/i,
     gave: /дал[аи]? (сок|сахар|углевод|глюкоз)|съел|выпил|ate|drank|gave (juice|sugar|carbs)|ішті|жеді/i,
+    // replies during an open emergency
+    called: /вызвал[аи]?|позвонил[аи]?|скор(ая|ую).*(ед|выех|в пути|приех)|едут|в пути|приехал|called|ambulance|on (its|their) way|paramedic|жедел.*(шақыр|келе)|шақырдық|шақырдым/i,
+    glucagon: /глюкаген|глюкагон|баксими|glucagon|glucagen|baqsimi/i,
+    awake: /очнул|пришл?[аё]л? в себя|в сознании|открыл[аи]? глаза|отвечает|woke|awake|conscious|came round|есін жиды|оянды/i,
+    worse: /хуже|рвот|стошнил|не дыш|синеет|судорог|worse|vomit|not breathing|нашарла|құсты/i,
   };
 
   // A glucose value written in the question, in mg/dL. "2,1" / "2.1" in mmol units, "38" in mg/dL.
@@ -101,8 +106,23 @@
     // The SOS button (ctx.force) always opens the low-glucose steps; a normal sensor value is then ignored.
     if (ctx.force && v != null && v >= 70) v = null;
     const isLow = v != null ? v < 70 : (stuck || (lowWords && (critical || RX.panic.test(q) || ctx.force)));
-    const isDka = RX.ketones.test(q) && (v == null || v > 180) && !isLow;
+    // During a low, vomiting is about the low (glucagon often causes it), not ketoacidosis.
+    const openLow = st.startedAt && ctx.now - st.startedAt < 3 * 3600e3 && st.kind === 'low';
+    const isDka = RX.ketones.test(q) && (v != null ? v > 180 : !openLow) && !isLow;
     const highVal = v != null && v > 250 && RX.high.test(q);
+    // Inside an open emergency every reply stays in that context instead of falling to general answers.
+    const open = st.startedAt && ctx.now - st.startedAt < 3 * 3600e3;
+    if (open && !isLow && !isDka && !highVal && (!critical || RX.called.test(q) || RX.glucagon.test(q))) {
+      const nums0 = numbers(st.country || countryFromZone(ctx.tz)), call0 = nums0.map(n => ({ kind: 'call', tel: n, label: t('urCall', { n }) }));
+      const j = nums0.join(t('urOr'));
+      const parts = [];
+      if (RX.worse.test(q)) return { text: t('urWorse', { nums: j }), actions: call0, level: 'critical', state: st };
+      if (RX.called.test(q)) parts.push(t('urAmbOnWay', { nums: j }));
+      if (RX.glucagon.test(q)) parts.push(t('urGlucagonGiven', { nums: j }));
+      if (RX.awake.test(q)) parts.push(t('urAwake'));
+      if (!parts.length && !cityReply) parts.push(t('urContinue', { nums: j }));
+      if (parts.length) return { text: parts.join('\n\n'), actions: RX.called.test(q) ? [{ kind: 'timer', label: t('urTimerBtn') }] : call0, level: 'info', state: st };
+    }
     if (!critical && !isLow && !isDka && !highVal && !cityReply) return null;
 
     const code = st.country || countryFromZone(ctx.tz);
@@ -112,6 +132,7 @@
     const out = [], actions = [];
     const askCity = () => { if (!st.country) { out.push(t('urAskCity', { nums: nums.join(t('urOr')) })); st.askedCity = true; } else out.push(t('urNumbers', { place, nums: nums.join(t('urOr')) })); };
 
+    if ((critical || isLow || isDka || highVal) && !st.startedAt) { st.startedAt = ctx.now; st.kind = isDka || highVal ? 'high' : 'low'; }
     if (cityReply && !critical && !isLow && !isDka) {
       out.push(t('urNumbers', { place, nums: nums.join(t('urOr')) }));
       out.push(t('urCityKept'));

@@ -407,6 +407,11 @@ body{background-image:radial-gradient(700px 420px at 100% -5%,rgba(255,170,120,.
     insKind: "Type", insMeal: "Meal bolus", insCorr: "Correction", insBasal: "Basal",
     timeNow: "Now", timeAgo: "−{n} min", wheelToday: "Today", wheelYesterday: "Yesterday",
     eNum: "Enter a number, e.g. 6.5 or 6,5", eMealEmpty: "Enter the carbs or the bolus", e_empty_entry: "Enter the carbs or the bolus", e_bad_number: "Enter a number, e.g. 6.5",
+    urAmbOnWay: "You did everything right — help is on the way. While you wait:\n1. Stay with the person, do not leave them alone.\n2. Awake and able to swallow — another 15 g of fast carbs. If not — nothing by mouth, on their side, glucagon (0.5 mg under 25 kg, 1 mg from 25 kg; nasal 3 mg).\n3. Open the door; get the meter, insulin, the list of medicines and the time of the last injection ready.\n4. If things get worse (seizures, stops breathing), call {nums} again and say what changed.\nTell me the glucose now and how they are — I'm here.",
+    urGlucagonGiven: "Giving glucagon was the right thing to do. Keep them on their side: vomiting is common afterwards. Most people wake up in 10–15 minutes. As soon as they can swallow — juice, then bread or crackers. If you haven't called an ambulance yet, call {nums}. If there is no improvement in 15 minutes, wait for the paramedics; do not give a second dose without a doctor.",
+    urAwake: "Good that they are awake. As soon as they can swallow safely, give juice or sugar, then slow carbs (bread, crackers): glucagon and juice work only briefly. Check glucose every 15–30 minutes for the next hour and stay with them. If an ambulance was called, wait for the paramedics to examine them.",
+    urWorse: "If it is getting worse, call {nums} right now (again if needed) and say what changed. Unconscious — nothing by mouth, on their side, glucagon. Not breathing — start resuscitation as the dispatcher tells you.",
+    urContinue: "I'm here and following what is happening. Please tell me: what is glucose now, and how is the person (awake, able to swallow)? If it gets worse, call {nums} straight away.",
     urSos: "🆘 Low glucose — help", urOr: " or ", urCall: "📞 Call {n}", urTimerBtn: "⏱ Start a 15-minute timer",
     urCalm: "I'm here with you. Let's go step by step — a low can be treated quickly.",
     urLow: "Glucose {v} {u} is a low (hypoglycaemia) and needs treating right now.", urVeryLow: "Glucose {v} {u} is a dangerous low. Act now.",
@@ -524,6 +529,11 @@ body{background-image:radial-gradient(700px 420px at 100% -5%,rgba(255,170,120,.
     insKind: "Тип", insMeal: "На еду", insCorr: "Коррекция", insBasal: "Базальный",
     timeNow: "Сейчас", timeAgo: "−{n} мин", wheelToday: "Сегодня", wheelYesterday: "Вчера",
     eNum: "Введите число, например 6,5", eMealEmpty: "Укажите углеводы или болюс", e_empty_entry: "Укажите углеводы или болюс", e_bad_number: "Введите число, например 6,5",
+    urAmbOnWay: "Вы всё сделали правильно — помощь уже едет. Пока ждёте:\n1. Будьте рядом, не оставляйте человека одного.\n2. В сознании и может глотать — ещё 15 г быстрых углеводов. Если нет — ничего в рот, на бок, глюкагон (0,5 мг до 25 кг, 1 мг от 25 кг; назальный 3 мг).\n3. Откройте дверь, подготовьте глюкометр, инсулин, список лекарств и время последнего укола.\n4. Если станет хуже (судороги, перестал дышать) — снова звоните {nums} и скажите, что изменилось.\nНапишите, какой сейчас сахар и как самочувствие — я рядом.",
+    urGlucagonGiven: "Глюкагон ввели — это правильно. Уложите на бок: после него часто тошнит. Обычно человек приходит в себя через 10–15 минут. Как только сможет глотать — сок, затем хлеб или печенье. Если скорую ещё не вызвали — звоните {nums}. Если через 15 минут не стало лучше — ждите врачей, вторую дозу без врача не вводите.",
+    urAwake: "Хорошо, что человек пришёл в себя. Как только может безопасно глотать — дайте сок или сахар, затем медленные углеводы (хлеб, печенье): глюкагон и сок действуют недолго. Ближайший час проверяйте сахар каждые 15–30 минут и не оставляйте одного. Если скорую вызвали — дождитесь осмотра врача.",
+    urWorse: "Если стало хуже — звоните {nums} прямо сейчас (при необходимости повторно) и скажите, что изменилось. Без сознания — ничего в рот, на бок, глюкагон. Не дышит — начинайте реанимацию по указаниям диспетчера.",
+    urContinue: "Я рядом и слежу за ситуацией. Напишите, пожалуйста: какой сейчас сахар и как человек себя чувствует (в сознании, может ли глотать)? Если станет хуже — сразу звоните {nums}.",
     urSos: "🆘 Низкий сахар — помощь", urOr: " или ", urCall: "📞 Позвонить {n}", urTimerBtn: "⏱ Засечь 15 минут",
     urCalm: "Я рядом. Давайте спокойно и по шагам — гипогликемия лечится быстро.",
     urLow: "Сахар {v} {u} — это гипогликемия, её нужно лечить прямо сейчас.", urVeryLow: "Сахар {v} {u} — это опасно низкий сахар. Действуем сразу.",
@@ -641,6 +651,11 @@ body{background-image:radial-gradient(700px 420px at 100% -5%,rgba(255,170,120,.
     insKind: "Түрі", insMeal: "Тамаққа", insCorr: "Түзету", insBasal: "Базальды",
     timeNow: "Қазір", timeAgo: "−{n} мин", wheelToday: "Бүгін", wheelYesterday: "Кеше",
     eNum: "Сан енгізіңіз, мысалы 6,5", eMealEmpty: "Көмірсуды немесе болюсты көрсетіңіз", e_empty_entry: "Көмірсуды немесе болюсты көрсетіңіз", e_bad_number: "Сан енгізіңіз, мысалы 6,5",
+    urAmbOnWay: "Бәрін дұрыс жасадыңыз — көмек келе жатыр. Күткен кезде:\n1. Қасында болыңыз, адамды жалғыз қалдырмаңыз.\n2. Есінде болып, жұта алса — тағы 15 г жылдам көмірсу. Болмаса — ауызға ештеңе бермей, бүйірімен жатқызып, глюкагон (25 кг-ға дейін 0,5 мг, 25 кг-нан 1 мг; мұрын арқылы 3 мг).\n3. Есікті ашыңыз, глюкометрді, инсулинді, дәрілер тізімін және соңғы инъекция уақытын дайындаңыз.\n4. Жағдай нашарласа (тырысу, тынысы тоқтаса) — {nums} нөміріне қайта қоңырау шалып, не өзгергенін айтыңыз.\nҚазір қант қанша және жағдайы қалай екенін жазыңыз — мен қасыңыздамын.",
+    urGlucagonGiven: "Глюкагон салдыңыз — дұрыс. Бүйірімен жатқызыңыз: одан кейін жиі жүрек айниды. Әдетте адам 10–15 минутта есін жияды. Жұта алатын болысымен — шырын, содан кейін нан немесе печенье. Жедел жәрдемді әлі шақырмасаңыз — {nums}. 15 минутта жақсармаса — дәрігерлерді күтіңіз, екінші дозаны дәрігерсіз салмаңыз.",
+    urAwake: "Есін жиғаны жақсы. Қауіпсіз жұта алса — шырын немесе қант, содан кейін баяу көмірсу (нан, печенье) беріңіз: глюкагон мен шырын қысқа әсер етеді. Келесі бір сағатта қантты 15–30 минут сайын тексеріп, жалғыз қалдырмаңыз. Жедел жәрдем шақырылса — дәрігердің қарауын күтіңіз.",
+    urWorse: "Жағдай нашарласа — {nums} нөміріне дәл қазір (қажет болса қайта) қоңырау шалып, не өзгергенін айтыңыз. Есінен танса — ауызға ештеңе бермей, бүйірімен жатқызып, глюкагон. Тыныс алмаса — диспетчердің нұсқауымен реанимация бастаңыз.",
+    urContinue: "Мен қасыңыздамын және жағдайды бақылап отырмын. Жазыңызшы: қазір қант қанша және адамның жағдайы қалай (есінде ме, жұта ала ма)? Нашарласа — бірден {nums} нөміріне қоңырау шалыңыз.",
     urSos: "🆘 Қант төмен — көмек", urOr: " немесе ", urCall: "📞 Қоңырау {n}", urTimerBtn: "⏱ 15 минут уақыт белгілеу",
     urCalm: "Мен қасыңыздамын. Асықпай, қадамдап жасайық — гипогликемия тез емделеді.",
     urLow: "Қант {v} {u} — бұл гипогликемия, оны дәл қазір емдеу керек.", urVeryLow: "Қант {v} {u} — бұл қауіпті төмен қант. Бірден әрекет етеміз.",
@@ -2242,6 +2257,11 @@ body{background-image:radial-gradient(700px 420px at 100% -5%,rgba(255,170,120,.
     ketones: /кетон|ацетон|ketone|рвот|vomit|құс/i,
     now: /сейчас|now|қазір/i,
     gave: /дал[аи]? (сок|сахар|углевод|глюкоз)|съел|выпил|ate|drank|gave (juice|sugar|carbs)|ішті|жеді/i,
+    // replies during an open emergency
+    called: /вызвал[аи]?|позвонил[аи]?|скор(ая|ую).*(ед|выех|в пути|приех)|едут|в пути|приехал|called|ambulance|on (its|their) way|paramedic|жедел.*(шақыр|келе)|шақырдық|шақырдым/i,
+    glucagon: /глюкаген|глюкагон|баксими|glucagon|glucagen|baqsimi/i,
+    awake: /очнул|пришл?[аё]л? в себя|в сознании|открыл[аи]? глаза|отвечает|woke|awake|conscious|came round|есін жиды|оянды/i,
+    worse: /хуже|рвот|стошнил|не дыш|синеет|судорог|worse|vomit|not breathing|нашарла|құсты/i,
   };
 
   // A glucose value written in the question, in mg/dL. "2,1" / "2.1" in mmol units, "38" in mg/dL.
@@ -2286,8 +2306,23 @@ body{background-image:radial-gradient(700px 420px at 100% -5%,rgba(255,170,120,.
     // The SOS button (ctx.force) always opens the low-glucose steps; a normal sensor value is then ignored.
     if (ctx.force && v != null && v >= 70) v = null;
     const isLow = v != null ? v < 70 : (stuck || (lowWords && (critical || RX.panic.test(q) || ctx.force)));
-    const isDka = RX.ketones.test(q) && (v == null || v > 180) && !isLow;
+    // During a low, vomiting is about the low (glucagon often causes it), not ketoacidosis.
+    const openLow = st.startedAt && ctx.now - st.startedAt < 3 * 3600e3 && st.kind === 'low';
+    const isDka = RX.ketones.test(q) && (v != null ? v > 180 : !openLow) && !isLow;
     const highVal = v != null && v > 250 && RX.high.test(q);
+    // Inside an open emergency every reply stays in that context instead of falling to general answers.
+    const open = st.startedAt && ctx.now - st.startedAt < 3 * 3600e3;
+    if (open && !isLow && !isDka && !highVal && (!critical || RX.called.test(q) || RX.glucagon.test(q))) {
+      const nums0 = numbers(st.country || countryFromZone(ctx.tz)), call0 = nums0.map(n => ({ kind: 'call', tel: n, label: t('urCall', { n }) }));
+      const j = nums0.join(t('urOr'));
+      const parts = [];
+      if (RX.worse.test(q)) return { text: t('urWorse', { nums: j }), actions: call0, level: 'critical', state: st };
+      if (RX.called.test(q)) parts.push(t('urAmbOnWay', { nums: j }));
+      if (RX.glucagon.test(q)) parts.push(t('urGlucagonGiven', { nums: j }));
+      if (RX.awake.test(q)) parts.push(t('urAwake'));
+      if (!parts.length && !cityReply) parts.push(t('urContinue', { nums: j }));
+      if (parts.length) return { text: parts.join('\n\n'), actions: RX.called.test(q) ? [{ kind: 'timer', label: t('urTimerBtn') }] : call0, level: 'info', state: st };
+    }
     if (!critical && !isLow && !isDka && !highVal && !cityReply) return null;
 
     const code = st.country || countryFromZone(ctx.tz);
@@ -2297,6 +2332,7 @@ body{background-image:radial-gradient(700px 420px at 100% -5%,rgba(255,170,120,.
     const out = [], actions = [];
     const askCity = () => { if (!st.country) { out.push(t('urAskCity', { nums: nums.join(t('urOr')) })); st.askedCity = true; } else out.push(t('urNumbers', { place, nums: nums.join(t('urOr')) })); };
 
+    if ((critical || isLow || isDka || highVal) && !st.startedAt) { st.startedAt = ctx.now; st.kind = isDka || highVal ? 'high' : 'low'; }
     if (cityReply && !critical && !isLow && !isDka) {
       out.push(t('urNumbers', { place, nums: nums.join(t('urOr')) }));
       out.push(t('urCityKept'));
