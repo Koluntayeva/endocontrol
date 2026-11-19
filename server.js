@@ -254,6 +254,17 @@ route('GET', '/app/data', async ctx => {
   const from = Math.max(Number(ctx.url.searchParams.get('from')) || to - 864e5, to - 120 * 864e5);
   const e = ns.entriesRange(db, s.userId, from, to);
   const t = db.prepare('SELECT * FROM treatments WHERE user_id=? AND created_at>=? AND created_at<? ORDER BY created_at').all(s.userId, from, to).map(ns.formatTreatment);
+  // Meals and boluses get the sensor glucose at that moment and 2 hours later, filled in automatically.
+  const meals = t.filter(x => x.carbs > 0 || (x.insulin > 0 && !/basal/i.test(x.eventType)));
+  if (meals.length) {
+    const around = ns.entriesRange(db, s.userId, meals[0].mills - 15 * 60e3, meals[meals.length - 1].mills + 2.25 * 3600e3);
+    const nearest = (ms, tol) => { let best = null; for (const x of around) { const d = Math.abs(x.date - ms); if (d <= tol && (!best || d < Math.abs(best.date - ms))) best = x; } return best; };
+    for (const x of meals) {
+      const a = nearest(x.mills, 15 * 60e3), b2 = nearest(x.mills + 2 * 3600e3, 10 * 60e3);
+      if (a) x.bgAt = a.sgv;
+      if (b2) x.bg2h = b2.sgv;
+    }
+  }
   const u = db.prepare('SELECT name, patient_name, birth_year, diabetes_type, units, target_low, target_high FROM users WHERE id=?').get(s.userId);
   return { from, to, entries: e.map(x => [x.date, x.sgv, x.direction || null]), treatments: t, patient: u, readOnly: !s.write };
 });
@@ -282,15 +293,30 @@ route('POST', '/app/ai', aiRoute);
 route('POST', '/app/treatments', async ctx => {
   const u = requireUser(ctx); const b = await jsonBody(ctx.req);
   const at = ns.toMillis(b.at) ?? Date.now();
+  // Decimal doses may come as "6,5".
+  const n = v => { const x = typeof v === 'string' ? parseFloat(v.replace(',', '.')) : Number(v); return Number.isFinite(x) && x >= 0 ? x : undefined; };
+  const insulinType = { meal: 'Meal Bolus', correction: 'Correction Bolus', basal: 'Basal Insulin' }[b.insulinType] || (b.basal ? 'Basal Insulin' : 'Correction Bolus');
   const kinds = {
-    carbs: { eventType: 'Carb Correction', carbs: Number(b.value) },
-    insulin: { eventType: b.basal ? 'Temp Basal' : 'Correction Bolus', insulin: Number(b.value) },
-    bg: { eventType: 'BG Check', glucose: Number(b.value), glucoseType: 'Finger', units: 'mg/dl' },
-    exercise: { eventType: 'Exercise', duration: Number(b.value) || undefined },
+    // A meal with its carbs and bolus in one entry (Nightscout "Meal Bolus"; preBolus = minutes the bolus came before the meal).
+    meal: { eventType: 'Meal Bolus', carbs: n(b.carbs), insulin: n(b.insulin) || undefined, preBolus: Number.isFinite(+b.preBolus) ? +b.preBolus : undefined, mealType: ['breakfast', 'lunch', 'dinner', 'snack'].includes(b.mealType) ? b.mealType : undefined },
+    carbs: { eventType: 'Carb Correction', carbs: n(b.value) },
+    insulin: { eventType: insulinType, insulin: n(b.value) },
+    bg: { eventType: 'BG Check', glucose: n(b.value), glucoseType: 'Finger', units: 'mg/dl' },
+    exercise: { eventType: 'Exercise', duration: n(b.value) || undefined },
     note: { eventType: 'Note' },
   };
   const k = kinds[b.kind]; if (!k) throw bad('bad_kind');
-  if (b.basal && b.kind === 'insulin') { k.eventType = 'Basal Insulin'; }
+  if (b.kind === 'meal' && !(k.carbs > 0) && !(k.insulin > 0)) throw bad('empty_entry');
+  if (['carbs', 'insulin', 'bg'].includes(b.kind) && k[b.kind === 'bg' ? 'glucose' : b.kind] === undefined) throw bad('bad_number');
+  // Glucose at the moment of the meal: the value typed in, otherwise the sensor reading nearest to that time.
+  if (b.kind === 'meal') {
+    const g = n(b.glucose);
+    if (g) Object.assign(k, { glucose: g, glucoseType: 'Finger', units: 'mg/dl' });
+    else {
+      const near = ns.entriesRange(db, u.id, at - 15 * 60e3, at + 15 * 60e3).sort((a, c) => Math.abs(a.date - at) - Math.abs(c.date - at))[0];
+      if (near) Object.assign(k, { glucose: near.sgv, glucoseType: 'Sensor', units: 'mg/dl' });
+    }
+  }
   const doc = { ...k, created_at: new Date(at).toISOString(), notes: str(b.notes, 1000) || undefined, enteredBy: APP_NAME };
   return ns.insertTreatments(db, u.id, [doc])[0];
 });

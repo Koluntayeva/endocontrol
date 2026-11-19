@@ -56,3 +56,28 @@ test('curve analysis finds a meal rise and the fall after it', () => {
   assert.match(text, /exCurve/); assert.match(text, /exFall/); assert.match(text, /exWhyFall/);
   assert.equal(answer('What are ketones?', ctx), null);
 });
+
+test('meal entry: decimal dose with a comma, glucose at the meal and 2 h later from the sensor', async () => {
+  await new Promise(r => server.listen(0, r));
+  const base = `http://127.0.0.1:${server.address().port}`;
+  const j = { 'Content-Type': 'application/json', 'X-EC': '1' };
+  let r = await fetch(base + '/app/register', { method: 'POST', headers: j, body: JSON.stringify({ email: 'meal@e.st', password: 'abcd1234', name: 'M', consent: true }) });
+  const cookie = r.headers.get('set-cookie').split(';')[0];
+  const me = await (await fetch(base + '/app/me', { headers: { cookie } })).json();
+  const hash = crypto.createHash('sha1').update(me.user.upload.api_secret).digest('hex');
+  const meal = Date.now() - 3 * 3600e3;
+  const entries = [];
+  for (let m = -20; m <= 150; m += 5) entries.push({ type: 'sgv', date: meal + m * 60e3, sgv: m < 0 ? 110 : 110 + Math.min(m, 60) * 1.5 - Math.max(0, m - 60) * 1.2, direction: 'Flat' });
+  await fetch(base + '/api/v1/entries', { method: 'POST', headers: { 'Content-Type': 'application/json', 'api-secret': hash }, body: JSON.stringify(entries) });
+  r = await fetch(base + '/app/treatments', { method: 'POST', headers: { ...j, cookie }, body: JSON.stringify({ kind: 'meal', carbs: '45', insulin: '6,5', preBolus: 15, mealType: 'breakfast', at: new Date(meal).toISOString() }) });
+  assert.equal(r.status, 200);
+  const saved = await r.json();
+  assert.equal(saved.insulin, 6.5); assert.equal(saved.carbs, 45); assert.equal(saved.glucose, 110); assert.equal(saved.mealType, 'breakfast');
+  const d = await (await fetch(`${base}/app/data?from=${meal - 3600e3}&to=${Date.now()}`, { headers: { cookie } })).json();
+  const x = d.treatments.find(t => t.eventType === 'Meal Bolus');
+  assert.equal(x.bgAt, 110);
+  assert.ok(Math.abs(x.bg2h - (110 + 90 - 60 * 1.2)) < 1, 'glucose 2 h after the meal');
+  r = await fetch(base + '/app/treatments', { method: 'POST', headers: { ...j, cookie }, body: JSON.stringify({ kind: 'insulin', value: 'abc' }) });
+  assert.equal(r.status, 400);
+  server.close();
+});

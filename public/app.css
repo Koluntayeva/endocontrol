@@ -307,3 +307,21 @@ body{background-image:radial-gradient(700px 420px at 100% -5%,rgba(255,170,120,.
 .hypotimer.done .btn{background:#fff;color:var(--low)}
 @keyframes tmpulse{50%{box-shadow:0 0 0 10px rgba(222,79,138,.25)}}
 @media (prefers-reduced-motion:reduce){.hypotimer.done{animation:none}}
+
+/* ---------- diary entry: wheels, segments, glucose pair ---------- */
+.wheel{position:relative;display:flex;gap:6px;align-items:stretch;height:180px;background:var(--bg2);border-radius:18px;padding:0 10px;overflow:hidden;user-select:none}
+.wheel::before,.wheel::after{content:"";position:absolute;left:0;right:0;height:60px;z-index:2;pointer-events:none}
+.wheel::before{top:0;background:linear-gradient(var(--bg2),transparent)}
+.wheel::after{bottom:0;background:linear-gradient(transparent,var(--bg2))}
+.wsel{position:absolute;left:8px;right:8px;top:72px;height:36px;border-radius:12px;background:var(--card);box-shadow:var(--shadow);z-index:0}
+.wcol{position:relative;z-index:1;flex:1;overflow-y:auto;scroll-snap-type:y mandatory;padding:72px 0;scrollbar-width:none;overscroll-behavior:contain}
+.wcol::-webkit-scrollbar{display:none}
+.wcol.narrow{flex:0 0 64px}
+.witem{height:36px;line-height:36px;text-align:center;scroll-snap-align:center;font-size:17px;color:var(--muted);cursor:pointer;white-space:nowrap;font-variant-numeric:tabular-nums}
+.witem.on{color:var(--text);font-weight:800}
+.wsep{display:flex;align-items:center;font-weight:800;font-size:18px;z-index:1}
+.wquick{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.wquick button{font:inherit;font-size:13px;border:1px solid var(--line);background:var(--card);color:var(--text);border-radius:999px;padding:6px 12px;cursor:pointer}
+.seg.wide{display:flex;width:100%}.seg.wide button{flex:1}
+.inunit{display:flex;gap:6px;align-items:center}.inunit input{flex:1;min-width:0}.inunit .seg{width:auto;flex:none}
+.bgpair{font-size:13px;margin-top:2px}

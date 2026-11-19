@@ -240,11 +240,21 @@
   }
   function trValue(x) {
     const p = [];
+    if (x.mealType) p.push(t(x.mealType === 'snack' ? 'mSnack' : 'ex_' + x.mealType));
     if (x.carbs) p.push(`${+x.carbs} ${t('gCarbs')}`);
     if (x.insulin) p.push(`${+x.insulin} ${t('uIns')}`);
-    if (x.glucose) p.push(`${G(x.units === 'mmol' ? x.glucose * C.MMOL : x.glucose)} ${UL()}`);
+    if (x.glucose && x.bgAt == null) p.push(`${G(x.units === 'mmol' ? x.glucose * C.MMOL : x.glucose)} ${UL()}`);
     if (x.duration) p.push(`${x.duration} ${t('min')}`);
+    if (x.insulin && Number.isFinite(+x.preBolus) && x.carbs) p.push(+x.preBolus > 0 ? t('bwBefore') : +x.preBolus < 0 ? t('bwAfter') : t('bwWith'));
     return p.join(' · ');
+  }
+  // "glucose 6.2 → 9.8 after 2 h", coloured by range; filled in automatically from the sensor.
+  function trBg(x, lo, hi) {
+    if (x.bgAt == null && x.bg2h == null) return '';
+    const col = v => v < lo ? 'var(--low)' : v > hi ? 'var(--high)' : 'var(--in)';
+    const v = mg => `<b style="color:${col(mg)}">${G(mg)}</b>`;
+    const after = x.bg2h != null ? `${v(x.bg2h)} ${esc(t('bg2h'))}` : (Date.now() - x.mills < 2 * 3600e3 ? `<span class="muted">${esc(t('pending2h'))}</span>` : '—');
+    return `<div class="bgpair">🩸 ${x.bgAt != null ? v(x.bgAt) : '—'} → ${after} <span class="muted">${esc(UL())}</span></div>`;
   }
 
   // Big current-glucose card, coloured by range
@@ -279,7 +289,7 @@
       ${C.line(d.entries, now - range * 3600e3, now + 5 * 60e3, { lo, hi, units: S.units, treatments: d.treatments, locale: locale(), label: t('glucose') })}
       <div class="legend"><i style="background:var(--ins)"></i>${esc(t('tInsulin'))}<i style="background:var(--carb)"></i>${esc(t('tCarbs'))}<i style="background:var(--in-soft);border:1px solid var(--in)"></i>${esc(t('targetRange'))} ${G(lo)}–${G(hi)}</div>
       </div>
-      <div class="quick no-print">${[['carbs', '🍽', 'tCarbs'], ['insulin', '💉', 'tInsulin'], ['bg', '🩸', 'tBg'], ['exercise', '🏃', 'tExercise'], ['note', '📝', 'tNote']].map(q => `<button data-q="${q[0]}"><span>${q[1]}</span>${esc(t(q[2]))}</button>`).join('')}</div>
+      <div class="quick no-print">${[['meal', '🍽', 'tMealEntry'], ['insulin', '💉', 'tBolus'], ['bg', '🩸', 'tBg'], ['exercise', '🏃', 'tExercise'], ['note', '📝', 'tNote']].map(q => `<button data-q="${q[0]}"><span>${q[1]}</span>${esc(t(q[2]))}</button>`).join('')}</div>
       <div class="grid g2" style="margin-top:12px">
         <div class="card"><h2>${esc(t('today'))}</h2>${metricsHtml(st, lo, hi)}</div>
         <div class="card"><h2>${esc(t('dataSources'))}</h2>${sourcesHtml(me)}<a class="btn ghost sm" href="#/connect" style="margin-top:8px">${esc(t('connectSensor'))}</a></div>
@@ -306,26 +316,119 @@
   }
   const bridgeErr = s => { const code = String(s || '').split(':')[0]; return I.has(S.lang, 'b_' + code) ? t('b_' + code) : (s || t('e_generic')); };
 
+  // ---- number fields accept "6,5" as well as "6.5"
+  const parseNum = v => { const x = parseFloat(String(v == null ? '' : v).trim().replace(',', '.')); return Number.isFinite(x) ? x : NaN; };
+  const numField = (id, label, req) => `<div class="fld"><label for="${id}">${esc(label)}</label><input id="${id}" type="text" inputmode="decimal" autocomplete="off" pattern="[0-9]*[.,]?[0-9]*" ${req ? 'required' : ''}></div>`;
+
+  // ---- time "wheel": day · hour · minute columns that snap, plus quick buttons
+  const WH = 36; // item height, px
+  function wheelHtml() {
+    return `<div class="fld"><label>${esc(t('time'))}</label>
+      <div class="wheel" id="wheel"><div class="wsel"></div><div class="wcol" data-c="d"></div><div class="wcol narrow" data-c="h"></div><div class="wsep">:</div><div class="wcol narrow" data-c="m"></div></div>
+      <div class="wquick">${[0, 15, 30, 60].map(n => `<button type="button" data-ago="${n}">${esc(n ? t('timeAgo', { n }) : t('timeNow'))}</button>`).join('')}</div></div>`;
+  }
+  function wheelMount(onChange) {
+    const root = $('#wheel'), now = Date.now();
+    const days = Array.from({ length: 7 }, (_, k) => dayStart(now, -k));
+    const label = (d, k) => k === 0 ? t('wheelToday') : k === 1 ? t('wheelYesterday') : fmtDate(d, { weekday: 'short', day: 'numeric', month: 'short' });
+    const cols = { d: days.map(label), h: Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0')), m: Array.from({ length: 60 }, (_, i) => String(i).padStart(2, '0')) };
+    const el = c => root.querySelector(`[data-c="${c}"]`);
+    for (const c of ['d', 'h', 'm']) el(c).innerHTML = cols[c].map((x, i) => `<div class="witem" data-i="${i}">${esc(x)}</div>`).join('');
+    const idx = c => Math.max(0, Math.min(cols[c].length - 1, Math.round(el(c).scrollTop / WH)));
+    const value = () => days[idx('d')] + idx('h') * 3600e3 + idx('m') * 60e3;
+    const mark = () => { for (const c of ['d', 'h', 'm']) { const i = idx(c); el(c).querySelectorAll('.witem').forEach((x, k) => x.classList.toggle('on', k === i)); } };
+    let tmr;
+    for (const c of ['d', 'h', 'm']) {
+      el(c).addEventListener('scroll', () => { mark(); clearTimeout(tmr); tmr = setTimeout(() => onChange(value()), 120); }, { passive: true });
+      el(c).addEventListener('click', e => { const it = e.target.closest('.witem'); if (it) el(c).scrollTo({ top: +it.dataset.i * WH, behavior: 'smooth' }); });
+    }
+    const set = ms => {
+      const d = new Date(ms), di = Math.max(0, days.findIndex(x => x <= ms));
+      el('d').scrollTop = di * WH; el('h').scrollTop = d.getHours() * WH; el('m').scrollTop = d.getMinutes() * WH;
+      mark(); onChange(value());
+    };
+    root.parentElement.querySelectorAll('[data-ago]').forEach(b => b.onclick = () => set(Date.now() - +b.dataset.ago * 60e3));
+    set(now);
+    return { value };
+  }
+
   function addEntry(kind, done) {
-    const isVal = kind !== 'note';
-    const unit = { carbs: t('gCarbs'), insulin: t('uIns'), bg: UL(), exercise: t('min') }[kind];
-    const nowLocal = new Date(Date.now() - new Date().getTimezoneOffset() * 60e3).toISOString().slice(0, 16);
-    modal(`<h2>${esc(t({ carbs: 'tCarbs', insulin: 'tInsulin', bg: 'tBg', exercise: 'tExercise', note: 'tNote' }[kind]))}</h2>
-      <form id="ef">
-      ${isVal ? `<div class="fld"><label for="ev">${esc(t('amount'))}, ${esc(unit)}</label><input id="ev" type="number" inputmode="decimal" step="any" min="0" required></div>` : ''}
-      ${kind === 'insulin' ? `<label class="check"><input type="checkbox" id="eb"> ${esc(t('tBasal'))}</label>` : ''}
-      <div class="fld"><label for="et">${esc(t('time'))}</label><input id="et" type="datetime-local" value="${nowLocal}"></div>
+    const titles = { meal: 'tMealEntry', carbs: 'tCarbs', insulin: 'tBolus', bg: 'tBg', exercise: 'tExercise', note: 'tNote' };
+    const mealByHour = h => h >= 5 && h < 11 ? 'breakfast' : h >= 11 && h < 16 ? 'lunch' : h >= 16 && h < 22 ? 'dinner' : 'snack';
+    const seg = (name, opts, on) => `<div class="seg wide" data-seg="${name}">${opts.map(([v, l]) => `<button type="button" data-v="${v}" class="${v === on ? 'on' : ''}">${esc(l)}</button>`).join('')}</div>`;
+    let body = '';
+    if (kind === 'meal') {
+      body = `${seg('meal', [['breakfast', t('ex_breakfast')], ['lunch', t('ex_lunch')], ['dinner', t('ex_dinner')], ['snack', t('mSnack')]], mealByHour(new Date().getHours()))}
+        <div class="grid g2" style="gap:10px;margin-top:10px">
+          <div class="fld"><label for="ec">${esc(t('carbsLabel'))}</label><div class="inunit"><input id="ec" type="text" inputmode="decimal" autocomplete="off">${seg('cu', [['g', t('gCarbs')], ['xe', t('unitXE')]], 'g')}</div><div class="tiny muted" id="ecx"></div></div>
+          ${numField('ei', t('bolusLabel'))}
+        </div>
+        <div class="fld"><label>${esc(t('bolusWhen'))}</label>${seg('pre', [['15', t('bwBefore')], ['0', t('bwWith')], ['-15', t('bwAfter')]], '15')}</div>
+        <div class="fld"><label for="eg">${esc(t('bgAtMeal'))}, ${esc(UL())}</label><input id="eg" type="text" inputmode="decimal" autocomplete="off"><div class="tiny muted" id="egs"></div></div>`;
+    } else if (kind === 'insulin') {
+      body = `${numField('ev', t('amount') + ', ' + t('uIns'), true)}
+        <div class="fld"><label>${esc(t('insKind'))}</label>${seg('ik', [['meal', t('insMeal')], ['correction', t('insCorr')], ['basal', t('insBasal')]], 'correction')}</div>`;
+    } else if (kind !== 'note') {
+      const unit = { carbs: t('gCarbs'), bg: UL(), exercise: t('min') }[kind];
+      body = numField('ev', `${t('amount')}, ${unit}`, true);
+    }
+    modal(`<h2>${esc(t(titles[kind]))}</h2>
+      <form id="ef" novalidate>${body}
+      ${wheelHtml()}
       <div class="fld"><label for="en">${esc(t('comment'))}</label><input id="en" maxlength="1000"></div>
       <div class="err" id="eerr"></div>
       <div class="row"><button class="btn grow">${esc(t('save'))}</button><button type="button" class="btn ghost" data-close>${esc(t('cancel'))}</button></div></form>`, () => {
+      const segVal = n => { const b = document.querySelector(`[data-seg="${n}"] .on`); return b && b.dataset.v; };
+      document.querySelectorAll('[data-seg] button').forEach(b => b.onclick = () => { b.parentElement.querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); refresh(); });
+      // Carbs in bread units are shown in grams (1 XE = 12 g) as you type.
+      const refresh = () => {
+        const x = $('#ecx'); if (!x) return;
+        const v = parseNum($('#ec').value);
+        x.textContent = segVal('cu') === 'xe' && v > 0 ? `= ${Math.round(v * 12)} ${t('gCarbs')} · ${t('xeNote')}` : '';
+      };
+      if ($('#ec')) $('#ec').addEventListener('input', refresh);
+      // The sensor value at the chosen time is filled in for a meal unless typed by hand.
+      let bgTyped = false, sensorMg = null;
+      if ($('#eg')) $('#eg').addEventListener('input', () => { bgTyped = true; });
+      const onTime = async ms => {
+        if (kind !== 'meal') return;
+        if (!$('#ef') && !$('#eg')) return;
+        const hour = new Date(ms).getHours(), m = mealByHour(hour);
+        const segM = document.querySelector('[data-seg="meal"]');
+        if (segM && !segM.dataset.touched) segM.querySelectorAll('button').forEach(x => x.classList.toggle('on', x.dataset.v === m));
+        try {
+          const d = await getData(ms - 15 * 60e3, ms + 15 * 60e3);
+          const near = d.entries.sort((a, b) => Math.abs(a[0] - ms) - Math.abs(b[0] - ms))[0];
+          sensorMg = near ? near[1] : null;
+        } catch { sensorMg = null; }
+        const eg = $('#eg'), egs = $('#egs'); if (!eg) return;
+        if (!bgTyped) eg.value = sensorMg ? G(sensorMg) : '';
+        egs.textContent = sensorMg ? t('bgAuto', { v: `${G(sensorMg)} ${UL()}` }) : t('bgNoSensor');
+      };
+      const segM = document.querySelector('[data-seg="meal"]'); if (segM) segM.addEventListener('click', () => { segM.dataset.touched = '1'; });
+      const wheel = wheelMount(onTime);
       $('#ef').onsubmit = async e => {
         e.preventDefault();
-        let value = isVal ? $('#ev').value : undefined;
-        if (kind === 'bg') value = toMg(value);
+        const at = new Date(wheel.value()).toISOString();
+        const err = m => { $('#eerr').textContent = m; };
+        let payload = { kind, at, notes: $('#en').value };
+        if (kind === 'meal') {
+          let carbs = $('#ec').value.trim() ? parseNum($('#ec').value) : 0, ins = $('#ei').value.trim() ? parseNum($('#ei').value) : 0;
+          if (Number.isNaN(carbs) || Number.isNaN(ins) || carbs < 0 || ins < 0) return err(t('eNum'));
+          if (!carbs && !ins) return err(t('eMealEmpty'));
+          if (segVal('cu') === 'xe') carbs = carbs * 12;
+          const typedBg = bgTyped && $('#eg').value.trim() ? parseNum($('#eg').value) : NaN;
+          payload = { ...payload, carbs, insulin: ins, mealType: segVal('meal'), preBolus: ins ? Number(segVal('pre')) : undefined, glucose: Number.isFinite(typedBg) ? toMg(typedBg) : undefined };
+        } else if (kind !== 'note') {
+          const v = parseNum($('#ev').value);
+          if (Number.isNaN(v) || v < 0) return err(t('eNum'));
+          payload.value = kind === 'bg' ? toMg(v) : v;
+          if (kind === 'insulin') payload.insulinType = segVal('ik');
+        }
         try {
-          await api('POST', '/app/treatments', { kind, value: value !== undefined ? Number(value) : undefined, basal: kind === 'insulin' && $('#eb').checked, notes: $('#en').value, at: new Date($('#et').value).toISOString() });
+          await api('POST', '/app/treatments', payload);
           closeModal(); toast(t('saved')); done && done();
-        } catch (er) { $('#eerr').textContent = errText(er); }
+        } catch (er) { err(errText(er)); }
       };
     });
   }
@@ -431,9 +534,9 @@
           <div class="metric"><div class="l">${esc(t('mean'))}</div><div class="v">${G(st.mean)}</div><div class="t">${UL()}</div></div>
           <div class="metric"><div class="l">${esc(t('tCarbs'))}</div><div class="v">${Math.round(carbs)}</div><div class="t">${esc(t('gCarbs'))}</div></div>
           <div class="metric"><div class="l">${esc(t('tInsulin'))}</div><div class="v">${+ins.toFixed(1)}</div><div class="t">${esc(t('uIns'))}</div></div></div></div>
-        <div class="quick no-print">${[['carbs', '🍽', 'tCarbs'], ['insulin', '💉', 'tInsulin'], ['bg', '🩸', 'tBg'], ['exercise', '🏃', 'tExercise'], ['note', '📝', 'tNote']].map(q => `<button data-q="${q[0]}"><span>${q[1]}</span>${esc(t(q[2]))}</button>`).join('')}</div>
+        <div class="quick no-print">${[['meal', '🍽', 'tMealEntry'], ['insulin', '💉', 'tBolus'], ['bg', '🩸', 'tBg'], ['exercise', '🏃', 'tExercise'], ['note', '📝', 'tNote']].map(q => `<button data-q="${q[0]}"><span>${q[1]}</span>${esc(t(q[2]))}</button>`).join('')}</div>
         <div class="card" style="margin-top:12px"><h2>${esc(t('entries'))}</h2>
-        ${d.treatments.length ? `<table><tr><th>${esc(t('time'))}</th><th>${esc(t('entry'))}</th><th></th><th></th></tr>${[...d.treatments].reverse().map(x => `<tr><td>${fmtTime(x.mills)}</td><td><b>${esc(trTitle(x))}</b> ${esc(trValue(x))}${x.notes ? `<div class="small muted">${esc(x.notes)}</div>` : ''}</td><td class="small muted">${esc(x.enteredBy || '')}</td><td><button class="btn sm ghost" data-del="${esc(x._id)}" aria-label="${esc(t('delete'))}">✕</button></td></tr>`).join('')}</table>` : `<div class="muted">${esc(t('noEntries'))}</div>`}</div>`;
+        ${d.treatments.length ? `<table><tr><th>${esc(t('time'))}</th><th>${esc(t('entry'))}</th><th></th><th></th></tr>${[...d.treatments].reverse().map(x => `<tr><td>${fmtTime(x.mills)}</td><td><b>${esc(trTitle(x))}</b> ${esc(trValue(x))}${trBg(x, lo, hi)}${x.notes ? `<div class="small muted">${esc(x.notes)}</div>` : ''}</td><td class="small muted">${esc(x.enteredBy || '')}</td><td><button class="btn sm ghost" data-del="${esc(x._id)}" aria-label="${esc(t('delete'))}">✕</button></td></tr>`).join('')}</table>` : `<div class="muted">${esc(t('noEntries'))}</div>`}</div>`;
       $('#prev').onclick = () => { day = dayStart(day, -1); history.replaceState(null, '', '#/diary/' + day); draw(); };
       $('#next').onclick = () => { day = dayStart(day, 1); history.replaceState(null, '', '#/diary/' + day); draw(); };
       document.querySelectorAll('[data-q]').forEach(b => b.onclick = () => addEntry(b.dataset.q, draw));

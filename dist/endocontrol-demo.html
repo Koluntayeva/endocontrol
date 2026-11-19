@@ -316,6 +316,24 @@ body{background-image:radial-gradient(700px 420px at 100% -5%,rgba(255,170,120,.
 .hypotimer.done .btn{background:#fff;color:var(--low)}
 @keyframes tmpulse{50%{box-shadow:0 0 0 10px rgba(222,79,138,.25)}}
 @media (prefers-reduced-motion:reduce){.hypotimer.done{animation:none}}
+
+/* ---------- diary entry: wheels, segments, glucose pair ---------- */
+.wheel{position:relative;display:flex;gap:6px;align-items:stretch;height:180px;background:var(--bg2);border-radius:18px;padding:0 10px;overflow:hidden;user-select:none}
+.wheel::before,.wheel::after{content:"";position:absolute;left:0;right:0;height:60px;z-index:2;pointer-events:none}
+.wheel::before{top:0;background:linear-gradient(var(--bg2),transparent)}
+.wheel::after{bottom:0;background:linear-gradient(transparent,var(--bg2))}
+.wsel{position:absolute;left:8px;right:8px;top:72px;height:36px;border-radius:12px;background:var(--card);box-shadow:var(--shadow);z-index:0}
+.wcol{position:relative;z-index:1;flex:1;overflow-y:auto;scroll-snap-type:y mandatory;padding:72px 0;scrollbar-width:none;overscroll-behavior:contain}
+.wcol::-webkit-scrollbar{display:none}
+.wcol.narrow{flex:0 0 64px}
+.witem{height:36px;line-height:36px;text-align:center;scroll-snap-align:center;font-size:17px;color:var(--muted);cursor:pointer;white-space:nowrap;font-variant-numeric:tabular-nums}
+.witem.on{color:var(--text);font-weight:800}
+.wsep{display:flex;align-items:center;font-weight:800;font-size:18px;z-index:1}
+.wquick{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.wquick button{font:inherit;font-size:13px;border:1px solid var(--line);background:var(--card);color:var(--text);border-radius:999px;padding:6px 12px;cursor:pointer}
+.seg.wide{display:flex;width:100%}.seg.wide button{flex:1}
+.inunit{display:flex;gap:6px;align-items:center}.inunit input{flex:1;min-width:0}.inunit .seg{width:auto;flex:none}
+.bgpair{font-size:13px;margin-top:2px}
 </style>
 </head>
 <body>
@@ -370,6 +388,12 @@ body{background-image:radial-gradient(700px 420px at 100% -5%,rgba(255,170,120,.
     schProgress: "Completed {n} of {total}", schMin: "{n} min", schDone: "Completed", schQuiz: "Check yourself", schRight: "Correct!", schWrong: "Not quite.",
     schAllLessons: "All lessons", schNext: "Next lesson", schAskAi: "Ask the AI analyst",
     aiIntro: "Ask any question: about a moment (\"why did glucose fall 2 hours after breakfast?\"), patterns over days or diabetes in general. It does not replace your doctor: discuss any dose changes with the endocrinologist.",
+    tMealEntry: "Meal + bolus", tBolus: "Insulin", mSnack: "Snack", carbsLabel: "Carbs", unitXE: "BU", xeNote: "1 bread unit = 12 g", bolusLabel: "Bolus, U",
+    bolusWhen: "When was the bolus given", bwBefore: "15 min before the meal", bwWith: "with the meal", bwAfter: "after the meal",
+    bgAtMeal: "Glucose at the meal", bgAuto: "from the sensor: {v}", bgNoSensor: "no sensor reading at this time — type it from the meter", bg2h: "after 2 h", pending2h: "after 2 h — waiting",
+    insKind: "Type", insMeal: "Meal bolus", insCorr: "Correction", insBasal: "Basal",
+    timeNow: "Now", timeAgo: "−{n} min", wheelToday: "Today", wheelYesterday: "Yesterday",
+    eNum: "Enter a number, e.g. 6.5 or 6,5", eMealEmpty: "Enter the carbs or the bolus", e_empty_entry: "Enter the carbs or the bolus", e_bad_number: "Enter a number, e.g. 6.5",
     urSos: "🆘 Low glucose — help", urOr: " or ", urCall: "📞 Call {n}", urTimerBtn: "⏱ Start a 15-minute timer",
     urCalm: "I'm here with you. Let's go step by step — a low can be treated quickly.",
     urLow: "Glucose {v} {u} is a low (hypoglycaemia) and needs treating right now.", urVeryLow: "Glucose {v} {u} is a dangerous low. Act now.",
@@ -481,6 +505,12 @@ body{background-image:radial-gradient(700px 420px at 100% -5%,rgba(255,170,120,.
     schProgress: "Пройдено {n} из {total}", schMin: "{n} мин", schDone: "Пройден", schQuiz: "Проверьте себя", schRight: "Верно!", schWrong: "Не совсем.",
     schAllLessons: "Все уроки", schNext: "Следующий урок", schAskAi: "Спросить ИИ-аналитика",
     aiIntro: "Задайте любой вопрос: о конкретном моменте («почему через 2 часа после завтрака упал сахар?»), о закономерностях за несколько дней или о диабете вообще. Не заменяет врача: изменения доз обсуждайте с эндокринологом.",
+    tMealEntry: "Еда + болюс", tBolus: "Инсулин", mSnack: "Перекус", carbsLabel: "Углеводы", unitXE: "ХЕ", xeNote: "1 ХЕ = 12 г", bolusLabel: "Болюс, ЕД",
+    bolusWhen: "Когда ввели болюс", bwBefore: "за 15 мин до еды", bwWith: "вместе с едой", bwAfter: "после еды",
+    bgAtMeal: "Сахар в момент приёма", bgAuto: "с датчика: {v}", bgNoSensor: "датчик на это время ничего не прислал — впишите с глюкометра", bg2h: "через 2 ч", pending2h: "через 2 ч — ждём",
+    insKind: "Тип", insMeal: "На еду", insCorr: "Коррекция", insBasal: "Базальный",
+    timeNow: "Сейчас", timeAgo: "−{n} мин", wheelToday: "Сегодня", wheelYesterday: "Вчера",
+    eNum: "Введите число, например 6,5", eMealEmpty: "Укажите углеводы или болюс", e_empty_entry: "Укажите углеводы или болюс", e_bad_number: "Введите число, например 6,5",
     urSos: "🆘 Низкий сахар — помощь", urOr: " или ", urCall: "📞 Позвонить {n}", urTimerBtn: "⏱ Засечь 15 минут",
     urCalm: "Я рядом. Давайте спокойно и по шагам — гипогликемия лечится быстро.",
     urLow: "Сахар {v} {u} — это гипогликемия, её нужно лечить прямо сейчас.", urVeryLow: "Сахар {v} {u} — это опасно низкий сахар. Действуем сразу.",
@@ -592,6 +622,12 @@ body{background-image:radial-gradient(700px 420px at 100% -5%,rgba(255,170,120,.
     schProgress: "{total} сабақтың {n} өтілді", schMin: "{n} мин", schDone: "Өтілді", schQuiz: "Өзіңізді тексеріңіз", schRight: "Дұрыс!", schWrong: "Толық емес.",
     schAllLessons: "Барлық сабақтар", schNext: "Келесі сабақ", schAskAi: "ЖИ-талдаушыдан сұрау",
     aiIntro: "Кез келген сұрақ қойыңыз: белгілі бір сәт туралы («неге таңғы астан 2 сағат кейін қант төмендеді?»), бірнеше күндегі заңдылықтар немесе жалпы диабет туралы. Дәрігерді алмастырмайды: дозаны өзгертуді эндокринологпен талқылаңыз.",
+    tMealEntry: "Тамақ + болюс", tBolus: "Инсулин", mSnack: "Тағамдану", carbsLabel: "Көмірсулар", unitXE: "НБ", xeNote: "1 нан бірлігі = 12 г", bolusLabel: "Болюс, бірл",
+    bolusWhen: "Болюс қашан салынды", bwBefore: "тамақтан 15 мин бұрын", bwWith: "тамақпен бірге", bwAfter: "тамақтан кейін",
+    bgAtMeal: "Тамақ кезіндегі қант", bgAuto: "датчиктен: {v}", bgNoSensor: "бұл уақытқа датчик дерегі жоқ — глюкометрден жазыңыз", bg2h: "2 сағ кейін", pending2h: "2 сағ кейін — күтудеміз",
+    insKind: "Түрі", insMeal: "Тамаққа", insCorr: "Түзету", insBasal: "Базальды",
+    timeNow: "Қазір", timeAgo: "−{n} мин", wheelToday: "Бүгін", wheelYesterday: "Кеше",
+    eNum: "Сан енгізіңіз, мысалы 6,5", eMealEmpty: "Көмірсуды немесе болюсты көрсетіңіз", e_empty_entry: "Көмірсуды немесе болюсты көрсетіңіз", e_bad_number: "Сан енгізіңіз, мысалы 6,5",
     urSos: "🆘 Қант төмен — көмек", urOr: " немесе ", urCall: "📞 Қоңырау {n}", urTimerBtn: "⏱ 15 минут уақыт белгілеу",
     urCalm: "Мен қасыңыздамын. Асықпай, қадамдап жасайық — гипогликемия тез емделеді.",
     urLow: "Қант {v} {u} — бұл гипогликемия, оны дәл қазір емдеу керек.", urVeryLow: "Қант {v} {u} — бұл қауіпті төмен қант. Бірден әрекет етеміз.",
@@ -2433,11 +2469,15 @@ window.ECCsv = { parseCsv, parseDateTime };
     const u = subject(q); const to = +q.get('to') || Date.now(), from = +q.get('from') || to - DAY;
     const s = series(u, from, to);
     const tr = [...s.tr, ...u.diary.filter(x => x.mills >= from && x.mills < to)].sort((a, c) => a.mills - c.mills);
+    const wide = series(u, from - 15 * 60e3, to + 2.25 * 3600e3).entries;
+    const near = (ms, tol) => wide.reduce((m, e) => Math.abs(e[0] - ms) <= tol && (!m || Math.abs(e[0] - ms) < Math.abs(m[0] - ms)) ? e : m, null);
+    for (const x of tr) if (x.carbs > 0 || (x.insulin > 0 && !/basal/i.test(x.eventType))) { const a = near(x.mills, 15 * 60e3), c = near(x.mills + 2 * 3600e3, 10 * 60e3); if (a) x.bgAt = a[1]; if (c && x.mills + 2 * 3600e3 <= Date.now()) x.bg2h = c[1]; }
     return { from, to, entries: s.entries, treatments: tr, patient: patientInfo(u), readOnly: !!q.get('share') };
   });
   on('POST', /^\/app\/treatments$/, b => {
     const u = me(); const at = Date.parse(b.at) || Date.now();
-    const k = { carbs: { eventType: 'Carb Correction', carbs: b.value }, insulin: { eventType: b.basal ? 'Basal Insulin' : 'Correction Bolus', insulin: b.value }, bg: { eventType: 'BG Check', glucose: b.value, units: 'mg/dl' }, exercise: { eventType: 'Exercise', duration: b.value }, note: { eventType: 'Note' } }[b.kind];
+    const it = { meal: 'Meal Bolus', correction: 'Correction Bolus', basal: 'Basal Insulin' }[b.insulinType] || (b.basal ? 'Basal Insulin' : 'Correction Bolus');
+    const k = { meal: { eventType: 'Meal Bolus', carbs: b.carbs || undefined, insulin: b.insulin || undefined, preBolus: b.preBolus, mealType: b.mealType, glucose: b.glucose }, carbs: { eventType: 'Carb Correction', carbs: b.value }, insulin: { eventType: it, insulin: b.value }, bg: { eventType: 'BG Check', glucose: b.value, units: 'mg/dl' }, exercise: { eventType: 'Exercise', duration: b.value }, note: { eventType: 'Note' } }[b.kind];
     const x = { _id: 'u' + seq++, ...k, mills: at, created_at: new Date(at).toISOString(), notes: b.notes || undefined, enteredBy: 'EndoControl' };
     u.diary.push(x); return x;
   });
@@ -2753,11 +2793,21 @@ window.ECCsv = { parseCsv, parseDateTime };
   }
   function trValue(x) {
     const p = [];
+    if (x.mealType) p.push(t(x.mealType === 'snack' ? 'mSnack' : 'ex_' + x.mealType));
     if (x.carbs) p.push(`${+x.carbs} ${t('gCarbs')}`);
     if (x.insulin) p.push(`${+x.insulin} ${t('uIns')}`);
-    if (x.glucose) p.push(`${G(x.units === 'mmol' ? x.glucose * C.MMOL : x.glucose)} ${UL()}`);
+    if (x.glucose && x.bgAt == null) p.push(`${G(x.units === 'mmol' ? x.glucose * C.MMOL : x.glucose)} ${UL()}`);
     if (x.duration) p.push(`${x.duration} ${t('min')}`);
+    if (x.insulin && Number.isFinite(+x.preBolus) && x.carbs) p.push(+x.preBolus > 0 ? t('bwBefore') : +x.preBolus < 0 ? t('bwAfter') : t('bwWith'));
     return p.join(' · ');
+  }
+  // "glucose 6.2 → 9.8 after 2 h", coloured by range; filled in automatically from the sensor.
+  function trBg(x, lo, hi) {
+    if (x.bgAt == null && x.bg2h == null) return '';
+    const col = v => v < lo ? 'var(--low)' : v > hi ? 'var(--high)' : 'var(--in)';
+    const v = mg => `<b style="color:${col(mg)}">${G(mg)}</b>`;
+    const after = x.bg2h != null ? `${v(x.bg2h)} ${esc(t('bg2h'))}` : (Date.now() - x.mills < 2 * 3600e3 ? `<span class="muted">${esc(t('pending2h'))}</span>` : '—');
+    return `<div class="bgpair">🩸 ${x.bgAt != null ? v(x.bgAt) : '—'} → ${after} <span class="muted">${esc(UL())}</span></div>`;
   }
 
   // Big current-glucose card, coloured by range
@@ -2792,7 +2842,7 @@ window.ECCsv = { parseCsv, parseDateTime };
       ${C.line(d.entries, now - range * 3600e3, now + 5 * 60e3, { lo, hi, units: S.units, treatments: d.treatments, locale: locale(), label: t('glucose') })}
       <div class="legend"><i style="background:var(--ins)"></i>${esc(t('tInsulin'))}<i style="background:var(--carb)"></i>${esc(t('tCarbs'))}<i style="background:var(--in-soft);border:1px solid var(--in)"></i>${esc(t('targetRange'))} ${G(lo)}–${G(hi)}</div>
       </div>
-      <div class="quick no-print">${[['carbs', '🍽', 'tCarbs'], ['insulin', '💉', 'tInsulin'], ['bg', '🩸', 'tBg'], ['exercise', '🏃', 'tExercise'], ['note', '📝', 'tNote']].map(q => `<button data-q="${q[0]}"><span>${q[1]}</span>${esc(t(q[2]))}</button>`).join('')}</div>
+      <div class="quick no-print">${[['meal', '🍽', 'tMealEntry'], ['insulin', '💉', 'tBolus'], ['bg', '🩸', 'tBg'], ['exercise', '🏃', 'tExercise'], ['note', '📝', 'tNote']].map(q => `<button data-q="${q[0]}"><span>${q[1]}</span>${esc(t(q[2]))}</button>`).join('')}</div>
       <div class="grid g2" style="margin-top:12px">
         <div class="card"><h2>${esc(t('today'))}</h2>${metricsHtml(st, lo, hi)}</div>
         <div class="card"><h2>${esc(t('dataSources'))}</h2>${sourcesHtml(me)}<a class="btn ghost sm" href="#/connect" style="margin-top:8px">${esc(t('connectSensor'))}</a></div>
@@ -2819,26 +2869,119 @@ window.ECCsv = { parseCsv, parseDateTime };
   }
   const bridgeErr = s => { const code = String(s || '').split(':')[0]; return I.has(S.lang, 'b_' + code) ? t('b_' + code) : (s || t('e_generic')); };
 
+  // ---- number fields accept "6,5" as well as "6.5"
+  const parseNum = v => { const x = parseFloat(String(v == null ? '' : v).trim().replace(',', '.')); return Number.isFinite(x) ? x : NaN; };
+  const numField = (id, label, req) => `<div class="fld"><label for="${id}">${esc(label)}</label><input id="${id}" type="text" inputmode="decimal" autocomplete="off" pattern="[0-9]*[.,]?[0-9]*" ${req ? 'required' : ''}></div>`;
+
+  // ---- time "wheel": day · hour · minute columns that snap, plus quick buttons
+  const WH = 36; // item height, px
+  function wheelHtml() {
+    return `<div class="fld"><label>${esc(t('time'))}</label>
+      <div class="wheel" id="wheel"><div class="wsel"></div><div class="wcol" data-c="d"></div><div class="wcol narrow" data-c="h"></div><div class="wsep">:</div><div class="wcol narrow" data-c="m"></div></div>
+      <div class="wquick">${[0, 15, 30, 60].map(n => `<button type="button" data-ago="${n}">${esc(n ? t('timeAgo', { n }) : t('timeNow'))}</button>`).join('')}</div></div>`;
+  }
+  function wheelMount(onChange) {
+    const root = $('#wheel'), now = Date.now();
+    const days = Array.from({ length: 7 }, (_, k) => dayStart(now, -k));
+    const label = (d, k) => k === 0 ? t('wheelToday') : k === 1 ? t('wheelYesterday') : fmtDate(d, { weekday: 'short', day: 'numeric', month: 'short' });
+    const cols = { d: days.map(label), h: Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0')), m: Array.from({ length: 60 }, (_, i) => String(i).padStart(2, '0')) };
+    const el = c => root.querySelector(`[data-c="${c}"]`);
+    for (const c of ['d', 'h', 'm']) el(c).innerHTML = cols[c].map((x, i) => `<div class="witem" data-i="${i}">${esc(x)}</div>`).join('');
+    const idx = c => Math.max(0, Math.min(cols[c].length - 1, Math.round(el(c).scrollTop / WH)));
+    const value = () => days[idx('d')] + idx('h') * 3600e3 + idx('m') * 60e3;
+    const mark = () => { for (const c of ['d', 'h', 'm']) { const i = idx(c); el(c).querySelectorAll('.witem').forEach((x, k) => x.classList.toggle('on', k === i)); } };
+    let tmr;
+    for (const c of ['d', 'h', 'm']) {
+      el(c).addEventListener('scroll', () => { mark(); clearTimeout(tmr); tmr = setTimeout(() => onChange(value()), 120); }, { passive: true });
+      el(c).addEventListener('click', e => { const it = e.target.closest('.witem'); if (it) el(c).scrollTo({ top: +it.dataset.i * WH, behavior: 'smooth' }); });
+    }
+    const set = ms => {
+      const d = new Date(ms), di = Math.max(0, days.findIndex(x => x <= ms));
+      el('d').scrollTop = di * WH; el('h').scrollTop = d.getHours() * WH; el('m').scrollTop = d.getMinutes() * WH;
+      mark(); onChange(value());
+    };
+    root.parentElement.querySelectorAll('[data-ago]').forEach(b => b.onclick = () => set(Date.now() - +b.dataset.ago * 60e3));
+    set(now);
+    return { value };
+  }
+
   function addEntry(kind, done) {
-    const isVal = kind !== 'note';
-    const unit = { carbs: t('gCarbs'), insulin: t('uIns'), bg: UL(), exercise: t('min') }[kind];
-    const nowLocal = new Date(Date.now() - new Date().getTimezoneOffset() * 60e3).toISOString().slice(0, 16);
-    modal(`<h2>${esc(t({ carbs: 'tCarbs', insulin: 'tInsulin', bg: 'tBg', exercise: 'tExercise', note: 'tNote' }[kind]))}</h2>
-      <form id="ef">
-      ${isVal ? `<div class="fld"><label for="ev">${esc(t('amount'))}, ${esc(unit)}</label><input id="ev" type="number" inputmode="decimal" step="any" min="0" required></div>` : ''}
-      ${kind === 'insulin' ? `<label class="check"><input type="checkbox" id="eb"> ${esc(t('tBasal'))}</label>` : ''}
-      <div class="fld"><label for="et">${esc(t('time'))}</label><input id="et" type="datetime-local" value="${nowLocal}"></div>
+    const titles = { meal: 'tMealEntry', carbs: 'tCarbs', insulin: 'tBolus', bg: 'tBg', exercise: 'tExercise', note: 'tNote' };
+    const mealByHour = h => h >= 5 && h < 11 ? 'breakfast' : h >= 11 && h < 16 ? 'lunch' : h >= 16 && h < 22 ? 'dinner' : 'snack';
+    const seg = (name, opts, on) => `<div class="seg wide" data-seg="${name}">${opts.map(([v, l]) => `<button type="button" data-v="${v}" class="${v === on ? 'on' : ''}">${esc(l)}</button>`).join('')}</div>`;
+    let body = '';
+    if (kind === 'meal') {
+      body = `${seg('meal', [['breakfast', t('ex_breakfast')], ['lunch', t('ex_lunch')], ['dinner', t('ex_dinner')], ['snack', t('mSnack')]], mealByHour(new Date().getHours()))}
+        <div class="grid g2" style="gap:10px;margin-top:10px">
+          <div class="fld"><label for="ec">${esc(t('carbsLabel'))}</label><div class="inunit"><input id="ec" type="text" inputmode="decimal" autocomplete="off">${seg('cu', [['g', t('gCarbs')], ['xe', t('unitXE')]], 'g')}</div><div class="tiny muted" id="ecx"></div></div>
+          ${numField('ei', t('bolusLabel'))}
+        </div>
+        <div class="fld"><label>${esc(t('bolusWhen'))}</label>${seg('pre', [['15', t('bwBefore')], ['0', t('bwWith')], ['-15', t('bwAfter')]], '15')}</div>
+        <div class="fld"><label for="eg">${esc(t('bgAtMeal'))}, ${esc(UL())}</label><input id="eg" type="text" inputmode="decimal" autocomplete="off"><div class="tiny muted" id="egs"></div></div>`;
+    } else if (kind === 'insulin') {
+      body = `${numField('ev', t('amount') + ', ' + t('uIns'), true)}
+        <div class="fld"><label>${esc(t('insKind'))}</label>${seg('ik', [['meal', t('insMeal')], ['correction', t('insCorr')], ['basal', t('insBasal')]], 'correction')}</div>`;
+    } else if (kind !== 'note') {
+      const unit = { carbs: t('gCarbs'), bg: UL(), exercise: t('min') }[kind];
+      body = numField('ev', `${t('amount')}, ${unit}`, true);
+    }
+    modal(`<h2>${esc(t(titles[kind]))}</h2>
+      <form id="ef" novalidate>${body}
+      ${wheelHtml()}
       <div class="fld"><label for="en">${esc(t('comment'))}</label><input id="en" maxlength="1000"></div>
       <div class="err" id="eerr"></div>
       <div class="row"><button class="btn grow">${esc(t('save'))}</button><button type="button" class="btn ghost" data-close>${esc(t('cancel'))}</button></div></form>`, () => {
+      const segVal = n => { const b = document.querySelector(`[data-seg="${n}"] .on`); return b && b.dataset.v; };
+      document.querySelectorAll('[data-seg] button').forEach(b => b.onclick = () => { b.parentElement.querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); refresh(); });
+      // Carbs in bread units are shown in grams (1 XE = 12 g) as you type.
+      const refresh = () => {
+        const x = $('#ecx'); if (!x) return;
+        const v = parseNum($('#ec').value);
+        x.textContent = segVal('cu') === 'xe' && v > 0 ? `= ${Math.round(v * 12)} ${t('gCarbs')} · ${t('xeNote')}` : '';
+      };
+      if ($('#ec')) $('#ec').addEventListener('input', refresh);
+      // The sensor value at the chosen time is filled in for a meal unless typed by hand.
+      let bgTyped = false, sensorMg = null;
+      if ($('#eg')) $('#eg').addEventListener('input', () => { bgTyped = true; });
+      const onTime = async ms => {
+        if (kind !== 'meal') return;
+        if (!$('#ef') && !$('#eg')) return;
+        const hour = new Date(ms).getHours(), m = mealByHour(hour);
+        const segM = document.querySelector('[data-seg="meal"]');
+        if (segM && !segM.dataset.touched) segM.querySelectorAll('button').forEach(x => x.classList.toggle('on', x.dataset.v === m));
+        try {
+          const d = await getData(ms - 15 * 60e3, ms + 15 * 60e3);
+          const near = d.entries.sort((a, b) => Math.abs(a[0] - ms) - Math.abs(b[0] - ms))[0];
+          sensorMg = near ? near[1] : null;
+        } catch { sensorMg = null; }
+        const eg = $('#eg'), egs = $('#egs'); if (!eg) return;
+        if (!bgTyped) eg.value = sensorMg ? G(sensorMg) : '';
+        egs.textContent = sensorMg ? t('bgAuto', { v: `${G(sensorMg)} ${UL()}` }) : t('bgNoSensor');
+      };
+      const segM = document.querySelector('[data-seg="meal"]'); if (segM) segM.addEventListener('click', () => { segM.dataset.touched = '1'; });
+      const wheel = wheelMount(onTime);
       $('#ef').onsubmit = async e => {
         e.preventDefault();
-        let value = isVal ? $('#ev').value : undefined;
-        if (kind === 'bg') value = toMg(value);
+        const at = new Date(wheel.value()).toISOString();
+        const err = m => { $('#eerr').textContent = m; };
+        let payload = { kind, at, notes: $('#en').value };
+        if (kind === 'meal') {
+          let carbs = $('#ec').value.trim() ? parseNum($('#ec').value) : 0, ins = $('#ei').value.trim() ? parseNum($('#ei').value) : 0;
+          if (Number.isNaN(carbs) || Number.isNaN(ins) || carbs < 0 || ins < 0) return err(t('eNum'));
+          if (!carbs && !ins) return err(t('eMealEmpty'));
+          if (segVal('cu') === 'xe') carbs = carbs * 12;
+          const typedBg = bgTyped && $('#eg').value.trim() ? parseNum($('#eg').value) : NaN;
+          payload = { ...payload, carbs, insulin: ins, mealType: segVal('meal'), preBolus: ins ? Number(segVal('pre')) : undefined, glucose: Number.isFinite(typedBg) ? toMg(typedBg) : undefined };
+        } else if (kind !== 'note') {
+          const v = parseNum($('#ev').value);
+          if (Number.isNaN(v) || v < 0) return err(t('eNum'));
+          payload.value = kind === 'bg' ? toMg(v) : v;
+          if (kind === 'insulin') payload.insulinType = segVal('ik');
+        }
         try {
-          await api('POST', '/app/treatments', { kind, value: value !== undefined ? Number(value) : undefined, basal: kind === 'insulin' && $('#eb').checked, notes: $('#en').value, at: new Date($('#et').value).toISOString() });
+          await api('POST', '/app/treatments', payload);
           closeModal(); toast(t('saved')); done && done();
-        } catch (er) { $('#eerr').textContent = errText(er); }
+        } catch (er) { err(errText(er)); }
       };
     });
   }
@@ -2944,9 +3087,9 @@ window.ECCsv = { parseCsv, parseDateTime };
           <div class="metric"><div class="l">${esc(t('mean'))}</div><div class="v">${G(st.mean)}</div><div class="t">${UL()}</div></div>
           <div class="metric"><div class="l">${esc(t('tCarbs'))}</div><div class="v">${Math.round(carbs)}</div><div class="t">${esc(t('gCarbs'))}</div></div>
           <div class="metric"><div class="l">${esc(t('tInsulin'))}</div><div class="v">${+ins.toFixed(1)}</div><div class="t">${esc(t('uIns'))}</div></div></div></div>
-        <div class="quick no-print">${[['carbs', '🍽', 'tCarbs'], ['insulin', '💉', 'tInsulin'], ['bg', '🩸', 'tBg'], ['exercise', '🏃', 'tExercise'], ['note', '📝', 'tNote']].map(q => `<button data-q="${q[0]}"><span>${q[1]}</span>${esc(t(q[2]))}</button>`).join('')}</div>
+        <div class="quick no-print">${[['meal', '🍽', 'tMealEntry'], ['insulin', '💉', 'tBolus'], ['bg', '🩸', 'tBg'], ['exercise', '🏃', 'tExercise'], ['note', '📝', 'tNote']].map(q => `<button data-q="${q[0]}"><span>${q[1]}</span>${esc(t(q[2]))}</button>`).join('')}</div>
         <div class="card" style="margin-top:12px"><h2>${esc(t('entries'))}</h2>
-        ${d.treatments.length ? `<table><tr><th>${esc(t('time'))}</th><th>${esc(t('entry'))}</th><th></th><th></th></tr>${[...d.treatments].reverse().map(x => `<tr><td>${fmtTime(x.mills)}</td><td><b>${esc(trTitle(x))}</b> ${esc(trValue(x))}${x.notes ? `<div class="small muted">${esc(x.notes)}</div>` : ''}</td><td class="small muted">${esc(x.enteredBy || '')}</td><td><button class="btn sm ghost" data-del="${esc(x._id)}" aria-label="${esc(t('delete'))}">✕</button></td></tr>`).join('')}</table>` : `<div class="muted">${esc(t('noEntries'))}</div>`}</div>`;
+        ${d.treatments.length ? `<table><tr><th>${esc(t('time'))}</th><th>${esc(t('entry'))}</th><th></th><th></th></tr>${[...d.treatments].reverse().map(x => `<tr><td>${fmtTime(x.mills)}</td><td><b>${esc(trTitle(x))}</b> ${esc(trValue(x))}${trBg(x, lo, hi)}${x.notes ? `<div class="small muted">${esc(x.notes)}</div>` : ''}</td><td class="small muted">${esc(x.enteredBy || '')}</td><td><button class="btn sm ghost" data-del="${esc(x._id)}" aria-label="${esc(t('delete'))}">✕</button></td></tr>`).join('')}</table>` : `<div class="muted">${esc(t('noEntries'))}</div>`}</div>`;
       $('#prev').onclick = () => { day = dayStart(day, -1); history.replaceState(null, '', '#/diary/' + day); draw(); };
       $('#next').onclick = () => { day = dayStart(day, 1); history.replaceState(null, '', '#/diary/' + day); draw(); };
       document.querySelectorAll('[data-q]').forEach(b => b.onclick = () => addEntry(b.dataset.q, draw));

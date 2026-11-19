@@ -101,11 +101,15 @@
     const u = subject(q); const to = +q.get('to') || Date.now(), from = +q.get('from') || to - DAY;
     const s = series(u, from, to);
     const tr = [...s.tr, ...u.diary.filter(x => x.mills >= from && x.mills < to)].sort((a, c) => a.mills - c.mills);
+    const wide = series(u, from - 15 * 60e3, to + 2.25 * 3600e3).entries;
+    const near = (ms, tol) => wide.reduce((m, e) => Math.abs(e[0] - ms) <= tol && (!m || Math.abs(e[0] - ms) < Math.abs(m[0] - ms)) ? e : m, null);
+    for (const x of tr) if (x.carbs > 0 || (x.insulin > 0 && !/basal/i.test(x.eventType))) { const a = near(x.mills, 15 * 60e3), c = near(x.mills + 2 * 3600e3, 10 * 60e3); if (a) x.bgAt = a[1]; if (c && x.mills + 2 * 3600e3 <= Date.now()) x.bg2h = c[1]; }
     return { from, to, entries: s.entries, treatments: tr, patient: patientInfo(u), readOnly: !!q.get('share') };
   });
   on('POST', /^\/app\/treatments$/, b => {
     const u = me(); const at = Date.parse(b.at) || Date.now();
-    const k = { carbs: { eventType: 'Carb Correction', carbs: b.value }, insulin: { eventType: b.basal ? 'Basal Insulin' : 'Correction Bolus', insulin: b.value }, bg: { eventType: 'BG Check', glucose: b.value, units: 'mg/dl' }, exercise: { eventType: 'Exercise', duration: b.value }, note: { eventType: 'Note' } }[b.kind];
+    const it = { meal: 'Meal Bolus', correction: 'Correction Bolus', basal: 'Basal Insulin' }[b.insulinType] || (b.basal ? 'Basal Insulin' : 'Correction Bolus');
+    const k = { meal: { eventType: 'Meal Bolus', carbs: b.carbs || undefined, insulin: b.insulin || undefined, preBolus: b.preBolus, mealType: b.mealType, glucose: b.glucose }, carbs: { eventType: 'Carb Correction', carbs: b.value }, insulin: { eventType: it, insulin: b.value }, bg: { eventType: 'BG Check', glucose: b.value, units: 'mg/dl' }, exercise: { eventType: 'Exercise', duration: b.value }, note: { eventType: 'Note' } }[b.kind];
     const x = { _id: 'u' + seq++, ...k, mills: at, created_at: new Date(at).toISOString(), notes: b.notes || undefined, enteredBy: 'EndoControl' };
     u.diary.push(x); return x;
   });
