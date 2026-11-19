@@ -5,7 +5,7 @@
   const esc = C.esc;
   const $ = s => document.querySelector(s);
   const IMG = n => (window.EC_IMG && window.EC_IMG[n]) || '/img/' + n + '.webp';
-  // A colourful page header with an illustration: tone = violet | mint | peach | sky | pink.
+  // A colourful page header with an illustration: tone = violet | yellow | peach | sky | blue.
   const banner = (tone, img, title, text, extra = '') => `<div class="banner ${tone}"><div class="btxt"><h1>${title}</h1>${text ? `<p>${esc(text)}</p>` : ''}${extra}</div><img src="${IMG(img)}" alt="" loading="lazy"></div>`;
   const S = { me: null, lang: I.detect(), units: 'mg/dl', timer: null };
 
@@ -296,7 +296,7 @@
       </div>
       <div class="discover no-print">
         <a class="dcard violet" href="#/ai"><img src="${IMG('ai')}" alt="" loading="lazy"><b>${esc(t('navAi'))}</b><span>${esc(t('aiSeen'))}</span></a>
-        <a class="dcard mint" href="#/school"><img src="${IMG('home')}" alt="" loading="lazy"><b>${esc(t('navSchool'))}</b><span>${esc(t('schProgress', { n: schoolDone().length, total: SCH.lessons(S.lang).length }))}</span></a>
+        <a class="dcard yellow" href="#/school"><img src="${IMG('home')}" alt="" loading="lazy"><b>${esc(t('navSchool'))}</b><span>${esc(t('schProgress', { n: schoolDone().length, total: SCH.lessons(S.lang).length }))}</span></a>
         <a class="dcard peach" href="#/reports"><img src="${IMG('l-targets')}" alt="" loading="lazy"><b>${esc(t('navReports'))}</b><span>${esc(t('timeInRanges'))}</span></a>
       </div>`;
       document.querySelectorAll('#rng button').forEach(b => b.onclick = () => { range = +b.dataset.h; sessionStorage.setItem('range', range); draw(); });
@@ -756,7 +756,7 @@
     const lesson = id && lessons.find(l => l.id === id);
     if (!lesson) {
       const n = lessons.filter(l => done.includes(l.id)).length;
-      $('#view').innerHTML = `${banner('mint', 'home', esc(t('navSchool')), t('schIntro'), `<div class="bprog"><b>${esc(t('schProgress', { n, total: lessons.length }))}</b>
+      $('#view').innerHTML = `${banner('yellow', 'home', esc(t('navSchool')), t('schIntro'), `<div class="bprog"><b>${esc(t('schProgress', { n, total: lessons.length }))}</b>
           <div class="progress"><div style="width:${(n / lessons.length * 100).toFixed(0)}%"></div></div></div>`)}${schoolLangNote()}
         <div class="lessons">${lessons.map((l, i) => `<a class="lesson tone${i % 5}" href="#/school/${l.id}">
           <img src="${IMG(l.img || 'l-' + l.id)}" alt="" loading="lazy"><div class="lbody"><div class="tiny lmeta">${l.icon} ${i + 1} · ${esc(t('schMin', { n: l.min }))}${done.includes(l.id) ? ` · <span class="okc">✓ ${esc(t('schDone'))}</span>` : ''}</div>

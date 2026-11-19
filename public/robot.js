@@ -6,7 +6,7 @@ import * as THREE from './vendor/three/three.module.js';
 import { RoundedBoxGeometry } from './vendor/three/RoundedBoxGeometry.js';
 import { RoomEnvironment } from './vendor/three/RoomEnvironment.js';
 
-const RING_STOPS = ['#ff3d8b', '#ff5a5f', '#ff8a3d', '#ffb347', '#ff8a3d', '#ff5a5f', '#ff3d8b'];
+const RING_STOPS = ['#2f6bff', '#7c4dff', '#ff7a1a', '#ffbf1f', '#ff7a1a', '#7c4dff', '#2f6bff'];
 
 function ringTexture() {
   const c = document.createElement('canvas'); c.width = c.height = 512;
@@ -124,7 +124,7 @@ export function mount(el) {
   mesh(new THREE.CylinderGeometry(0.2, 0.24, 0.3, 24), M.dark, body, 0, 0.66, 0);
   mesh(box(1.22, 1.12, 0.92, 0.24), M.shell, body);
   mesh(box(1.0, 0.2, 0.7, 0.08), M.light, body, 0, 0.5, 0.05);
-  [0xff8a3d, 0xff5a5f, 0xff3d8b].forEach((c, i) => {
+  [0x2f6bff, 0xff7a1a, 0xffbf1f].forEach((c, i) => {
     mesh(new THREE.SphereGeometry(0.04, 16, 12), new THREE.MeshStandardMaterial({ color: c, emissive: c, emissiveIntensity: 1.4 }), body, -0.12 + i * 0.12, 0.22, 0.47);
   });
   for (const side of [-1, 1]) {
