@@ -15,8 +15,7 @@ doctor access, messages and printable reports.
 | Any sensor | **Cloud bridges** (server pulls every 5 min): LibreLinkUp (FreeStyle Libre 1/2/3), Dexcom Share (G6/G7/ONE, US/OUS/JP), another Nightscout site · **Uploaders** (push to us): xDrip+, Juggluco, Spike, Diabox, Tomato, Shuggah, Loop, Trio, iAPS, AndroidAPS (NSClient v1) · **CSV import**: LibreView, Dexcom Clarity, Medtronic CareLink, Eversense, Glooko, Tidepool, meters |
 | Patient app | Current value with trend arrow, 3/6/12/24 h chart, diary (carbs, insulin, finger stick, exercise, notes), today's metrics |
 | Reports | Time in ranges (international consensus), GMI, CV, AGP, TIR by day, a full chart for every day; 7/14/30/90 days; **PDF** via the browser's print dialog |
-| AI analyst | Chat about the last 14 days: patterns by time of day, meals, activity and lows, questions to ask the doctor. Uses Claude (Anthropic) when `ANTHROPIC_API_KEY` is set; otherwise shows a rule-based review. Never suggests doses |
-| Voice assistant | 🎙️ button on every page: ask about diabetes by voice or text, answers are read aloud (browser speech recognition and synthesis). Uses Claude when `ANTHROPIC_API_KEY` is set; otherwise answers from the Diabetes school lessons |
+| AI analyst | Ask any question — about a moment ("why did glucose fall 2 h after breakfast today?"), patterns over days, or diabetes in general. Claude (Anthropic) gets a 15-minute glucose timeline for today and yesterday, every diary entry, meal rises found on the curve and 14-day statistics, plus clinical background after Ragnar Hanas' "Type 1 Diabetes in Children, Adolescents and Young Adults" and ISPAD 2022. Needs `ANTHROPIC_API_KEY`; without it, questions about a meal or time of day get a curve analysis and other questions a Diabetes school lesson. Never suggests doses |
 | Diabetes school | 10 short lessons with mini quizzes and progress: basics, targets, CGM, insulin, carbs, hypo, high glucose and ketones, sport, sick days, school and travel (Russian and English; other languages fall back to them) |
 | Doctors | Patient sends a read-only link → doctor adds it → patient list sorted with TIR/hypo flags, full history, reports, messages and written conclusions |
 | Languages | English, 简体中文, Español, العربية (RTL), Português, Bahasa Indonesia, Français, 日本語, Русский, Deutsch, Қазақша, Türkçe, हिन्दी, 한국어 · units mg/dL or mmol/L per user |
@@ -85,9 +84,10 @@ server.js            HTTP server, app API (/app/*), Nightscout API (/api/v1/*), 
 lib/db.js            SQLite schema
 lib/security.js      password hashing, encryption at rest, tokens, rate limiting
 lib/nsdata.js        Nightscout data model: entries, treatments, devicestatus
-lib/bridges.js       LibreLinkUp, Dexcom Share, Nightscout pull (every 5 min)
+lib/bridges.js       LibreLinkUp, Dexcom Share, Nightscout pull of glucose and treatments (every 5 min)
 lib/csvimport.js     CSV import with automatic column/unit detection
-lib/ai.js            AI analyst and voice assistant: 14-day data summary and the Claude requests
+public/explain.js    curve analysis shared by server and browser: meal rises, peaks, falls
+lib/ai.js            AI analyst: data summary, timeline and the Claude request
 public/school.js     Diabetes school lessons and quizzes
 public/              web app: index.html, app.js, charts.js, i18n.js (translations), app.css
 scripts/demo.js      demo data

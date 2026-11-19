@@ -92,7 +92,6 @@
     if (page === 's') { S.me = S.me || await loadMe(); nav(); return sharedView(parts[1]); }
     if (!S.me) await loadMe();
     nav();
-    voiceFab();
     if (!S.me) { if (page === 'register') return register(); return login(); }
     const doc = S.me.user.role === 'doctor';
     const pages = doc ? { patients, p: doctorPatient, settings } : { home, connect, diary, reports, ai, school, share, settings };
@@ -242,9 +241,8 @@
       <div class="discover no-print">
         <a class="dcard violet" href="#/ai"><img src="${IMG('ai')}" alt="" loading="lazy"><b>${esc(t('navAi'))}</b><span>${esc(t('aiSeen'))}</span></a>
         <a class="dcard mint" href="#/school"><img src="${IMG('home')}" alt="" loading="lazy"><b>${esc(t('navSchool'))}</b><span>${esc(t('schProgress', { n: schoolDone().length, total: SCH.lessons(S.lang).length }))}</span></a>
-        <button type="button" class="dcard pink" id="dvoice"><img src="${IMG('voice')}" alt="" loading="lazy"><b>${esc(t('vaTitle'))}</b><span>${esc(t('vaTap'))}</span></button>
+        <a class="dcard peach" href="#/reports"><img src="${IMG('l-targets')}" alt="" loading="lazy"><b>${esc(t('navReports'))}</b><span>${esc(t('timeInRanges'))}</span></a>
       </div>`;
-      const dv = $('#dvoice'); if (dv) dv.onclick = () => openVoice();
       document.querySelectorAll('#rng button').forEach(b => b.onclick = () => { range = +b.dataset.h; sessionStorage.setItem('range', range); draw(); });
       document.querySelectorAll('[data-q]').forEach(b => b.onclick = () => addEntry(b.dataset.q, draw));
     };
@@ -458,6 +456,24 @@
   }
 
   // ------------------------------------------------------------ AI analyst
+  // Offline answer to a general question: the best-matching Diabetes school lesson.
+  function schoolAnswer(q) {
+    // Rough stems (first 4 letters) so that "низком" matches "низкий", "carbs" matches "carbohydrates".
+    const stem = w => w.toLowerCase().replace(/[^\p{L}\p{N}]/gu, '').slice(0, 4);
+    const words = [...new Set(q.split(/\s+/).map(stem).filter(w => w.length >= 4))];
+    const hits = text => { const h = text.toLowerCase(); return words.reduce((a, w) => a + (h.includes(w) ? 1 : 0), 0); };
+    let best = null, bestScore = 0;
+    for (const l of SCH.lessons(S.lang)) {
+      const score = hits(SCH.text(l)) + 2 * hits(l.title + ' ' + l.summary);
+      if (score > bestScore) { best = l; bestScore = score; }
+    }
+    if (!best) return { text: '' };
+    // The two best-matching sections, each in full: cutting a list short could drop a safety threshold.
+    const secs = best.sections.map((x, i) => ({ x, i, score: 2 * hits(x.h) + hits([...(x.p || []), ...(x.list || [])].join(' ')) }))
+      .sort((a, b) => b.score - a.score || a.i - b.i).slice(0, 2).sort((a, b) => a.i - b.i).map(o => o.x);
+    const body = secs.map(sec => [(sec.p || []).join('\n\n'), (sec.list || []).map(x => '- ' + x).join('\n')].filter(Boolean).join('\n\n')).join('\n\n');
+    return { text: `${body}\n\n${t('aiMore', { t: best.title })}`, lesson: best.id };
+  }
   // Light markdown for answers: **bold**, "- " / "1. " lists, paragraphs. Escapes everything first.
   function aiMd(text) {
     return esc(text).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').split(/\n{2,}/).map(par => {
@@ -476,12 +492,18 @@
     const { lo, hi } = targets(me.user);
     const st = C.stats(d.entries.map(e => e[1]), lo, hi);
     const found = insights(d.entries, lo, hi);
+    // Without the AI: a curve analysis for questions about a meal or a moment, a school lesson
+    // for general questions, and the pattern review for everything else.
     const ruleAnswer = q => {
+      const ex = window.Explain.answer(q, { entries: d.entries, treatments: d.treatments, now: Date.now(), lo, hi, t, g: G, unit: UL(), time: fmtTime, dayStart });
+      if (ex) return { text: ex };
+      const review = /\b(7|14)\b|недел|дн[еяи]|week|days|разбер|review|тренд|pattern|апта|күн/i.test(q);
+      if (!review) { const sa = schoolAnswer(q); if (sa.lesson) return sa; }
       const recent = /\b7\b/.test(q) ? d.entries.filter(e => e[0] >= to - 7 * 864e5) : d.entries;
-      return insights(recent, lo, hi).map(x => '- ' + x).join('\n') + '\n\n' + t('aiRuleNote');
+      return { text: insights(recent, lo, hi).map(x => '- ' + x).join('\n') + '\n\n' + t('aiRuleNote') };
     };
     const chat = S.aiChat = S.aiChat || [];
-    let busy = false, note = status.enabled ? t('aiPrivacy') : t('aiOff');
+    let busy = false, note = status.enabled ? t('aiPrivacy') : t('aiOff') + ' ' + t('aiNoKeyShort');
     const chips = t('aiChips').split('|');
     $('#view').innerHTML = `${banner('violet', 'ai', esc(t('navAi')), t('aiIntro'))}
       <div class="card">${metricsHtml(st, lo, hi)}
@@ -491,7 +513,7 @@
           <button class="btn" id="aiSend" aria-label="${esc(t('aiSend'))}">➤</button></form>
         <p class="tiny muted" id="aiNote" style="margin-bottom:0"></p></div>`;
     const draw = () => {
-      $('#chat').innerHTML = chat.map(m => `<div class="msg ${m.role === 'user' ? 'u' : 'a'}${m.pending ? ' pending' : ''}">${m.role === 'user' ? esc(m.text) : aiMd(m.text)}</div>`).join('');
+      $('#chat').innerHTML = chat.map(m => `<div class="msg ${m.role === 'user' ? 'u' : 'a'}${m.pending ? ' pending' : ''}">${m.role === 'user' ? esc(m.text) : aiMd(m.text)}${m.lesson ? `<div><a href="#/school/${esc(m.lesson)}" class="small">🎓 ${esc(t('navSchool'))} →</a></div>` : ''}</div>`).join('');
       $('#chips').innerHTML = chat.length ? '' : chips.map(c => `<button type="button" class="chip">${esc(c)}</button>`).join('');
       document.querySelectorAll('#chips .chip').forEach(b => b.onclick = () => ask(b.textContent));
       $('#aiSend').disabled = busy;
@@ -507,12 +529,12 @@
       chat.push(reply); busy = true; draw();
       try {
         const r = await api('POST', '/app/ai', { question: q, history, lang: S.lang, tz: Intl.DateTimeFormat().resolvedOptions().timeZone });
-        if (r.mode === 'off') { reply.text = ruleAnswer(q); reply.local = true; note = t('aiOff'); }
+        if (r.mode === 'off') { Object.assign(reply, ruleAnswer(q)); reply.local = true; note = t('aiOff') + ' ' + t('aiNoKeyShort'); }
         else if (r.refusal || !r.text) { reply.text = t('aiRefusal'); reply.local = true; }
         else { reply.text = r.text; note = t('aiPrivacy'); }
       } catch (e) {
         // The offline demo has no AI endpoint: fall back to the rule-based review.
-        if (e.code === 'not_found') { reply.text = ruleAnswer(q); note = t('aiOff'); }
+        if (e.code === 'not_found') { Object.assign(reply, ruleAnswer(q)); note = t('aiOff') + ' ' + t('aiNoKeyShort'); }
         else reply.text = errText(e);
         reply.local = true;
       }
@@ -557,7 +579,7 @@
       <div class="card"><h2>${esc(t('schQuiz'))}</h2>${lesson.quiz.map((q, qi) => `<div class="quiz" data-q="${qi}"><p><b>${esc(q.q)}</b></p>
         <div class="opts">${q.a.map((a, ai) => `<button type="button" class="opt" data-a="${ai}">${esc(a)}</button>`).join('')}</div><p class="small fb" hidden></p></div>`).join('')}
         <p class="okc" id="finished" ${done.includes(lesson.id) ? '' : 'hidden'}>✓ ${esc(t('schFinished'))}</p></div>
-      <div class="row" style="gap:10px;flex-wrap:wrap"><button class="btn ghost" id="askVa">🎙️ ${esc(t('schAskVa'))}</button>
+      <div class="row" style="gap:10px;flex-wrap:wrap"><a class="btn ghost" href="#/ai">✨ ${esc(t('schAskAi'))}</a>
         ${next ? `<a class="btn" href="#/school/${next.id}" style="margin-inline-start:auto">${esc(t('schNext'))} →</a>` : ''}</div>`;
     document.querySelectorAll('.quiz').forEach(box => {
       const q = lesson.quiz[+box.dataset.q];
@@ -571,121 +593,7 @@
         if (lesson.quiz.every((_, k) => answers[k])) { markDone(lesson.id); $('#finished').hidden = false; }
       });
     });
-    $('#askVa').onclick = () => openVoice();
     scrollTo(0, 0);
-  }
-
-  // ------------------------------------------------------------ voice assistant
-  const SPEECH_LOCALE = { ru: 'ru-RU', kk: 'kk-KZ', en: 'en-US', zh: 'zh-CN', es: 'es-ES', ar: 'ar-SA', pt: 'pt-BR', id: 'id-ID', fr: 'fr-FR', ja: 'ja-JP', de: 'de-DE', tr: 'tr-TR', hi: 'hi-IN', ko: 'ko-KR' };
-  const speechLocale = () => SPEECH_LOCALE[S.lang] || 'en-US';
-  const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-  const VA = { chat: [], speak: true, busy: false, rec: null, listening: false };
-  try { VA.speak = localStorage.getItem('ec_va_speak') !== '0'; } catch { /* keep default */ }
-
-  function voiceFab() {
-    let fab = $('#vafab');
-    const show = S.me && S.me.user.role !== 'doctor' && !location.hash.startsWith('#/s/');
-    if (!show) { if (fab) fab.remove(); return; }
-    if (fab) { fab.setAttribute('aria-label', t('vaTitle')); fab.title = t('vaTitle'); return; }
-    fab = document.createElement('button');
-    fab.id = 'vafab'; fab.className = 'vafab no-print'; fab.type = 'button'; fab.textContent = '🎙️';
-    fab.setAttribute('aria-label', t('vaTitle')); fab.title = t('vaTitle');
-    fab.onclick = () => openVoice();
-    document.body.appendChild(fab);
-  }
-  function stopSpeaking() { try { window.speechSynthesis && speechSynthesis.cancel(); } catch { /* ignore */ } }
-  function speak(text) {
-    if (!VA.speak || !window.speechSynthesis) return;
-    stopSpeaking();
-    const u = new SpeechSynthesisUtterance(text.replace(/\*\*/g, '').replace(/^\s*[-•]\s*/gm, ''));
-    u.lang = speechLocale();
-    const voice = speechSynthesis.getVoices().find(v => v.lang && v.lang.toLowerCase().startsWith(S.lang));
-    if (voice) u.voice = voice;
-    speechSynthesis.speak(u);
-  }
-  // Offline answer: the best-matching Diabetes school lesson.
-  function schoolAnswer(q) {
-    // Rough stems (first 4 letters) so that "низком" matches "низкий", "carbs" matches "carbohydrates".
-    const stem = w => w.toLowerCase().replace(/[^\p{L}\p{N}]/gu, '').slice(0, 4);
-    const words = [...new Set(q.split(/\s+/).map(stem).filter(w => w.length >= 4))];
-    const hits = text => { const h = text.toLowerCase(); return words.reduce((a, w) => a + (h.includes(w) ? 1 : 0), 0); };
-    let best = null, bestScore = 0;
-    for (const l of SCH.lessons(S.lang)) {
-      const score = hits(SCH.text(l)) + 2 * hits(l.title + ' ' + l.summary);
-      if (score > bestScore) { best = l; bestScore = score; }
-    }
-    if (!best) return { text: t('vaNoMatch') };
-    // The two best-matching sections, each in full: cutting a list short could drop a safety threshold.
-    const secs = best.sections.map((x, i) => ({ x, i, score: 2 * hits(x.h) + hits([...(x.p || []), ...(x.list || [])].join(' ')) }))
-      .sort((a, b) => b.score - a.score || a.i - b.i).slice(0, 2).sort((a, b) => a.i - b.i).map(o => o.x);
-    const body = secs.map(sec => [(sec.p || []).join('\n\n'), (sec.list || []).map(x => '- ' + x).join('\n')].filter(Boolean).join('\n\n')).join('\n\n');
-    return { text: `${body}\n\n${t('vaMore', { t: best.title })}`, lesson: best.id };
-  }
-  function openVoice(prefill) {
-    let note = t('vaPrivacy');
-    modal(`<div class="row"><h2 style="margin:0">🎙️ ${esc(t('vaTitle'))}</h2><button class="iconbtn" data-close aria-label="${esc(t('vaClose'))}" style="margin-inline-start:auto">✕</button></div>
-      <div class="vahead"><img src="${IMG('voice')}" alt=""><p class="small muted">${esc(t('vaIntro'))}</p></div>
-      <div class="chat" id="vachat"></div><div class="chips" id="vachips"></div>
-      <div class="vamicwrap"><button type="button" class="vamic" id="vamic" aria-label="${esc(t('vaTap'))}">🎙️</button><div class="small muted" id="vastate"></div></div>
-      <form id="vaform" class="aiform"><input id="vain" maxlength="1000" autocomplete="off" placeholder="${esc(t('vaPlaceholder'))}" aria-label="${esc(t('vaPlaceholder'))}"><button class="btn" id="vasend">➤</button></form>
-      <div class="row small" style="margin-top:10px;gap:12px;flex-wrap:wrap"><label class="row" style="gap:6px;width:auto"><input type="checkbox" id="vaspeak" style="width:auto" ${VA.speak ? 'checked' : ''}> ${esc(t('vaSpeak'))}</label>
-        <button type="button" class="btn ghost sm" id="vastop">⏹ ${esc(t('vaStop'))}</button></div>
-      <p class="tiny muted" id="vanote" style="margin-bottom:0"></p>`, () => {
-      const mic = $('#vamic');
-      const draw = () => {
-        const chat = $('#vachat'); if (!chat) return;
-        chat.innerHTML = VA.chat.map(m => `<div class="msg ${m.role === 'user' ? 'u' : 'a'}${m.pending ? ' pending' : ''}">${m.role === 'user' ? esc(m.text) : aiMd(m.text)}${m.lesson ? `<div><a href="#/school/${esc(m.lesson)}" class="small">🎓 ${esc(t('navSchool'))} →</a></div>` : ''}</div>`).join('');
-        $('#vachips').innerHTML = VA.chat.length ? '' : t('vaChips').split('|').map(c => `<button type="button" class="chip">${esc(c)}</button>`).join('');
-        document.querySelectorAll('#vachips .chip').forEach(b => b.onclick = () => ask(b.textContent));
-        chat.querySelectorAll('a').forEach(a => a.onclick = () => { stopListening(); closeModal(); });
-        $('#vasend').disabled = VA.busy;
-        mic.classList.toggle('on', VA.listening);
-        $('#vastate').textContent = !Recognition ? t('vaNoMic') : VA.listening ? t('vaListening') : t('vaTap');
-        $('#vanote').textContent = note;
-        const last = chat.lastElementChild; if (last) last.scrollIntoView({ block: 'nearest' });
-      };
-      async function ask(q) {
-        q = String(q || '').trim();
-        if (!q || VA.busy) return;
-        const history = VA.chat.filter(m => !m.pending && !m.local).map(m => ({ role: m.role, text: m.text }));
-        VA.chat.push({ role: 'user', text: q });
-        const reply = { role: 'assistant', text: t('aiThinking'), pending: true };
-        VA.chat.push(reply); VA.busy = true; draw();
-        try {
-          const r = await api('POST', '/app/assistant', { question: q, history, lang: S.lang, tz: Intl.DateTimeFormat().resolvedOptions().timeZone });
-          if (r.mode === 'off') { Object.assign(reply, schoolAnswer(q), { local: true }); note = t('vaOffline'); }
-          else if (r.refusal || !r.text) { reply.text = t('aiRefusal'); reply.local = true; }
-          else { reply.text = r.text; note = t('vaPrivacy'); }
-        } catch (e) {
-          if (e.code === 'not_found') { Object.assign(reply, schoolAnswer(q)); note = t('vaOffline'); }
-          else reply.text = errText(e);
-          reply.local = true;
-        }
-        reply.pending = false; VA.busy = false;
-        speak(reply.text); draw();
-      }
-      function stopListening() { if (VA.rec) { try { VA.rec.stop(); } catch { /* already stopped */ } } }
-      mic.disabled = !Recognition;
-      mic.onclick = () => {
-        if (VA.listening) return stopListening();
-        stopSpeaking();
-        const rec = VA.rec = new Recognition();
-        rec.lang = speechLocale(); rec.interimResults = true; rec.continuous = false;
-        let heard = '';
-        rec.onresult = e => { heard = [...e.results].map(r => r[0].transcript).join(' '); const inp = $('#vain'); if (inp) inp.value = heard; };
-        rec.onerror = e => { if (e.error === 'not-allowed' || e.error === 'service-not-allowed') { note = t('vaMicDenied'); } };
-        rec.onend = () => { VA.listening = false; const inp = $('#vain'); if (heard.trim()) { if (inp) inp.value = ''; ask(heard); } else draw(); };
-        VA.listening = true; draw();
-        try { rec.start(); } catch { VA.listening = false; draw(); }
-      };
-      $('#vaform').onsubmit = e => { e.preventDefault(); const v = $('#vain').value; $('#vain').value = ''; ask(v); };
-      $('#vaspeak').onchange = e => { VA.speak = e.target.checked; try { localStorage.setItem('ec_va_speak', VA.speak ? '1' : '0'); } catch { /* ignore */ } if (!VA.speak) stopSpeaking(); };
-      $('#vastop').onclick = stopSpeaking;
-      $('#mbg').addEventListener('click', e => { if (e.target.id === 'mbg') { stopListening(); stopSpeaking(); } });
-      document.querySelectorAll('#modal [data-close]').forEach(b => b.addEventListener('click', () => { stopListening(); stopSpeaking(); }));
-      draw();
-      if (prefill) ask(prefill);
-    });
   }
 
   // ------------------------------------------------------------ share with doctor / family

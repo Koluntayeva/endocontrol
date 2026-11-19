@@ -25,7 +25,7 @@ test('register, upload like xDrip+, read via share token', async () => {
   server.close();
 });
 
-test('AI analyst and voice assistant answer mode off without an API key', async () => {
+test('AI analyst answers mode off without an API key', async () => {
   delete process.env.ANTHROPIC_API_KEY; delete process.env.ANTHROPIC_AUTH_TOKEN;
   await new Promise(r => server.listen(0, r));
   const base = `http://127.0.0.1:${server.address().port}`;
@@ -35,13 +35,24 @@ test('AI analyst and voice assistant answer mode off without an API key', async 
   r = await fetch(base + '/app/ai', { method: 'POST', headers: { ...j, cookie }, body: JSON.stringify({ question: 'How was the week?' }) });
   assert.equal(r.status, 200);
   assert.equal((await r.json()).mode, 'off');
-  r = await fetch(base + '/app/assistant', { method: 'POST', headers: { ...j, cookie }, body: JSON.stringify({ question: 'What is a hypo?' }) });
-  assert.equal((await r.json()).mode, 'off');
-  r = await fetch(base + '/', {});
-  assert.match(r.headers.get('permissions-policy'), /microphone=\(self\)/);
   r = await fetch(base + '/app/ai', { method: 'POST', headers: { ...j, cookie }, body: JSON.stringify({ question: '  ' }) });
   assert.equal(r.status, 400);
   r = await fetch(base + '/app/ai', { method: 'POST', headers: j, body: JSON.stringify({ question: 'x' }) });
   assert.equal(r.status, 401);
   server.close();
+});
+
+test('curve analysis finds a meal rise and the fall after it', () => {
+  const { rises, answer } = require('../public/explain.js');
+  const t0 = Date.UTC(2026, 0, 1, 7, 0); const pts = [];
+  // flat 100, rise to 200 by +90 min, fall to 90 by +4 h
+  for (let m = 0; m <= 300; m += 5) pts.push({ t: t0 + m * 60e3, v: m < 30 ? 100 : m <= 90 ? 100 + (m - 30) * (100 / 60) : Math.max(90, 200 - (m - 90) * 0.75) });
+  const r = rises(pts);
+  assert.equal(r.length, 1);
+  assert.equal(r[0].peak.v, 200);
+  assert.ok(r[0].nadir.v <= 100);
+  const ctx = { entries: pts.map(p => [p.t, p.v]), treatments: [], now: t0 + 6 * 3600e3, lo: 70, hi: 180, t: k => k, g: v => String(Math.round(v)), unit: 'mg/dL', time: ms => new Date(ms).toISOString().slice(11, 16), dayStart: (ms, k = 0) => Date.UTC(2026, 0, 1 + k) };
+  const text = answer('Why did glucose fall 2 hours after breakfast today?', ctx);
+  assert.match(text, /exCurve/); assert.match(text, /exFall/); assert.match(text, /exWhyFall/);
+  assert.equal(answer('What are ketones?', ctx), null);
 });
