@@ -4,6 +4,23 @@
   const C = window.Charts, I = window.I18N;
   const esc = C.esc;
   const $ = s => document.querySelector(s);
+  // Thin line icons (24px grid, 1.7 stroke, currentColor) for the bottom menu and quick actions.
+  const ICONS = {
+    home: '<path d="M3.5 10.5 12 3.5l8.5 7V19a1.5 1.5 0 0 1-1.5 1.5h-4.5v-6h-5v6H5A1.5 1.5 0 0 1 3.5 19z"/>',
+    diary: '<rect x="5" y="3" width="14" height="18" rx="3"/><path d="M9 7.5h6M9 11.5h6M9 15.5h3.5"/>',
+    reports: '<path d="M4 4v16h16"/><path d="m7.5 14.5 3.5-4.5 3 3 5-6.5"/>',
+    ai: '<path d="M11 3.5 12.9 8.6 18 10.5l-5.1 1.9L11 17.5l-1.9-5.1L4 10.5l5.1-1.9z"/><path d="M18.5 15.5l.7 1.8 1.8.7-1.8.7-.7 1.8-.7-1.8-1.8-.7 1.8-.7z"/>',
+    school: '<path d="M2.5 9 12 4.5 21.5 9 12 13.5z"/><path d="M6.5 11v4.5c0 1.6 2.5 3 5.5 3s5.5-1.4 5.5-3V11"/><path d="M21.5 9v5.5"/>',
+    share: '<path d="M6 3.5H5v5.5a4.5 4.5 0 0 0 9 0V3.5h-1"/><path d="M9.5 13.5v1.5a5 5 0 0 0 10 0v-2.5"/><circle cx="19.5" cy="10.5" r="2"/>',
+    settings: '<path d="M4 6.5h9M17 6.5h3M4 12h3M11 12h9M4 17.5h11M19 17.5h1"/><circle cx="15" cy="6.5" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="17" cy="17.5" r="2"/>',
+    patients: '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><circle cx="17" cy="9" r="2.5"/><path d="M16.5 14.3a5 5 0 0 1 5 5.2"/>',
+    meal: '<path d="M7 3v8M4.5 3v5a2.5 2.5 0 0 0 5 0V3M7 11v10"/><path d="M17.5 3c-2 0-3.5 2.6-3.5 5.6S15.5 13 17.5 13v8"/>',
+    insulin: '<path d="m17.5 3 3.5 3.5M15.5 5 19 8.5"/><path d="M17.2 6.8 7.5 16.5 5 19l1.5 1.5L9 18l9.7-9.7"/><path d="m10 11 3 3M12.5 8.5l3 3"/>',
+    bg: '<path d="M12 3.5s6 6.4 6 10.8a6 6 0 0 1-12 0C6 9.9 12 3.5 12 3.5z"/><path d="M9.5 14.5a2.5 2.5 0 0 0 2.5 2.5"/>',
+    exercise: '<path d="M3 12h4l2.5-6.5 5 13L17 12h4"/>',
+    note: '<path d="M4.5 19.5h4l11-11a2.1 2.1 0 0 0-3-3l-11 11z"/><path d="m14.5 7 2.5 2.5"/>',
+  };
+  const icon = n => `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[n] || ''}</svg>`;
   const IMG = n => (window.EC_IMG && window.EC_IMG[n]) || '/img/' + n + '.webp';
   // A colourful page header with an illustration: tone = violet | yellow | peach | sky | blue.
   const banner = (tone, img, title, text, extra = '') => `<div class="banner ${tone}"><div class="btxt"><h1>${title}</h1>${text ? `<p>${esc(text)}</p>` : ''}${extra}</div><img src="${IMG(img)}" alt="" loading="lazy"></div>`;
@@ -104,7 +121,7 @@
     let items = [];
     if (S.me && S.me.user.role === 'doctor') items = [['patients', '👥', 'navPatients'], ['settings', '⚙️', 'navSettings']];
     else if (S.me) items = [['home', '🏠', 'navHome'], ['diary', '📔', 'navDiary'], ['reports', '📊', 'navReports'], ['ai', '✨', 'navAi'], ['school', '🎓', 'navSchool'], ['share', '🩺', 'navDoctor'], ['settings', '⚙️', 'navSettings']];
-    const html = items.map(([id, ic, k]) => `<a href="#/${id}" class="${r === id || (id === 'home' && r === 'connect') ? 'on' : ''}"><span>${ic}</span>${esc(t(I.has('en', k + 'Short') ? k + 'Short' : k))}</a>`).join('');
+    const html = items.map(([id, ic, k]) => `<a href="#/${id}" class="${r === id || (id === 'home' && r === 'connect') ? 'on' : ''}"><span>${icon(id)}</span>${esc(t(I.has('en', k + 'Short') ? k + 'Short' : k))}</a>`).join('');
     $('#mainnav').innerHTML = items.map(([id, , k]) => `<a href="#/${id}" class="${r === id ? 'on' : ''}">${esc(t(k))}</a>`).join('');
     $('#bottomnav').innerHTML = html;
     $('#bottomnav').style.display = items.length ? '' : 'none';
@@ -289,7 +306,7 @@
       ${C.line(d.entries, now - range * 3600e3, now + 5 * 60e3, { lo, hi, units: S.units, treatments: d.treatments, locale: locale(), label: t('glucose') })}
       <div class="legend"><i style="background:var(--ins)"></i>${esc(t('tInsulin'))}<i style="background:var(--carb)"></i>${esc(t('tCarbs'))}<i style="background:var(--in-soft);border:1px solid var(--in)"></i>${esc(t('targetRange'))} ${G(lo)}–${G(hi)}</div>
       </div>
-      <div class="quick no-print">${[['meal', '🍽', 'tMealEntry'], ['insulin', '💉', 'tBolus'], ['bg', '🩸', 'tBg'], ['exercise', '🏃', 'tExercise'], ['note', '📝', 'tNote']].map(q => `<button data-q="${q[0]}"><span>${q[1]}</span>${esc(t(q[2]))}</button>`).join('')}</div>
+      <div class="quick no-print">${[['meal', '🍽', 'tMealEntry'], ['insulin', '💉', 'tBolus'], ['bg', '🩸', 'tBg'], ['exercise', '🏃', 'tExercise'], ['note', '📝', 'tNote']].map(q => `<button data-q="${q[0]}"><span>${icon(q[0])}</span>${esc(t(q[2]))}</button>`).join('')}</div>
       <div class="grid g2" style="margin-top:12px">
         <div class="card"><h2>${esc(t('today'))}</h2>${metricsHtml(st, lo, hi)}</div>
         <div class="card"><h2>${esc(t('dataSources'))}</h2>${sourcesHtml(me)}<a class="btn ghost sm" href="#/connect" style="margin-top:8px">${esc(t('connectSensor'))}</a></div>
@@ -534,7 +551,7 @@
           <div class="metric"><div class="l">${esc(t('mean'))}</div><div class="v">${G(st.mean)}</div><div class="t">${UL()}</div></div>
           <div class="metric"><div class="l">${esc(t('tCarbs'))}</div><div class="v">${Math.round(carbs)}</div><div class="t">${esc(t('gCarbs'))}</div></div>
           <div class="metric"><div class="l">${esc(t('tInsulin'))}</div><div class="v">${+ins.toFixed(1)}</div><div class="t">${esc(t('uIns'))}</div></div></div></div>
-        <div class="quick no-print">${[['meal', '🍽', 'tMealEntry'], ['insulin', '💉', 'tBolus'], ['bg', '🩸', 'tBg'], ['exercise', '🏃', 'tExercise'], ['note', '📝', 'tNote']].map(q => `<button data-q="${q[0]}"><span>${q[1]}</span>${esc(t(q[2]))}</button>`).join('')}</div>
+        <div class="quick no-print">${[['meal', '🍽', 'tMealEntry'], ['insulin', '💉', 'tBolus'], ['bg', '🩸', 'tBg'], ['exercise', '🏃', 'tExercise'], ['note', '📝', 'tNote']].map(q => `<button data-q="${q[0]}"><span>${icon(q[0])}</span>${esc(t(q[2]))}</button>`).join('')}</div>
         <div class="card" style="margin-top:12px"><h2>${esc(t('entries'))}</h2>
         ${d.treatments.length ? `<table><tr><th>${esc(t('time'))}</th><th>${esc(t('entry'))}</th><th></th><th></th></tr>${[...d.treatments].reverse().map(x => `<tr><td>${fmtTime(x.mills)}</td><td><b>${esc(trTitle(x))}</b> ${esc(trValue(x))}${trBg(x, lo, hi)}${x.notes ? `<div class="small muted">${esc(x.notes)}</div>` : ''}</td><td class="small muted">${esc(x.enteredBy || '')}</td><td><button class="btn sm ghost" data-del="${esc(x._id)}" aria-label="${esc(t('delete'))}">✕</button></td></tr>`).join('')}</table>` : `<div class="muted">${esc(t('noEntries'))}</div>`}</div>`;
       $('#prev').onclick = () => { day = dayStart(day, -1); history.replaceState(null, '', '#/diary/' + day); draw(); };
