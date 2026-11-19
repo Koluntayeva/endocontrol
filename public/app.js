@@ -86,6 +86,7 @@
   // ------------------------------------------------------------ router
   async function route() {
     clearInterval(S.timer);
+    if (ROBOT) { ROBOT.destroy(); ROBOT = null; }
     const parts = location.hash.replace(/^#\/?/, '').split('/');
     const page = parts[0] || '';
     const view = $('#view');
@@ -485,6 +486,17 @@
       return `<p>${lines.join('<br>')}</p>`;
     }).join('');
   }
+  // The analyst's 3D robot (three.js, loaded on demand). The picture stays if it cannot load.
+  let ROBOT = null;
+  async function mountRobot(boxEl) {
+    if (!boxEl) return;
+    try {
+      const m = await import('/robot.js');
+      if (!document.body.contains(boxEl) || ROBOT) return;
+      const r = m.mount(boxEl);
+      if (r) { ROBOT = r; boxEl.classList.add('live'); }
+    } catch { /* no WebGL or no modules (offline demo): keep the picture */ }
+  }
   async function ai() {
     const me = S.me;
     const to = Date.now() + 60e3, from = to - 14 * 864e5;
@@ -505,7 +517,8 @@
     const chat = S.aiChat = S.aiChat || [];
     let busy = false, note = status.enabled ? t('aiPrivacy') : t('aiOff') + ' ' + t('aiNoKeyShort');
     const chips = t('aiChips').split('|');
-    $('#view').innerHTML = `${banner('violet', 'ai', esc(t('navAi')), t('aiIntro'))}
+    $('#view').innerHTML = `<div class="banner violet"><div class="btxt"><h1>${esc(t('navAi'))}</h1><p>${esc(t('aiIntro'))}</p></div>
+        <div class="robotbox" id="robotbox" aria-hidden="true"><img src="${IMG('ai')}" alt=""></div></div>
       <div class="card">${metricsHtml(st, lo, hi)}
         <h2 style="margin-top:16px">${esc(t('aiSeen'))}</h2>${found.map(x => `<div class="ins">${esc(x)}</div>`).join('')}</div>
       <div class="card"><h2>${esc(t('aiAsk'))}</h2><div class="chat" id="chat"></div><div class="chips" id="chips"></div>
@@ -527,6 +540,7 @@
       chat.push({ role: 'user', text: q });
       const reply = { role: 'assistant', text: t('aiThinking'), pending: true };
       chat.push(reply); busy = true; draw();
+      if (ROBOT) ROBOT.setMode('thinking');
       try {
         const r = await api('POST', '/app/ai', { question: q, history, lang: S.lang, tz: Intl.DateTimeFormat().resolvedOptions().timeZone });
         if (r.mode === 'off') { Object.assign(reply, ruleAnswer(q)); reply.local = true; note = t('aiOff') + ' ' + t('aiNoKeyShort'); }
@@ -539,11 +553,13 @@
         reply.local = true;
       }
       reply.pending = false; busy = false;
+      if (ROBOT) ROBOT.setMode(reply.local && !reply.text ? 'idle' : 'quote');
       const chatEl = $('#chat');
       if (chatEl) draw();
     }
     $('#aiForm').onsubmit = e => { e.preventDefault(); const v = $('#aiIn').value; $('#aiIn').value = ''; ask(v); };
     draw();
+    mountRobot($('#robotbox'));
   }
 
   // ------------------------------------------------------------ diabetes school

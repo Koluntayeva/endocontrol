@@ -87,6 +87,7 @@ lib/nsdata.js        Nightscout data model: entries, treatments, devicestatus
 lib/bridges.js       LibreLinkUp, Dexcom Share, Nightscout pull of glucose and treatments (every 5 min)
 lib/csvimport.js     CSV import with automatic column/unit detection
 public/explain.js    curve analysis shared by server and browser: meal rises, peaks, falls
+public/robot.js      the AI analyst's 3D robot (three.js 0.160.0, vendored in public/vendor/three, MIT)
 lib/ai.js            AI analyst: data summary, timeline and the Claude request
 public/school.js     Diabetes school lessons and quizzes
 public/              web app: index.html, app.js, charts.js, i18n.js (translations), app.css
