@@ -325,3 +325,16 @@ body{background-image:radial-gradient(700px 420px at 100% -5%,rgba(255,170,120,.
 .seg.wide{display:flex;width:100%}.seg.wide button{flex:1}
 .inunit{display:flex;gap:6px;align-items:center}.inunit input{flex:1;min-width:0}.inunit .seg{width:auto;flex:none}
 .bgpair{font-size:13px;margin-top:2px}
+
+/* ---------- glucose charts: second in-range tone, pulse, tooltip ---------- */
+:root{--in2:#3fa6a0}
+@media (prefers-color-scheme:dark){:root{--in2:#5cc7c0}}
+.gpulse{transform-box:fill-box;transform-origin:center;animation:gpulse 1.8s ease-out infinite}
+@keyframes gpulse{0%{transform:scale(1);opacity:.9}100%{transform:scale(3);opacity:0}}
+@media (prefers-reduced-motion:reduce){.gpulse{animation:none;display:none}}
+.gchart{touch-action:pan-y}
+.gtip{position:fixed;z-index:50;display:none;align-items:center;gap:8px;pointer-events:none;padding:8px 12px;border-radius:12px;background:var(--card);color:var(--text);
+  box-shadow:0 10px 26px rgba(40,40,70,.18);border:1px solid var(--line);font-size:13px;white-space:nowrap}
+.gtip i{width:14px;height:3px;border-radius:2px;display:inline-block}
+.gtip b{font-size:15px}
+.gtip span{color:var(--muted)}
