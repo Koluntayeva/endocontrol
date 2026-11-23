@@ -380,16 +380,30 @@ route('POST', '/app/treatments', async ctx => {
   const doc = { ...k, created_at: new Date(at).toISOString(), notes: str(b.notes, 1000) || undefined, enteredBy: APP_NAME };
   return ns.insertTreatments(db, u.id, [doc])[0];
 });
-// Move a saved meal to another meal of the day (entered later and filed under the wrong one).
+// Edit a saved entry: time, meal, carbs, insulin, bolus timing, glucose, the foods and their grams, the note.
+// Only the fields sent are changed; the rest stays as it was.
 route('PATCH', '/app/treatments/:id', async ctx => {
   const u = requireUser(ctx); const b = await jsonBody(ctx.req);
-  if (!['breakfast', 'lunch', 'dinner', 'snack'].includes(b.mealType)) throw bad('bad_meal');
-  const row = db.prepare('SELECT id, extra FROM treatments WHERE id=? AND user_id=?').get(Number(ctx.params.id), u.id);
+  const row = db.prepare('SELECT * FROM treatments WHERE id=? AND user_id=?').get(Number(ctx.params.id), u.id);
   if (!row) throw new HttpError(404, 'not_found');
   let extra = {}; try { extra = JSON.parse(row.extra || '{}') || {}; } catch { extra = {}; }
-  extra.mealType = b.mealType;
-  db.prepare('UPDATE treatments SET extra=? WHERE id=?').run(JSON.stringify(extra), row.id);
-  return { ok: true, mealType: b.mealType };
+  const n = v => { if (v === null || v === '') return null; const x = typeof v === 'string' ? parseFloat(v.replace(',', '.')) : Number(v); return Number.isFinite(x) && x >= 0 ? x : undefined; };
+  const set = { created_at: row.created_at, carbs: row.carbs, insulin: row.insulin, glucose: row.glucose, notes: row.notes };
+  if ('mealType' in b) { if (!['breakfast', 'lunch', 'dinner', 'snack'].includes(b.mealType)) throw bad('bad_meal'); extra.mealType = b.mealType; }
+  if ('at' in b) { const t = ns.toMillis(b.at); if (!t || t > Date.now() + 3600e3) throw bad('bad_time'); set.created_at = t; }
+  for (const k of ['carbs', 'insulin', 'glucose']) if (k in b) { const v = n(b[k]); if (v === undefined || (k !== 'glucose' && v > 1000)) throw bad('bad_number'); set[k] = v; }
+  if ('notes' in b) set.notes = str(b.notes, 1000) || null;
+  if ('preBolus' in b) { if (b.preBolus === null) delete extra.preBolus; else if (Number.isFinite(+b.preBolus)) extra.preBolus = +b.preBolus; }
+  if ('duration' in b) { const v = n(b.duration); if (v === undefined) throw bad('bad_number'); extra.duration = v || undefined; }
+  if ('foods' in b) {
+    extra.foods = Array.isArray(b.foods) && b.foods.length ? b.foods.slice(0, 30).map(f => ({ id: str(f && f.id, 40) || undefined, name: str(f && f.name, 80), g: n(f && f.g) || 0, c: n(f && f.c) || 0, k: n(f && f.k) ?? undefined, p: n(f && f.p) ?? undefined, f: n(f && f.f) ?? undefined })).filter(f => f.name) : undefined;
+  }
+  if (row.event_type === 'Meal Bolus' && !(set.carbs > 0) && !(set.insulin > 0)) throw bad('empty_entry');
+  try {
+    db.prepare('UPDATE treatments SET created_at=?, carbs=?, insulin=?, glucose=?, notes=?, extra=? WHERE id=?')
+      .run(set.created_at, set.carbs ?? null, set.insulin ?? null, set.glucose ?? null, set.notes, JSON.stringify(extra), row.id);
+  } catch (e) { if (/UNIQUE/i.test(e.message)) throw bad('time_taken', 'Another entry of this kind already has that exact time'); throw e; }
+  return ns.formatTreatment(db.prepare('SELECT * FROM treatments WHERE id=?').get(row.id));
 });
 route('DELETE', '/app/treatments/:id', async ctx => {
   const u = requireUser(ctx);

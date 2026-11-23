@@ -649,9 +649,10 @@
       <div class="wheel" id="wheel"><div class="wsel"></div><div class="wcol" data-c="d"></div><div class="wcol narrow" data-c="h"></div><div class="wsep">:</div><div class="wcol narrow" data-c="m"></div></div>
       <div class="wquick">${[0, 15, 30, 60].map(n => `<button type="button" data-ago="${n}">${esc(n ? t('timeAgo', { n }) : t('timeNow'))}</button>`).join('')}</div></div>`;
   }
-  function wheelMount(onChange) {
-    const root = $('#wheel'), now = Date.now();
-    const days = Array.from({ length: 7 }, (_, k) => dayStart(now, -k));
+  function wheelMount(onChange, initial) {
+    const root = $('#wheel'), now = Date.now(), start = initial || now;
+    const back = Math.max(7, Math.ceil((dayStart(now) - dayStart(start)) / 864e5) + 2);
+    const days = Array.from({ length: back }, (_, k) => dayStart(now, -k));
     const label = (d, k) => k === 0 ? t('wheelToday') : k === 1 ? t('wheelYesterday') : fmtDate(d, { weekday: 'short', day: 'numeric', month: 'short' });
     const cols = { d: days.map(label), h: Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0')), m: Array.from({ length: 60 }, (_, i) => String(i).padStart(2, '0')) };
     const el = c => root.querySelector(`[data-c="${c}"]`);
@@ -670,7 +671,7 @@
       mark(); onChange(value());
     };
     root.parentElement.querySelectorAll('[data-ago]').forEach(b => b.onclick = () => set(Date.now() - +b.dataset.ago * 60e3));
-    set(now);
+    set(start);
     return { value };
   }
 
@@ -914,6 +915,37 @@
   const MEALS = ['breakfast', 'lunch', 'dinner', 'snack'];
   const mealByClock = h => (h >= 5 && h < 12 ? 'breakfast' : h >= 12 && h < 16 ? 'lunch' : h >= 16 && h < 22 ? 'dinner' : 'snack');
   const mealOf = x => x.mealType || (x.carbs > 0 || /meal/i.test(x.eventType) ? (h => h >= 5 && h < 12 ? 'breakfast' : h >= 12 && h < 16 ? 'lunch' : h >= 16 && h < 22 ? 'dinner' : 'snack')(new Date(x.mills).getHours()) : null);
+  // Protein-fat units (БЖЕ: 100 kcal from protein and fat) of a diary entry: from each food's own protein and fat,
+  // or, for foods saved without them, from the plate builder's food list matched by name. partial = some foods unknown.
+  const PLATE_BY_NAME = (() => { const m = new Map(); for (const f of window.PLATE_FOODS || []) m.set(f.name.toLowerCase().replace(/ё/g, 'е'), f); return m; })();
+  // a food typed by hand → the closest food of the plate list: same name, a synonym, or a shared main word
+  const SYN = { семга: 'лосось', лосось: 'лосось', форель: 'лосось', фрикадельки: 'тефтели', котлеты: 'котлета', сосиска: 'сосиски', пельмень: 'пельмени', гречневая: 'гречка', рисовая: 'рис', картошка: 'картофель', курица: 'куриная', окорочок: 'курица' };
+  const norm = v => String(v || '').toLowerCase().replace(/ё/g, 'е').replace(/[^\p{L}\p{N} ]/gu, ' ').replace(/\s+/g, ' ').trim();
+  function plateMatch(name) {
+    const key = norm(name); if (!key) return null;
+    if (PLATE_BY_NAME.has(key)) return PLATE_BY_NAME.get(key);
+    // words match when equal, or when long words share their first 6 letters (голубика ≠ голубцы, кукуруза = кукуруза)
+    const same = (w, v) => w === v || (w.length >= 6 && v.length >= 6 && w.slice(0, 6) === v.slice(0, 6));
+    const words = key.split(' ').map(w => SYN[w] || w).filter(w => w.length >= 3);
+    let best = null, score = 0;
+    for (const y of PLATE_BY_NAME.values()) {
+      const yw = norm(y.name).split(' ').filter(w => w.length >= 3);
+      const sc = words.filter(w => yw.some(v => same(w, v))).length;
+      if (sc > score || (sc === score && sc && best && y.name.length < best.name.length)) { score = sc; best = y; }
+    }
+    return score >= 1 ? best : null;
+  }
+  function pfOf(x) {
+    let kcal = 0, partial = false, any = false;
+    for (const f of Array.isArray(x.foods) ? x.foods : []) {
+      if (f.p != null || f.f != null) { kcal += (+f.p || 0) * 4 + (+f.f || 0) * 9; any = true; continue; }
+      const pf = plateMatch(f.name);
+      if (pf && f.g) { kcal += (pf.p * 4 + pf.f * 9) * f.g / 100; any = true; } else if (f.g || f.c) partial = true;
+    }
+    if (!Array.isArray(x.foods) && x.carbs > 0) partial = true;
+    return { bje: kcal / 100, partial, any };
+  }
+  const bjeText = r => (r.any ? `${r.partial ? '≈ ' : ''}${fmtG1(Math.round(r.bje * 10) / 10)} ${t('unitBJE')}` : '');
   const xe = g => (Math.round(g / 12 * 10) / 10).toString().replace('.', S.lang === 'en' ? '.' : ',');
   const fmtG1 = g => (Math.round(g * 10) / 10).toString().replace('.', S.lang === 'en' ? '.' : ',');
   async function diary(args) {
@@ -923,16 +955,17 @@
       const { lo, hi } = targets(d.patient);
       const tr = [...d.treatments].sort((a, b) => a.mills - b.mills);
       const carbs = tr.reduce((a, x) => a + (+x.carbs || 0), 0);
+      const dayPf = tr.filter(x => x.carbs > 0 || Array.isArray(x.foods)).reduce((a, y) => { const q = pfOf(y); return { bje: a.bje + q.bje, partial: a.partial || q.partial, any: a.any || q.any }; }, { bje: 0, partial: false, any: false });
       const bolus = tr.filter(x => !/basal/i.test(x.eventType)).reduce((a, x) => a + (+x.insulin || 0), 0);
       const basal = tr.filter(x => /basal/i.test(x.eventType)).reduce((a, x) => a + (+x.insulin || 0), 0);
       const byMeal = Object.fromEntries(MEALS.map(m => [m, tr.filter(x => mealOf(x) === m && !/basal|temp/i.test(x.eventType))]));
       const others = tr.filter(x => !MEALS.some(m => byMeal[m].includes(x)) && x.eventType !== 'Temp Basal');
       const mealSel = (x, cur) => `<select class="mealsel" data-move="${esc(x._id)}" aria-label="${esc(t('fdMoveTo'))}" title="${esc(t('fdMoveTo'))}">${MEALS.map(k => `<option value="${k}" ${k === cur ? 'selected' : ''}>${esc(t(k === 'snack' ? 'mSnack' : 'ex_' + k))}</option>`).join('')}</select>`;
-      const del = x => `<button class="xdel" data-del="${esc(x._id)}" aria-label="${esc(t('delete'))}">✕</button>`;
+      const del = x => `<button class="xdel xedit" data-edit="${esc(x._id)}" aria-label="${esc(t('edEdit'))}" title="${esc(t('edEdit'))}">✎</button><button class="xdel" data-del="${esc(x._id)}" aria-label="${esc(t('delete'))}">✕</button>`;
       const mealCard = (m, i) => {
         const list = byMeal[m], sum = list.reduce((a, x) => a + (+x.carbs || 0), 0), ins = list.reduce((a, x) => a + (+x.insulin || 0), 0);
         return `<div class="card mealcard tone${i}"><div class="mhead"><span class="mico">${icon('meal')}</span><div class="grow"><h2>${esc(t(m === 'snack' ? 'mSnacks' : 'ex_' + m))}</h2>
-            <div class="small muted">${sum ? `${esc(fmtG1(sum))} ${esc(t('gCarbs'))} · ${esc(xe(sum))} ${esc(t('unitXE'))}` : esc(t('fdEmpty'))}${ins ? ` · ${esc(fmtG1(ins))} ${esc(t('uIns'))}` : ''}</div></div>
+            <div class="small muted">${sum ? `${esc(fmtG1(sum))} ${esc(t('gCarbs'))} · ${esc(xe(sum))} ${esc(t('unitXE'))}` : esc(t('fdEmpty'))}${(() => { const r = list.reduce((a, y) => { const q = pfOf(y); return { bje: a.bje + q.bje, partial: a.partial || q.partial, any: a.any || q.any }; }, { bje: 0, partial: false, any: false }); return r.any ? ` · ${esc(bjeText(r))}` : ''; })()}${ins ? ` · ${esc(fmtG1(ins))} ${esc(t('uIns'))}` : ''}</div></div>
             <a class="addbtn plbtn" href="/plate.html?meal=${m}" title="${esc(t('plOpen'))}" aria-label="${esc(t('plOpen'))}">🍽</a><button class="addbtn" data-add="${m}" aria-label="${esc(t('fdAdd'))}">+</button></div>
           ${list.map(x => `<div class="mrec"><div class="row small muted" style="gap:8px;align-items:center"><span>${fmtTime(x.mills)}</span><span class="grow"></span>${x._id && (x.carbs > 0 || /meal/i.test(x.eventType)) ? mealSel(x, m) : ''}${del(x)}</div>
             ${(x.foods && x.foods.length ? x.foods : [{ name: t('carbsLabel'), c: +x.carbs || 0 }]).filter(f => f.c || f.g || !x.insulin).map(f => `<div class="fline"><span class="grow">${esc(f.name)}${f.g ? ` <span class="muted">${esc(fmtG1(f.g))} г</span>` : ''}</span><b>${esc(fmtG1(f.c))} ${esc(t('gCarbs'))}</b></div>`).join('')}
@@ -942,7 +975,7 @@
       $('#view').innerHTML = `${pageHead('calendar', esc(fmtDate(day, { weekday: 'long', day: 'numeric', month: 'long' })), t('navDiary'), 'sky',
           `<div class="daynav"><button class="navbtn" id="prev" aria-label="←">${icon('left')}</button><button class="navbtn" id="next" aria-label="→" ${day >= dayStart(Date.now()) ? 'disabled' : ''}>${icon('right')}</button></div>`)}
         <div class="card daysum"><div class="grid g4">
-          <div class="metric"><div class="l">${esc(t('tCarbs'))}</div><div class="v">${esc(fmtG1(carbs))}</div><div class="t">${esc(t('gCarbs'))} · ${esc(xe(carbs))} ${esc(t('unitXE'))}</div></div>
+          <div class="metric"><div class="l">${esc(t('tCarbs'))}</div><div class="v">${esc(fmtG1(carbs))}</div><div class="t">${esc(t('gCarbs'))} · ${esc(xe(carbs))} ${esc(t('unitXE'))}${dayPf.any ? ` · ${esc(bjeText(dayPf))}` : ''}</div></div>
           <div class="metric"><div class="l">${esc(t('fdBolus'))}</div><div class="v">${esc(fmtG1(bolus))}</div><div class="t">${esc(t('uIns'))}</div></div>
           <div class="metric"><div class="l">${esc(t('insBasal'))}</div><div class="v">${esc(fmtG1(basal))}</div><div class="t">${esc(t('uIns'))}</div></div>
           <div class="metric"><div class="l">${esc(t('fdMeals'))}</div><div class="v">${MEALS.filter(m => byMeal[m].length).length}</div><div class="t">${esc(t('fdOf4'))}</div></div></div></div>
@@ -953,6 +986,7 @@
       $('#next').onclick = () => { day = dayStart(day, 1); history.replaceState(null, '', '#/diary/' + day); draw(); };
       document.querySelectorAll('[data-q]').forEach(b => b.onclick = () => b.dataset.q === 'timer' ? openFoodTimer() : addEntry(b.dataset.q, draw));
       document.querySelectorAll('[data-add]').forEach(b => b.onclick = () => addFood(b.dataset.add, draw));
+      document.querySelectorAll('[data-edit]').forEach(b => b.onclick = () => { const x = tr.find(y => y._id === b.dataset.edit); if (x) openEdit(x, draw); });
       document.querySelectorAll('[data-move]').forEach(sel => sel.onchange = async () => {
         try { await api('PATCH', '/app/treatments/' + sel.dataset.move, { mealType: sel.value }); toast(t('fdMoved', { meal: t(sel.value === 'snack' ? 'mSnack' : 'ex_' + sel.value) })); draw(); }
         catch (e) { toast(errText(e)); draw(); }
@@ -960,6 +994,69 @@
       document.querySelectorAll('[data-del]').forEach(b => b.onclick = async () => { await api('DELETE', '/app/treatments/' + b.dataset.del); toast(t('deleted')); draw(); });
     };
     await draw();
+  }
+
+  // ---- editing a saved entry: time, meal, foods and their grams, carbs, bolus and its timing, glucose, note
+  function openEdit(x, done) {
+    const isMeal = x.carbs > 0 || /meal|carb/i.test(x.eventType || '') || Array.isArray(x.foods);
+    const isBg = !isMeal && x.glucose > 0 && /bg|check/i.test(x.eventType || '');
+    const isAct = /exercise/i.test(x.eventType || '');
+    const foods = Array.isArray(x.foods) ? x.foods.map(f => { const g = +f.g || 0; const per = v => (g > 0 && v != null ? +v / g * 100 : null); return { ...f, g, c100: per(f.c) || 0, k100: per(f.k), p100: per(f.p), f100: per(f.f) }; }) : [];
+    const bgMg = x.glucose ? (x.units === 'mmol' ? x.glucose * C.MMOL : +x.glucose) : null;
+    const seg = (name, opts, on) => `<div class="seg wide" data-seg="${name}">${opts.map(([v, l]) => `<button type="button" data-v="${v}" class="${String(v) === String(on) ? 'on' : ''}">${esc(l)}</button>`).join('')}</div>`;
+    const preOn = Number.isFinite(+x.preBolus) ? (+x.preBolus > 0 ? 15 : +x.preBolus < 0 ? -15 : 0) : 15;
+    let body = '';
+    if (isMeal) {
+      body += `<div class="fld"><label>${esc(t('fdWhichMeal'))}</label>${seg('emeal', MEALS.map(m => [m, mealName(m)]), mealOf(x))}</div>`;
+      body += foods.length ? `<div class="fld"><label>${esc(t('edFoods'))}</label><div id="efoods"></div><div class="small" id="esum"></div></div>`
+        : `<div class="fld"><label for="ecarbs">${esc(t('carbsLabel'))}</label><input id="ecarbs" type="text" inputmode="decimal" value="${x.carbs ? esc(fmtG1(+x.carbs)) : ''}"></div>`;
+      body += `<div class="grid g2" style="gap:10px">${numField('eins', t('bolusLabel'))}<div class="fld"><label>${esc(t('bolusWhen'))}</label>${seg('epre', [[15, t('bwBefore')], [0, t('bwWith')], [-15, t('bwAfter')]], preOn)}</div></div>`;
+    } else if (isBg) body += numField('ebg', `${t('bgValue')}, ${UL()}`, true);
+    else if (isAct) body += numField('edur', `${t('tExercise')}, ${t('min')}`, true);
+    else if (x.insulin > 0) body += numField('eins', `${t('dose')}, ${t('uIns')}`, true);
+    modal(`<h2>${esc(t('edTitle'))} · ${esc(trTitle(x))}</h2><form id="edf" novalidate>${body}${wheelHtml()}
+      <div class="fld"><label for="enote">${esc(t('comment'))}</label><input id="enote" maxlength="1000" value="${esc(x.notes || '')}"></div>
+      <div class="err" id="eerr"></div>
+      <div class="row"><button class="btn grow">${esc(t('save'))}</button><button type="button" class="btn ghost" data-close>${esc(t('cancel'))}</button></div></form>`, () => {
+      const wheel = wheelMount(() => { }, x.mills);
+      document.querySelectorAll('#edf [data-seg] button').forEach(b => b.onclick = () => b.parentElement.querySelectorAll('button').forEach(y => y.classList.toggle('on', y === b)));
+      const segVal = n => { const b = document.querySelector(`#edf [data-seg="${n}"] .on`); return b && b.dataset.v; };
+      if ($('#eins') && x.insulin) $('#eins').value = fmtG1(+x.insulin);
+      if ($('#ebg') && bgMg) $('#ebg').value = G(bgMg);
+      if ($('#edur') && x.duration) $('#edur').value = x.duration;
+      const drawFoods = () => {
+        const box = $('#efoods'); if (!box) return;
+        box.innerHTML = foods.map((f, i) => `<div class="fline"><span class="grow">${esc(f.name)}</span><input class="fg" data-i="${i}" type="text" inputmode="decimal" value="${esc(fmtG1(f.g))}" aria-label="${esc(t('fdGrams'))}"><span class="muted small">г</span><b class="fc">${esc(fmtG1(f.c))}</b><button type="button" class="xdel" data-rm="${i}" aria-label="${esc(t('delete'))}">✕</button></div>`).join('') || `<div class="small muted">${esc(t('edNoFoods'))}</div>`;
+        const sum = foods.reduce((a, f) => a + f.c, 0); $('#esum').textContent = `${t('tCarbs')}: ${fmtG1(Math.round(sum * 10) / 10)} ${t('gCarbs')} · ${xe(sum)} ${t('unitXE')}`;
+        box.querySelectorAll('[data-rm]').forEach(b => b.onclick = () => { foods.splice(+b.dataset.rm, 1); drawFoods(); });
+        box.querySelectorAll('.fg').forEach(inp => inp.oninput = () => {
+          const f = foods[+inp.dataset.i], g = parseNum(inp.value); if (!Number.isFinite(g) || g < 0) return;
+          f.g = g; f.c = Math.round(f.c100 * g / 10) / 10;
+          for (const [k, k100] of [['k', 'k100'], ['p', 'p100'], ['f', 'f100']]) if (f[k100] != null) f[k] = Math.round(f[k100] * g / 10) / 10;
+          inp.parentElement.querySelector('.fc').textContent = fmtG1(f.c);
+          const sum = foods.reduce((a, y) => a + y.c, 0); $('#esum').textContent = `${t('tCarbs')}: ${fmtG1(Math.round(sum * 10) / 10)} ${t('gCarbs')} · ${xe(sum)} ${t('unitXE')}`;
+        });
+      };
+      drawFoods();
+      $('#edf').onsubmit = async e => {
+        e.preventDefault();
+        const err = m => { $('#eerr').textContent = m; };
+        const body = { at: new Date(wheel.value()).toISOString(), notes: $('#enote').value };
+        const num = id => { const v = $(id).value.trim(); return v ? parseNum(v) : 0; };
+        if (isMeal) {
+          body.mealType = segVal('emeal');
+          if (Array.isArray(x.foods)) { body.foods = foods.map(({ c100, k100, p100, f100, ...f }) => f); body.carbs = Math.round(foods.reduce((a, f) => a + f.c, 0) * 10) / 10; }
+          else { const c = num('#ecarbs'); if (!Number.isFinite(c) || c < 0) return err(t('eNum')); body.carbs = c; }
+          const ins = num('#eins'); if (!Number.isFinite(ins) || ins < 0) return err(t('eNum'));
+          body.insulin = ins; body.preBolus = ins ? Number(segVal('epre')) : null;
+          if (!body.carbs && !ins) return err(t('eMealEmpty'));
+        } else if (isBg) { const v = num('#ebg'); if (!(v > 0)) return err(t('eNum')); body.glucose = toMg(v); }
+        else if (isAct) { const v = num('#edur'); if (!(v > 0)) return err(t('eNum')); body.duration = v; }
+        else if (x.insulin > 0) { const v = num('#eins'); if (!(v > 0)) return err(t('eNum')); body.insulin = v; }
+        try { await api('PATCH', '/app/treatments/' + x._id, body); closeModal(); toast(t('saved')); done && done(); }
+        catch (er) { err(er.code === 'time_taken' ? t('edTimeTaken') : errText(er)); }
+      };
+    });
   }
 
   // ---- adding food to a meal: search, portions, automatic carbs, or a photo of the plate

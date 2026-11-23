@@ -240,3 +240,28 @@ test('bridges: Nightscout is polled every minute, sensor clouds every 5 minutes'
   assert.equal(B.pollEvery('librelinkup'), 5 * 60e3);
   assert.equal(B.pollEvery('dexcom'), 5 * 60e3);
 });
+
+test('diary: a saved entry can be edited — time, meal, grams of each food, carbs, bolus, note', async () => {
+  await new Promise(r => server.listen(0, r));
+  const base = `http://127.0.0.1:${server.address().port}`;
+  const j = { 'Content-Type': 'application/json', 'X-EC': '1' };
+  let r = await fetch(base + '/app/register', { method: 'POST', headers: j, body: JSON.stringify({ email: 'edit@e.st', password: 'abcd1234', name: 'E', consent: true }) });
+  const cookie = r.headers.get('set-cookie').split(';')[0];
+  const H = { ...j, cookie }, t0 = Date.now() - 3 * 3600e3;
+  r = await fetch(base + '/app/treatments', { method: 'POST', headers: H, body: JSON.stringify({ kind: 'meal', mealType: 'lunch', carbs: 50, insulin: 4, preBolus: 15, at: new Date(t0).toISOString(),
+    foods: [{ name: 'Плов', g: 250, c: 45, p: 16, f: 21 }, { name: 'Сок', g: 50, c: 5 }] }) });
+  const id = (await r.json())._id;
+  const at2 = new Date(t0 - 30 * 60e3).toISOString();
+  r = await fetch(base + '/app/treatments/' + id, { method: 'PATCH', headers: H, body: JSON.stringify({ at: at2, mealType: 'breakfast', carbs: 36, insulin: 3.5, preBolus: 0, notes: 'поправила граммы',
+    foods: [{ name: 'Плов', g: 200, c: 36, p: 12.8, f: 16.8 }] }) });
+  assert.equal(r.status, 200);
+  const e = await r.json();
+  assert.equal(e.mills, Date.parse(at2)); assert.equal(e.mealType, 'breakfast'); assert.equal(e.carbs, 36); assert.equal(e.insulin, 3.5);
+  assert.equal(e.preBolus, 0); assert.equal(e.notes, 'поправила граммы'); assert.equal(e.foods.length, 1); assert.equal(e.foods[0].g, 200);
+  // a meal can't be emptied, and a bad number is refused
+  assert.equal((await fetch(base + '/app/treatments/' + id, { method: 'PATCH', headers: H, body: JSON.stringify({ carbs: 0, insulin: 0 }) })).status, 400);
+  assert.equal((await fetch(base + '/app/treatments/' + id, { method: 'PATCH', headers: H, body: JSON.stringify({ insulin: 'много' }) })).status, 400);
+  // the old "move to another meal" call still works
+  assert.equal((await fetch(base + '/app/treatments/' + id, { method: 'PATCH', headers: H, body: JSON.stringify({ mealType: 'dinner' }) })).status, 200);
+  server.close();
+});
