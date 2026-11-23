@@ -36,7 +36,8 @@
   // One page header for every screen: a line icon in a tinted circle, the title and a short line.
   const pageHead = (ic, title, sub, tone = 'sky', extra = '') => `<div class="phead ${tone}"><span class="pico">${icon(ic)}</span><div class="grow"><h1>${title}</h1>${sub ? `<p>${esc(sub)}</p>` : ''}</div>${extra}</div>`;
   const icon = n => `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[n] || ''}</svg>`;
-  const IMG = n => (window.EC_IMG && window.EC_IMG[n]) || '/img/' + n + '.webp';
+  const IMG_V = 3; // bump when pictures are replaced, so phones do not keep the old ones
+  const IMG = n => (window.EC_IMG && window.EC_IMG[n]) || '/img/' + n + '.webp?v=' + IMG_V;
   // A colourful page header with an illustration: tone = violet | yellow | peach | sky | blue.
   const banner = (tone, img, title, text, extra = '') => `<div class="banner ${tone}"><div class="btxt"><h1>${title}</h1>${text ? `<p>${esc(text)}</p>` : ''}${extra}</div><img src="${IMG(img)}" alt="" loading="lazy"></div>`;
   const S = { me: null, lang: I.detect(), units: 'mg/dl', timer: null };
@@ -567,7 +568,7 @@
     let rbox = null;
     const draw = async () => {
       const now = Date.now();
-      const [d, dt, d24] = await Promise.all([getData(now - range * 3600e3, now + 60e3), getData(dayStart(now), now + 60e3), getData(now - 24 * 3600e3, now + 60e3)]);
+      const [d, dt] = await Promise.all([getData(now - range * 3600e3, now + 60e3), getData(dayStart(now), now + 60e3)]);
       const { lo, hi } = targets(me.user);
       const last = dt.entries[dt.entries.length - 1] || d.entries[d.entries.length - 1];
       const st = C.stats(dt.entries.map(e => e[1]), lo, hi);         // today, for the ring
@@ -580,7 +581,6 @@
       const fingers = tr.filter(x => /BG Check/i.test(x.eventType)).length;
       const actMin = tr.filter(x => /exercise/i.test(x.eventType)).reduce((a, x) => a + (+x.duration || 0), 0);
       const recent = [...tr].sort((a, b) => b.mills - a.mills).slice(0, 3);
-      const evNew = window.Alerts.history(d24.entries, { lo, hi }).filter(a => a.at > evSeen()).length;
       $('#view').innerHTML = `
       ${noSource ? `<div class="cta"><h2>${esc(t('connectFirst'))}</h2><p>${esc(t('connectFirstText'))}</p><a class="btn" href="#/connect">${esc(t('connectSensor'))}</a></div>` : ''}
       <div class="hero-card homehero st-${z}">
@@ -608,11 +608,8 @@
         ${recent.length ? `<div class="dlog">${recent.map(x => `<div class="dlrow"><span class="dlt">${fmtTime(x.mills)}</span><span class="chip2">${esc(trTitle(x))}</span><span class="grow small muted">${esc(trValue(x))}</span></div>`).join('')}<a class="small" href="#/diary">${esc(t('navDiary'))} →</a></div>` : `<p class="small muted" style="margin:8px 0 0">${esc(t('hmNoLog'))}</p>`}
       </div>
       <div class="linkrows">
-        <a class="linkrow" href="#/events"><span class="lri peach">${icon('bell')}</span><span class="grow">${esc(t('evTitle'))}<small>${evNew ? esc(t('evNewN', { n: evNew })) : esc(t('evNone'))}</small></span>${evNew ? `<span class="evbadge">${evNew}</span>` : ''}${icon('right')}</a>
         <a class="linkrow" href="#/reports" id="rtlink"><span class="lri violet">${icon('insulin')}</span><span class="grow">${esc(t('rtShort'))}<small id="rtline">${esc(t('loading'))}</small></span>${icon('right')}</a>
         <a class="linkrow" href="#/reports"><span class="lri sky">${icon('reports')}</span><span class="grow">${esc(t('hmReports'))}</span>${icon('right')}</a>
-        <a class="linkrow" href="#/school"><span class="lri yellow">${icon('school')}</span><span class="grow">${esc(t('navSchool'))}<small>${esc(t('schProgress', { n: schoolDone().length, total: SCH.lessons(S.lang).length }))}</small></span>${icon('right')}</a>
-        <a class="linkrow" href="#/connect"><span class="lri violet">${icon('sensor')}</span><span class="grow">${esc(t('dataSources'))}<small>${me.bridges.length ? esc(me.bridges.map(b => ({ librelinkup: 'LibreLinkUp', dexcom: 'Dexcom Share', nightscout: 'Nightscout' }[b.kind] || b.kind) + (b.status === 'ok' ? ' ✓' : '')).join(', ')) : esc(t('noSources'))}</small></span>${icon('right')}</a>
       </div>`;
       document.querySelectorAll('#rng button').forEach(b => b.onclick = () => { range = +b.dataset.h; sessionStorage.setItem('range', range); draw(); });
       $('#addrec').onclick = () => openAddSheet(draw);
@@ -1453,7 +1450,7 @@
       const n = lessons.filter(l => done.includes(l.id)).length;
       $('#view').innerHTML = `${banner('yellow', 'home', esc(t('navSchool')), t('schIntro'), `<div class="bprog"><b>${esc(t('schProgress', { n, total: lessons.length }))}</b>
           <div class="progress"><div style="width:${(n / lessons.length * 100).toFixed(0)}%"></div></div></div>`)}${schoolLangNote()}
-        <div class="lessons">${lessons.map((l, i) => `<a class="lesson tone${i % 5}" href="#/school/${l.id}">
+        <div class="lessons">${lessons.map((l, i) => `${l.group && (i === 0 || lessons[i - 1].group !== l.group) ? `<h2 class="lgroup">🤒 ${esc(t('schGroup_' + l.group))}<small>${esc(t('schGroupSub_' + l.group))}</small></h2>` : ''}<a class="lesson tone${i % 5}" href="#/school/${l.id}">
           <img src="${IMG(l.img || 'l-' + l.id)}" alt="" loading="lazy"><div class="lbody"><div class="tiny lmeta">${l.icon} ${i + 1} · ${esc(t('schMin', { n: l.min }))}${done.includes(l.id) ? ` · <span class="okc">✓ ${esc(t('schDone'))}</span>` : ''}</div>
           <b>${esc(l.title)}</b><div class="small muted">${esc(l.summary)}</div></div></a>`).join('')}</div>`;
       return;
@@ -1462,7 +1459,7 @@
     const answers = {};
     $('#view').innerHTML = `<p><a href="#/school">← ${esc(t('schAllLessons'))}</a></p>
       ${banner('tone' + (i % 5), lesson.img || 'l-' + lesson.id, esc(lesson.title), `${lesson.summary} · ${t('schMin', { n: lesson.min })}`)}${schoolLangNote()}
-      <div class="card lessonbody">${lesson.sections.map(sec => `<h2>${esc(sec.h)}</h2>${(sec.p || []).map(x => `<p>${esc(x)}</p>`).join('')}${sec.list ? `<ul>${sec.list.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}`).join('')}</div>
+      <div class="card lessonbody">${lesson.sections.map(sec => `<h2>${esc(sec.h)}</h2>${sec.imgs ? `<div class="secimgs n${sec.imgs.length}">${sec.imgs.map(n => `<img src="${IMG(n)}" alt="" loading="lazy">`).join('')}</div>` : ''}${(sec.p || []).map(x => `<p>${esc(x)}</p>`).join('')}${sec.list ? `<ul>${sec.list.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}`).join('')}</div>
       <div class="card"><h2>${esc(t('schQuiz'))}</h2>${lesson.quiz.map((q, qi) => `<div class="quiz" data-q="${qi}"><p><b>${esc(q.q)}</b></p>
         <div class="opts">${q.a.map((a, ai) => `<button type="button" class="opt" data-a="${ai}">${esc(a)}</button>`).join('')}</div><p class="small fb" hidden></p></div>`).join('')}
         <p class="okc" id="finished" ${done.includes(lesson.id) ? '' : 'hidden'}>✓ ${esc(t('schFinished'))}</p></div>
@@ -1591,6 +1588,9 @@
         ${doc ? '' : `<div class="fld"><label>${esc(t('targetRange'))} (${UL()})</label><div class="row" style="flex-wrap:nowrap"><input name="lo" type="number" step="any" value="${v(u.target_low)}"><span>–</span><input name="hi" type="number" step="any" value="${v(u.target_high)}"></div></div>`}</div>
         <div class="tiny muted">${esc(t('email'))}: ${esc(u.email)}</div>
         <button class="btn" style="margin-top:10px">${esc(t('save'))}</button></form>
+      ${doc ? '' : `<div class="linkrows setlinks">
+        <a class="linkrow" href="#/events"><span class="lri peach">${icon('bell')}</span><span class="grow">${esc(t('evTitle'))}<small id="setev">${esc(t('evSub'))}</small></span><span id="setevb"></span>${icon('right')}</a>
+        <a class="linkrow" href="#/connect"><span class="lri violet">${icon('sensor')}</span><span class="grow">${esc(t('dataSources'))}<small>${me.bridges.length ? esc(me.bridges.map(b => ({ librelinkup: 'LibreLinkUp', dexcom: 'Dexcom Share', nightscout: 'Nightscout' }[b.kind] || b.kind) + (b.status === 'ok' ? ' ✓' : '')).join(' · ')) : esc(t('connectSensor'))}</small></span>${icon('right')}</a></div>`}
       ${doc ? '' : `<div class="card"><h2>📡 ${esc(t('uploadSettings'))}</h2><p class="small muted">${esc(t('uploadSettingsText'))}</p>${uploaderBox(u.upload)}
         <div class="row"><button class="btn sm red" id="rot">${esc(t('newSecret'))}</button>${window.EC_DEMO ? '' : `<a class="btn sm ghost" href="/app/export.csv">${esc(t('exportCsv'))}</a>`}</div></div>`}
       <form class="card" id="cp"><h2 class="hic">${icon('lock')}${esc(t('changePassword'))}</h2><div class="grid g2"><div class="fld"><label>${esc(t('currentPassword'))}</label><input type="password" name="current" autocomplete="current-password" required></div>
@@ -1598,6 +1598,11 @@
       <form class="card" id="del"><h2>${esc(t('deleteAccount'))}</h2><p class="small muted">${esc(t('deleteText'))}</p><div class="row"><input type="password" name="password" placeholder="${esc(t('password'))}" required style="max-width:260px"><button class="btn red">${esc(t('deleteAccount'))}</button></div><div class="err" id="delerr"></div></form>
       <p class="tiny muted">${esc(me.app.name)} ${esc(me.app.version)} · ${esc(t('compatNote'))}</p>`;
     document.querySelectorAll('[data-copy]').forEach(b => b.onclick = () => copy(b.dataset.copy));
+    // new alerts of the last 24 h on the Notifications link
+    if (!doc) getData(Date.now() - 24 * 3600e3, Date.now() + 60e3).then(d => {
+      const { lo, hi } = targets(u), n = window.Alerts.history(d.entries, { lo, hi }).filter(a => a.at > evSeen()).length;
+      const el = $('#setev'), b = $('#setevb'); if (el) el.textContent = n ? t('evNewN', { n }) : t('evNone'); if (b && n) b.outerHTML = `<span class="evbadge">${n}</span>`;
+    }).catch(() => { });
     $('#pf').onsubmit = async e => {
       e.preventDefault(); const f = Object.fromEntries(new FormData(e.target));
       const conv = x => (S.units === 'mmol' ? Math.round(parseFloat(String(x).replace(',', '.')) * C.MMOL) : Math.round(+x));

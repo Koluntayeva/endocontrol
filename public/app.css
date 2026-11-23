@@ -721,3 +721,13 @@ body.has-galert .hypotimer{top:calc(190px + env(safe-area-inset-top))}
 .rtisf{border-top:1px solid var(--line);margin-top:6px;padding-top:10px}
 @media (prefers-color-scheme:dark){.ratios .rtwarn{background:#3a2c10;color:#ffd58a}.rtbadge.bad{background:#4a1d2c;color:#ffb3c9}.rtbadge.warn{background:#3a2c10;color:#ffd58a}.rtbadge.ok{color:#9be3bb}}
 @media print{.ratios{break-inside:avoid}}
+
+/* ---------- school: section headers and pictures inside lessons ---------- */
+.lgroup{grid-column:1/-1;display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:18px 4px 2px;font-size:20px}
+.lgroup svg{width:20px;height:20px;color:var(--low)}
+.lgroup small{flex-basis:100%;font-size:13px;font-weight:400;color:var(--muted)}
+.secimgs{display:grid;gap:10px;margin:8px 0 10px}
+.secimgs.n2{grid-template-columns:1fr 1fr}
+.secimgs img{width:100%;max-width:340px;aspect-ratio:1;object-fit:cover;border-radius:18px;background:#ebe9e6}
+.secimgs.n1 img{max-width:300px}
+.setlinks{margin-bottom:14px}

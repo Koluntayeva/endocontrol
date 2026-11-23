@@ -68,8 +68,8 @@
       summary: 'Что сильнее всего повышает сахар и как считать углеводы.',
       sections: [
         { h: 'Что повышает сахар', p: ['Сильнее всего сахар повышают углеводы: хлеб, крупы, картофель, фрукты, сладости, сладкие напитки, молоко. Белки и жиры влияют меньше и позже, но жирная еда может поднять сахар через 3–5 часов.'] },
-        { h: 'Как считать', list: ['Смотрите на упаковке «углеводы на 100 г» и пересчитайте на свою порцию.', '1 хлебная единица (ХЕ) = 10–12 г углеводов (уточните у врача, какую считаете вы).', 'Кухонные весы и таблицы ХЕ помогают в первые месяцы.', 'Записывайте углеводы в дневник приложения: так врач увидит связь еды и сахара.'] },
-        { h: 'Быстрые и медленные', p: ['Сок, сладкие напитки и белый хлеб поднимают сахар быстро. Цельнозерновые продукты и овощи — медленнее. Быстрые углеводы нужны для лечения гипогликемии.'] },
+        { h: 'Как считать', imgs: ['s-plate'], list: ['Смотрите на упаковке «углеводы на 100 г» и пересчитайте на свою порцию.', '1 хлебная единица (ХЕ) = 10–12 г углеводов (уточните у врача, какую считаете вы).', 'Кухонные весы и таблицы ХЕ помогают в первые месяцы.', 'Записывайте углеводы в дневник приложения: так врач увидит связь еды и сахара.'] },
+        { h: 'Быстрые и медленные', imgs: ['s-fast', 's-slow'], p: ['Сок, сладкие напитки и белый хлеб поднимают сахар быстро. Цельнозерновые продукты и овощи — медленнее. Быстрые углеводы нужны для лечения гипогликемии.'] },
       ],
       quiz: [
         { q: 'Сколько граммов углеводов в 1 ХЕ?', a: ['1–2 г', '10–12 г', '50 г'], ok: 1, why: 'Обычно 1 ХЕ = 10 или 12 г углеводов.' },
@@ -92,7 +92,7 @@
       ],
     },
     {
-      id: 'glucagon', img: 'l-hypo', icon: '💉', min: 6,
+      id: 'glucagon', icon: '💉', min: 6,
       title: 'Глюкагон: спасение при тяжёлой гипо',
       summary: 'Когда нужен, какие бывают формы, дозы и как вводить.',
       sections: [
@@ -135,7 +135,7 @@
       ],
     },
     {
-      id: 'sick', icon: '🤒', min: 4,
+      id: 'sick', group: 'ill', icon: '🤒', min: 4,
       title: 'Дни болезни',
       summary: 'Простуда, температура, рвота: правила на время болезни.',
       sections: [
@@ -145,6 +145,24 @@
       quiz: [
         { q: 'Ребёнок заболел и не ест. Базальный инсулин…', a: ['отменить', 'продолжать, дозу обсудить с врачом'], ok: 1, why: 'Без базального инсулина быстро растут кетоны.' },
         { q: 'Как часто проверять сахар при болезни?', a: ['Раз в день', 'Каждые 2–4 часа'], ok: 1, why: 'Болезнь быстро меняет потребность в инсулине.' },
+      ],
+    },
+    {
+      id: 'hormones', icon: '🌅', min: 6,
+      title: 'Гормоны, которые поднимают сахар',
+      summary: 'Стресс, утро, рост и пубертат: почему сахар растёт без еды.',
+      sections: [
+        { h: 'Инсулин один, а «поднимающих» гормонов много', p: ['Инсулин — единственный гормон, который снижает сахар. Против него работают глюкагон, адреналин, кортизол, гормон роста, половые гормоны и гормоны щитовидной железы. Они выпускают глюкозу из печени и делают клетки менее чувствительными к инсулину — поэтому сахар может расти даже без еды.'] },
+        { h: 'Адреналин: стресс и волнение', list: ['Контрольная, соревнования, страх, ссора, аттракционы — сахар может подняться за 15–60 минут.', 'Такой подъём часто уходит сам за 1–2 часа: не спешите с большой коррекцией, повторите замер.', 'Короткие интенсивные нагрузки (спринт, борьба) тоже поднимают сахар из-за адреналина.'] },
+        { h: 'Утро и ночь: кортизол и гормон роста', list: ['«Феномен утренней зари»: примерно с 3–4 до 8 часов утра выделяются гормон роста и кортизол, и сахар растёт без еды.', 'У детей и подростков гормон роста особенно активен ночью.', 'Если сахар растёт ночью без еды несколько дней подряд — обсудите с врачом время и вид базального инсулина.', 'Не путайте с ночным подъёмом после позднего или жирного ужина (пицца, плов) и с откатом после гипо.'] },
+        { h: 'Половое созревание', list: ['В пубертат потребность в инсулине растёт — иногда в полтора раза.', 'У девочек сахар часто выше за несколько дней до месячных.', 'В эти годы дозы пересматривают с врачом чаще.'] },
+        { h: 'Откат после гипо', p: ['При гипо организм выбрасывает глюкагон и адреналин. Вместе с быстрыми углеводами это может дать подъём через 1–3 часа. Лечите гипо по правилу «15 г и проверка через 15 минут» и не доедайте сверх нужного.'] },
+        { h: 'Болезни и лекарства', p: ['Инфекции, травмы, операции и гормональные лекарства (преднизолон, дексаметазон) тоже повышают сахар — об этом раздел «Болезни».'] },
+      ],
+      quiz: [
+        { q: 'Какой гормон снижает сахар?', a: ['Адреналин', 'Инсулин', 'Кортизол'], ok: 1, why: 'Инсулин — единственный гормон, который снижает сахар крови.' },
+        { q: 'Перед контрольной сахар вырос без еды. Что вероятнее всего?', a: ['Адреналин от волнения', 'Сломался датчик', 'Слишком много базального'], ok: 0, why: 'Стресс выбрасывает адреналин, он поднимает сахар.' },
+        { q: 'Сахар растёт с 4 до 8 утра без еды. Как это называется?', a: ['Феномен утренней зари', 'Гипогликемия', 'Кетоацидоз'], ok: 0, why: 'Утром выделяются гормон роста и кортизол.' },
       ],
     },
     {
@@ -159,6 +177,52 @@
       quiz: [
         { q: 'Где везти инсулин в самолёте?', a: ['В багаже', 'В ручной клади'], ok: 1, why: 'В багажном отсеке инсулин может замёрзнуть или потеряться.' },
         { q: 'Кто в школе должен знать признаки гипо?', a: ['Только ребёнок', 'Учитель и школьная медсестра'], ok: 1, why: 'Ребёнок при гипо может не суметь помочь себе сам.' },
+      ],
+    },
+    {
+      id: 'ill-fever', group: 'ill', icon: '🤧', min: 5,
+      title: 'Простуда, грипп, температура',
+      summary: 'Почему при инфекции сахар обычно растёт и как не допустить кетонов.',
+      sections: [
+        { h: 'Что происходит с сахаром', p: ['При инфекции с температурой организм выделяет стресс-гормоны: сахар обычно растёт, а инсулин действует слабее. Потребность в инсулине может оставаться выше всю болезнь и ещё 1–2 дня после. В начале болезни, пока ребёнок плохо ест, сахар иногда наоборот снижается.'] },
+        { h: 'Что делать', list: ['Не отменяйте базальный инсулин.', 'Сахар — каждые 2–3 часа, и ночью тоже.', 'Кетоны — если сахар выше 14 ммоль/л или ребёнку плохо.', 'Много пить: вода; при низком сахаре — сладкие напитки маленькими глотками.', 'Дополнительный короткий инсулин при высоком сахаре и кетонах — по плану, который заранее дал врач.', 'Жаропонижающие можно; сиропы часто содержат сахар — учитывайте его.'] },
+        { h: 'Кетоны крови: ориентиры', list: ['Ниже 0,6 ммоль/л — норма.', '0,6–1,4 — повышены: пить, коррекция по плану врача, проверить через 1–2 часа.', '1,5–2,9 — высоко: связаться с врачом.', '3,0 и выше — срочно в больницу.'] },
+        { h: 'Срочно к врачу', list: ['Кетоны 1,5 и выше или растут.', 'Рвота, боль в животе, частое глубокое дыхание, запах ацетона.', 'Сонливость, спутанность.', 'Сахар не снижается, несмотря на коррекции.', 'Ребёнок маленький или вы не уверены.'] },
+      ],
+      quiz: [
+        { q: 'При температуре сахар обычно…', a: ['растёт', 'падает', 'не меняется'], ok: 0, why: 'Стресс-гормоны при инфекции повышают сахар.' },
+        { q: 'Кетоны крови 1,8 ммоль/л. Что делать?', a: ['Ничего, это норма', 'Связаться с врачом', 'Отменить инсулин'], ok: 1, why: '1,5–2,9 ммоль/л — высокий уровень, нужен врач.' },
+      ],
+    },
+    {
+      id: 'ill-gut', group: 'ill', icon: '🤢', min: 6,
+      title: 'Кишечные расстройства: рвота и понос',
+      summary: 'Почему сахар падает, чем опасны рвота и кетоны, как поить ребёнка.',
+      sections: [
+        { h: 'Что происходит с сахаром', p: ['При кишечной инфекции еда плохо всасывается и быстро выходит — сахар чаще снижается, есть риск гипо. При этом из-за голода и обезвоживания могут появиться кетоны.', 'Рвота при диабете — всегда повод проверить кетоны: это может быть начало кетоацидоза, а не только «отравление».'] },
+        { h: 'Что делать', list: ['Базальный инсулин не отменять; дозу обсудить с врачом — иногда её уменьшают.', 'Болюс на еду — после еды, по тому, что реально съедено и удержалось.', 'Поить часто и понемногу: 5–10 мл каждые 5–10 минут (ложкой или шприцем без иглы).', 'Сахар ниже 7–8 ммоль/л — сладкое питьё (разбавленный сок, компот); высокий — вода и раствор для регидратации.', 'Сахар — каждые 1–2 часа, кетоны — каждые 2–4 часа.', 'Сахар низкий, а есть и пить не получается из-за рвоты — мини-доза глюкагона, только по схеме, которую заранее дал врач.'] },
+        { h: 'Срочно в больницу', list: ['Рвота больше 2 раз за несколько часов или ребёнок не может пить.', 'Кетоны 1,5 ммоль/л и выше при рвоте.', 'Признаки обезвоживания: сухой рот, мало мочи, вялость.', 'Сахар низкий и не поднимается.', 'Боль в животе, частое дыхание, запах ацетона.', 'С маленьким ребёнком обращайтесь раньше.'] },
+        { h: 'Понос без рвоты', p: ['Часто достаточно давать болюс по факту съеденного и чаще проверять сахар. Если понос, вздутие и необъяснимые гипо повторяются — обсудите с врачом проверку на целиакию: при диабете 1 типа она бывает чаще.'] },
+      ],
+      quiz: [
+        { q: 'У ребёнка с диабетом рвота. Что сделать первым делом?', a: ['Дать таблетку от тошноты', 'Проверить сахар и кетоны', 'Уложить спать'], ok: 1, why: 'Рвота может быть признаком кетоацидоза.' },
+        { q: 'При кишечной инфекции сахар чаще…', a: ['повышается', 'снижается'], ok: 1, why: 'Еда плохо всасывается, а инсулин продолжает работать.' },
+      ],
+    },
+    {
+      id: 'ill-meds', group: 'ill', icon: '💊', min: 5,
+      title: 'Лекарства и другие болезни',
+      summary: 'Стероиды, щитовидная железа, целиакия, зубы и операции.',
+      sections: [
+        { h: 'Гормональные лекарства (стероиды)', list: ['Преднизолон, дексаметазон и другие стероиды в таблетках и уколах сильно повышают сахар — обычно через 4–8 часов после приёма, больше днём и вечером.', 'На время курса врач часто увеличивает дозы инсулина.', 'Ингаляторы и кремы со стероидами влияют мало.', 'После отмены курса дозы возвращают — иначе риск гипо.'] },
+        { h: 'Щитовидная железа', p: ['При диабете 1 типа чаще бывает аутоиммунный тиреоидит. Недостаток гормонов щитовидки — усталость и частые гипо; избыток — сахар скачет, похудение, сердцебиение. Анализ ТТГ обычно делают раз в год.'] },
+        { h: 'Целиакия', p: ['Непереносимость глютена чаще бывает у детей с диабетом 1 типа. Признаки: необъяснимые гипо, понос или запоры, вздутие, плохой рост. Анализ на антитела — по плану врача.'] },
+        { h: 'Зубы, травмы, операции', list: ['Боль и стресс поднимают сахар.', 'Перед плановой операцией нужен письменный план от эндокринолога.', 'К стоматологу — поесть заранее и взять с собой быстрые углеводы.'] },
+        { h: 'Лекарства и датчик', p: ['Парацетамол может завышать показания некоторых датчиков (например, Dexcom G6), большие дозы витамина C — некоторых датчиков FreeStyle Libre. Если цифры не совпадают с самочувствием — проверьте глюкометром.'] },
+      ],
+      quiz: [
+        { q: 'Начали курс преднизолона. Сахар…', a: ['снижается', 'повышается через несколько часов'], ok: 1, why: 'Стероиды повышают сахар, особенно днём и вечером.' },
+        { q: 'Повторяются необъяснимые гипо и понос. Что обсудить с врачом?', a: ['Проверку на целиакию', 'Отмену инсулина'], ok: 0, why: 'Целиакия чаще бывает при диабете 1 типа.' },
       ],
     },
   ];
@@ -228,8 +292,8 @@
       summary: 'What raises glucose most and how to count carbs.',
       sections: [
         { h: 'What raises glucose', p: ['Carbohydrates raise glucose most: bread, grains, potatoes, fruit, sweets, sugary drinks, milk. Protein and fat matter less and later, but a fatty meal can raise glucose 3–5 hours afterwards.'] },
-        { h: 'How to count', list: ['Read "carbohydrate per 100 g" on the label and scale it to your portion.', 'Some countries use bread units: 1 unit = 10–12 g of carbs.', 'Kitchen scales and carb tables help in the first months.', 'Log carbs in the app diary so the doctor can see how food affects glucose.'] },
-        { h: 'Fast and slow', p: ['Juice, sugary drinks and white bread raise glucose fast. Whole grains and vegetables act slower. Fast carbs are what you need to treat a low.'] },
+        { h: 'How to count', imgs: ['s-plate'], list: ['Read "carbohydrate per 100 g" on the label and scale it to your portion.', 'Some countries use bread units: 1 unit = 10–12 g of carbs.', 'Kitchen scales and carb tables help in the first months.', 'Log carbs in the app diary so the doctor can see how food affects glucose.'] },
+        { h: 'Fast and slow', imgs: ['s-fast', 's-slow'], p: ['Juice, sugary drinks and white bread raise glucose fast. Whole grains and vegetables act slower. Fast carbs are what you need to treat a low.'] },
       ],
       quiz: [
         { q: 'How many grams of carbs are in 1 bread unit?', a: ['1–2 g', '10–12 g', '50 g'], ok: 1, why: 'One bread unit is usually 10 or 12 g of carbs.' },
@@ -252,7 +316,7 @@
       ],
     },
     {
-      id: 'glucagon', img: 'l-hypo', icon: '💉', min: 6,
+      id: 'glucagon', icon: '💉', min: 6,
       title: 'Glucagon: rescue in a severe low',
       summary: 'When it is needed, the forms, doses and how to give it.',
       sections: [
@@ -295,7 +359,7 @@
       ],
     },
     {
-      id: 'sick', icon: '🤒', min: 4,
+      id: 'sick', group: 'ill', icon: '🤒', min: 4,
       title: 'Sick days',
       summary: 'Colds, fever, vomiting: rules for days of illness.',
       sections: [
@@ -305,6 +369,24 @@
       quiz: [
         { q: 'A child is ill and not eating. Basal insulin should be…', a: ['stopped', 'continued, with the dose discussed with the doctor'], ok: 1, why: 'Without basal insulin ketones rise quickly.' },
         { q: 'How often to check glucose when ill?', a: ['Once a day', 'Every 2–4 hours'], ok: 1, why: 'Illness changes insulin needs fast.' },
+      ],
+    },
+    {
+      id: 'hormones', icon: '🌅', min: 6,
+      title: 'Hormones that raise glucose',
+      summary: 'Stress, mornings, growth and puberty: why glucose rises without food.',
+      sections: [
+        { h: 'One hormone lowers, many raise', p: ['Insulin is the only hormone that lowers glucose. Glucagon, adrenaline, cortisol, growth hormone, sex hormones and thyroid hormones work against it: they release glucose from the liver and make cells less sensitive to insulin — so glucose can rise even without food.'] },
+        { h: 'Adrenaline: stress and excitement', list: ['A test, a competition, fear, an argument or a fairground ride can raise glucose within 15–60 minutes.', 'Such a rise often settles by itself in 1–2 hours: do not rush a big correction, check again.', 'Short, intense exercise (sprints, wrestling) also raises glucose through adrenaline.'] },
+        { h: 'Morning and night: cortisol and growth hormone', list: ['The "dawn phenomenon": from about 3–4 to 8 a.m. growth hormone and cortisol are released and glucose rises without food.', 'In children and teenagers growth hormone is especially active at night.', 'If glucose rises at night without food several days in a row, discuss basal insulin timing and type with your doctor.', 'Do not confuse it with a night rise after a late or fatty dinner, or with a rebound after a low.'] },
+        { h: 'Puberty', list: ['Insulin needs rise in puberty — sometimes by half.', 'In girls glucose is often higher a few days before a period.', 'Doses are reviewed with the doctor more often in these years.'] },
+        { h: 'Rebound after a low', p: ['During a low the body releases glucagon and adrenaline. Together with fast carbs this can cause a rise 1–3 hours later. Treat a low with 15 g and a check after 15 minutes, and do not overeat.'] },
+        { h: 'Illness and medicines', p: ['Infections, injuries, operations and steroid medicines also raise glucose — see the Illness section.'] },
+      ],
+      quiz: [
+        { q: 'Which hormone lowers glucose?', a: ['Adrenaline', 'Insulin', 'Cortisol'], ok: 1, why: 'Insulin is the only hormone that lowers blood glucose.' },
+        { q: 'Glucose rose before a test without food. Most likely?', a: ['Adrenaline from nerves', 'A broken sensor', 'Too much basal'], ok: 0, why: 'Stress releases adrenaline, which raises glucose.' },
+        { q: 'Glucose rises from 4 to 8 a.m. without food. What is it called?', a: ['Dawn phenomenon', 'Hypoglycaemia', 'Ketoacidosis'], ok: 0, why: 'Growth hormone and cortisol are released in the early morning.' },
       ],
     },
     {
@@ -321,12 +403,59 @@
         { q: 'Who at school should know the signs of a low?', a: ['Only the child', 'Teachers and the school nurse'], ok: 1, why: 'During a low a child may be unable to help themselves.' },
       ],
     },
+    {
+      id: 'ill-fever', group: 'ill', icon: '🤧', min: 5,
+      title: 'Colds, flu and fever',
+      summary: 'Why glucose usually rises with an infection and how to prevent ketones.',
+      sections: [
+        { h: 'What happens to glucose', p: ['With a feverish infection the body releases stress hormones: glucose usually rises and insulin works less well. Insulin needs can stay higher throughout the illness and for 1–2 days after. At the start, while the child eats little, glucose sometimes falls instead.'] },
+        { h: 'What to do', list: ['Never stop basal insulin.', 'Check glucose every 2–3 hours, at night too.', 'Check ketones if glucose is above 14 mmol/L (250 mg/dL) or the child is unwell.', 'Drink plenty: water; sugary drinks in small sips if glucose is low.', 'Extra rapid insulin for high glucose with ketones — by the plan your doctor gave in advance.', 'Fever medicine is fine; syrups often contain sugar — count it.'] },
+        { h: 'Blood ketones: a guide', list: ['Below 0.6 mmol/L — normal.', '0.6–1.4 — raised: fluids, correction by your plan, recheck in 1–2 hours.', '1.5–2.9 — high: contact your doctor.', '3.0 or more — go to hospital now.'] },
+        { h: 'See a doctor urgently', list: ['Ketones 1.5 or more, or rising.', 'Vomiting, tummy pain, fast deep breathing, a fruity smell on the breath.', 'Drowsiness or confusion.', 'Glucose will not come down despite corrections.', 'A young child, or you are not sure.'] },
+      ],
+      quiz: [
+        { q: 'With a fever glucose usually…', a: ['rises', 'falls', 'stays the same'], ok: 0, why: 'Stress hormones released in an infection raise glucose.' },
+        { q: 'Blood ketones are 1.8 mmol/L. What now?', a: ['Nothing, it is normal', 'Contact the doctor', 'Stop insulin'], ok: 1, why: '1.5–2.9 mmol/L is high: a doctor is needed.' },
+      ],
+    },
+    {
+      id: 'ill-gut', group: 'ill', icon: '🤢', min: 6,
+      title: 'Stomach bugs: vomiting and diarrhoea',
+      summary: 'Why glucose falls, why vomiting and ketones are dangerous, how to give fluids.',
+      sections: [
+        { h: 'What happens to glucose', p: ['With a stomach bug food is poorly absorbed and passes quickly — glucose more often falls and lows are likely. Hunger and dehydration can still produce ketones.', 'Vomiting with diabetes always means checking ketones: it may be the start of ketoacidosis, not just a tummy bug.'] },
+        { h: 'What to do', list: ['Do not stop basal insulin; discuss the dose with your doctor — it is sometimes lowered.', 'Give the meal bolus after eating, for what was actually eaten and kept down.', 'Give fluids often and little: 5–10 mL every 5–10 minutes (spoon or needle-free syringe).', 'Glucose below 7–8 mmol/L — sweet drinks (diluted juice); high — water and oral rehydration solution.', 'Glucose every 1–2 hours, ketones every 2–4 hours.', 'Low glucose and the child cannot eat or drink because of vomiting — mini-dose glucagon, only by the scheme your doctor gave in advance.'] },
+        { h: 'Go to hospital', list: ['Vomiting more than twice in a few hours, or the child cannot drink.', 'Ketones 1.5 mmol/L or more with vomiting.', 'Signs of dehydration: dry mouth, little urine, floppiness.', 'Low glucose that will not rise.', 'Tummy pain, fast breathing, fruity breath.', 'With a young child, go sooner.'] },
+        { h: 'Diarrhoea without vomiting', p: ['Often it is enough to bolus for what was eaten and check glucose more often. If diarrhoea, bloating and unexplained lows keep coming back, ask your doctor about a coeliac test: it is more common with type 1 diabetes.'] },
+      ],
+      quiz: [
+        { q: 'A child with diabetes is vomiting. First step?', a: ['Give an anti-sickness tablet', 'Check glucose and ketones', 'Put them to bed'], ok: 1, why: 'Vomiting can be a sign of ketoacidosis.' },
+        { q: 'With a stomach bug glucose more often…', a: ['rises', 'falls'], ok: 1, why: 'Food is poorly absorbed while insulin keeps working.' },
+      ],
+    },
+    {
+      id: 'ill-meds', group: 'ill', icon: '💊', min: 5,
+      title: 'Medicines and other conditions',
+      summary: 'Steroids, thyroid, coeliac disease, teeth and operations.',
+      sections: [
+        { h: 'Steroid medicines', list: ['Prednisolone, dexamethasone and other steroid tablets or injections raise glucose a lot — usually 4–8 hours after the dose, more in the afternoon and evening.', 'During a course the doctor often raises insulin doses.', 'Steroid inhalers and creams have little effect.', 'When the course ends, doses come back down — otherwise lows are likely.'] },
+        { h: 'Thyroid', p: ['Autoimmune thyroiditis is more common with type 1 diabetes. Too little thyroid hormone — tiredness and frequent lows; too much — swinging glucose, weight loss, a racing heart. A TSH test is usually done once a year.'] },
+        { h: 'Coeliac disease', p: ['Gluten intolerance is more common in children with type 1 diabetes. Signs: unexplained lows, diarrhoea or constipation, bloating, poor growth. Antibody tests follow your doctor\'s plan.'] },
+        { h: 'Teeth, injuries, operations', list: ['Pain and stress raise glucose.', 'A planned operation needs a written plan from the endocrinologist.', 'Before the dentist, eat beforehand and bring fast carbs.'] },
+        { h: 'Medicines and sensors', p: ['Paracetamol can read falsely high on some sensors (for example Dexcom G6), and large doses of vitamin C on some FreeStyle Libre sensors. If the numbers do not match how the child feels, check with a meter.'] },
+      ],
+      quiz: [
+        { q: 'A prednisolone course has started. Glucose…', a: ['falls', 'rises a few hours later'], ok: 1, why: 'Steroids raise glucose, especially in the afternoon and evening.' },
+        { q: 'Unexplained lows and diarrhoea keep coming back. What to discuss?', a: ['A coeliac test', 'Stopping insulin'], ok: 0, why: 'Coeliac disease is more common with type 1 diabetes.' },
+      ],
+    },
   ];
 
   const BY_LANG = { ru, en };
   const FALLBACK = { kk: 'ru' };
   window.SCHOOL = {
-    lessons(lang) { return BY_LANG[lang] || BY_LANG[FALLBACK[lang]] || en; },
+    lessons(lang) { const all = BY_LANG[lang] || BY_LANG[FALLBACK[lang]] || en; return [...all.filter(l => !l.group), ...all.filter(l => l.group)]; },
+    GROUPS: ['', 'ill'],
     // Plain text of a lesson, used by the voice assistant's offline answers.
     text(lesson) { return lesson.sections.map(s => [s.h, ...(s.p || []), ...(s.list || [])].join('\n')).join('\n'); },
   };
