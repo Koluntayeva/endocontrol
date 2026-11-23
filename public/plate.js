@@ -321,7 +321,7 @@ function drawSave() {
   pickOne($('#sMeal'), v => { meal = v; }); pickOne($('#sWhen'));
   const segs = document.querySelectorAll('#sPre .pseg'), pickSeg = el => segs.forEach(x => x.classList.toggle('on', x === el));
   segs.forEach(el => { el.onclick = () => pickSeg(el); });
-  document.querySelectorAll('#sPre input').forEach(i => { i.onfocus = () => { pickSeg(i.closest('.pseg')); i.select(); }; i.onclick = e => e.stopPropagation(); });
+  document.querySelectorAll('#sPre input').forEach(i => { i.onfocus = () => { pickSeg(i.closest('.pseg')); i.select(); }; i.onclick = e => { e.stopPropagation(); pickSeg(i.closest('.pseg')); }; i.oninput = () => pickSeg(i.closest('.pseg')); });
   $('#sErr').textContent = ''; $('#sSave').disabled = false; $('#sSave').textContent = 'Записать в дневник';
 }
 const r1 = x => Math.round(x * 10) / 10;

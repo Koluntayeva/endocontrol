@@ -4723,7 +4723,7 @@ window.ECCsv = { parseCsv, parseDateTime };
       el.onclick = () => pick(el);
       el.onkeydown = e => { if ((e.key === 'Enter' || e.key === ' ') && e.target === el) { e.preventDefault(); pick(el); } };
     });
-    box.querySelectorAll('input').forEach(inp => { inp.onfocus = () => { pick(inp.closest('.pseg')); inp.select(); }; inp.onclick = e => e.stopPropagation(); });
+    box.querySelectorAll('input').forEach(inp => { inp.onfocus = () => { pick(inp.closest('.pseg')); inp.select(); }; inp.onclick = e => { e.stopPropagation(); pick(inp.closest('.pseg')); }; inp.oninput = () => pick(inp.closest('.pseg')); });
   }
   function preVal(id) {
     const box = $('#' + id); if (!box) return 15;
