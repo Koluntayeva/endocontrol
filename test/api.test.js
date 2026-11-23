@@ -213,3 +213,23 @@ test('diary: a meal saved under the wrong meal can be moved to another one', asy
   assert.equal(m.mealType, 'breakfast'); assert.equal(m.foods[0].name, 'Манная каша'); assert.equal(m.carbs, 45);
   server.close();
 });
+
+test('plate builder: the page is served and a plate is saved as a meal with each food\'s КБЖУ', async () => {
+  await new Promise(r => server.listen(0, r));
+  const base = `http://127.0.0.1:${server.address().port}`;
+  const page = await (await fetch(base + '/plate.html')).text();
+  assert.match(page, /plate\.js/); assert.doesNotMatch(page, /<script>/, 'no inline scripts (CSP)');
+  const vm = require('node:vm'); const sb = { window: {} }; vm.runInNewContext(require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'public', 'foods-plate.js'), 'utf8').replace('var PLATE_FOODS', 'window.PLATE_FOODS'), sb);
+  const foods = sb.window.PLATE_FOODS; assert.ok(foods.length >= 140); assert.equal(new Set(foods.map(f => f.id)).size, foods.length);
+  assert.ok(foods.every(f => f.c >= 0 && f.c <= 100 && f.k >= 0 && f.cell.length === 3));
+  const j = { 'Content-Type': 'application/json', 'X-EC': '1' };
+  let r = await fetch(base + '/app/register', { method: 'POST', headers: j, body: JSON.stringify({ email: 'plate@e.st', password: 'abcd1234', name: 'P', consent: true }) });
+  const cookie = r.headers.get('set-cookie').split(';')[0];
+  r = await fetch(base + '/app/treatments', { method: 'POST', headers: { ...j, cookie }, body: JSON.stringify({ kind: 'meal', mealType: 'dinner', carbs: 33.5, insulin: 0, at: new Date().toISOString(),
+    foods: [{ id: 'plate-mash', name: 'Пюре картофельное', g: 200, c: 29, k: 212, p: 5, f: 8.4 }, { id: 'plate-cutlet', name: 'Котлета', g: 50, c: 4.5, k: 115, p: 7, f: 8 }] }) });
+  assert.equal(r.status, 200);
+  const d = await (await fetch(`${base}/app/data?from=${Date.now() - 3600e3}&to=${Date.now() + 60e3}`, { headers: { cookie } })).json();
+  const m = d.treatments.find(x => x.mealType === 'dinner');
+  assert.equal(m.carbs, 33.5); assert.deepEqual(m.foods[0], { id: 'plate-mash', name: 'Пюре картофельное', g: 200, c: 29, k: 212, p: 5, f: 8.4 });
+  server.close();
+});

@@ -731,3 +731,4 @@ body.has-galert .hypotimer{top:calc(190px + env(safe-area-inset-top))}
 .secimgs img{width:100%;max-width:340px;aspect-ratio:1;object-fit:cover;border-radius:18px;background:#ebe9e6}
 .secimgs.n1 img{max-width:300px}
 .setlinks{margin-bottom:14px}
+.plbtn{text-decoration:none;font-size:18px;margin-inline-end:6px;display:grid;place-items:center;background:var(--card);border:1px solid var(--line);box-shadow:none}

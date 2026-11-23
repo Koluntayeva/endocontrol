@@ -546,13 +546,14 @@
   const zoneLabel = z => ({ none: '', vlow: t('veryLow'), low: t('low'), in: t('inRange'), high: t('high'), vhigh: t('veryHigh') }[z]);
   // "Add a record": a bottom panel with large icons.
   function openAddSheet(done) {
-    const items = [['meal', 'meal', 'tMealEntry', 'peach'], ['insulin', 'insulin', 'tBolus', 'sky'], ['bg', 'bg', 'tBg', 'violet'], ['exercise', 'exercise', 'tExercise', 'yellow'], ['med', 'pill', 'tMed', 'mix'], ['weight', 'scale', 'tWeight', 'peach'], ['note', 'note', 'tNote', 'mix'], ['timer', 'clock', 'fdTimer', 'sky']];
+    const items = [['meal', 'meal', 'tMealEntry', 'peach'], ['plate', 'meal', 'plTile', 'mix'], ['insulin', 'insulin', 'tBolus', 'sky'], ['bg', 'bg', 'tBg', 'violet'], ['exercise', 'exercise', 'tExercise', 'yellow'], ['med', 'pill', 'tMed', 'mix'], ['weight', 'scale', 'tWeight', 'peach'], ['note', 'note', 'tNote', 'mix'], ['timer', 'clock', 'fdTimer', 'sky']];
     modal(`<div class="row" style="align-items:center"><h2 style="margin:0" class="grow">${esc(t('hmAdd'))}</h2><button class="iconbtn" data-close aria-label="${esc(t('rdClose'))}">✕</button></div>
       <div class="addgrid">${items.map(([k, ic, key, tone]) => `<button type="button" class="addtile ${tone}" data-k="${k}"><span>${icon(ic)}</span>${esc(t(key))}</button>`).join('')}</div>`, () => {
       document.querySelectorAll('.addtile').forEach(b => b.onclick = () => {
         const k = b.dataset.k; closeModal();
         if (k === 'meal') addFood(mealByClock(new Date().getHours()), done, true);
         else if (k === 'timer') openFoodTimer();
+        else if (k === 'plate') location.href = '/plate.html';
         else addEntry(k, done);
       });
     });
@@ -932,7 +933,7 @@
         const list = byMeal[m], sum = list.reduce((a, x) => a + (+x.carbs || 0), 0), ins = list.reduce((a, x) => a + (+x.insulin || 0), 0);
         return `<div class="card mealcard tone${i}"><div class="mhead"><span class="mico">${icon('meal')}</span><div class="grow"><h2>${esc(t(m === 'snack' ? 'mSnacks' : 'ex_' + m))}</h2>
             <div class="small muted">${sum ? `${esc(fmtG1(sum))} ${esc(t('gCarbs'))} · ${esc(xe(sum))} ${esc(t('unitXE'))}` : esc(t('fdEmpty'))}${ins ? ` · ${esc(fmtG1(ins))} ${esc(t('uIns'))}` : ''}</div></div>
-            <button class="addbtn" data-add="${m}" aria-label="${esc(t('fdAdd'))}">+</button></div>
+            <a class="addbtn plbtn" href="/plate.html?meal=${m}" title="${esc(t('plOpen'))}" aria-label="${esc(t('plOpen'))}">🍽</a><button class="addbtn" data-add="${m}" aria-label="${esc(t('fdAdd'))}">+</button></div>
           ${list.map(x => `<div class="mrec"><div class="row small muted" style="gap:8px;align-items:center"><span>${fmtTime(x.mills)}</span><span class="grow"></span>${x._id && (x.carbs > 0 || /meal/i.test(x.eventType)) ? mealSel(x, m) : ''}${del(x)}</div>
             ${(x.foods && x.foods.length ? x.foods : [{ name: t('carbsLabel'), c: +x.carbs || 0 }]).filter(f => f.c || f.g || !x.insulin).map(f => `<div class="fline"><span class="grow">${esc(f.name)}${f.g ? ` <span class="muted">${esc(fmtG1(f.g))} г</span>` : ''}</span><b>${esc(fmtG1(f.c))} ${esc(t('gCarbs'))}</b></div>`).join('')}
             ${x.insulin ? `<div class="fline ins"><span class="grow">💉 ${esc(t('bolusLabel').replace(/,.*/, ''))}${Number.isFinite(+x.preBolus) && x.carbs ? ` <span class="muted">${esc(+x.preBolus > 0 ? t('bwBefore') : +x.preBolus < 0 ? t('bwAfter') : t('bwWith'))}</span>` : ''}</span><b>${esc(fmtG1(+x.insulin))} ${esc(t('uIns'))}</b></div>` : ''}
@@ -982,6 +983,7 @@
     modal(`<div class="fsheet"><div class="row" style="align-items:center;gap:10px"><h2 style="margin:0" class="grow">${esc(t('fdAddFood'))}</h2><button class="iconbtn" data-close aria-label="${esc(t('rdClose'))}">✕</button></div>
       <div class="seg wide grid4 fmeal" data-seg="fmeal" role="radiogroup" aria-label="${esc(t('fdWhichMeal'))}">${MEALS.map(m => `<button type="button" role="radio" data-v="${m}" class="${m === meal ? 'on' : ''}" aria-checked="${m === meal}">${esc(t(m === 'snack' ? 'mSnack' : 'ex_' + m))}</button>`).join('')}</div>
       <div class="fsearch"><input id="fq" autocomplete="off" placeholder="${esc(t('fdSearch'))}" aria-label="${esc(t('fdSearch'))}">
+        <a class="btn ghost sm" href="/plate.html?meal=${meal}">🍽 <span>${esc(t('plTile'))}</span></a>
         <button type="button" class="btn ghost sm" id="fphoto">${icon('camera')}<span>${esc(t('fdPhoto'))}</span></button><input type="file" id="ffile" accept="image/*" capture="environment" hidden></div>
       <div class="tiny muted" id="fhint">${esc(t('fdRecent'))}</div>
       <div class="flist" id="fres"></div>

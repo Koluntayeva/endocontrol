@@ -351,7 +351,7 @@ route('POST', '/app/treatments', async ctx => {
     // A meal with its carbs and bolus in one entry (Nightscout "Meal Bolus"; preBolus = minutes the bolus came before the meal).
     meal: { eventType: 'Meal Bolus', carbs: n(b.carbs), insulin: n(b.insulin) || undefined, preBolus: Number.isFinite(+b.preBolus) ? +b.preBolus : undefined, mealType: ['breakfast', 'lunch', 'dinner', 'snack'].includes(b.mealType) ? b.mealType : undefined,
       // the foods that make up the meal: name, grams, carbs
-      foods: Array.isArray(b.foods) && b.foods.length ? b.foods.slice(0, 30).map(f => ({ id: str(f && f.id, 40) || undefined, name: str(f && f.name, 80), g: n(f && f.g) || 0, c: n(f && f.c) || 0 })).filter(f => f.name) : undefined },
+      foods: Array.isArray(b.foods) && b.foods.length ? b.foods.slice(0, 30).map(f => ({ id: str(f && f.id, 40) || undefined, name: str(f && f.name, 80), g: n(f && f.g) || 0, c: n(f && f.c) || 0, k: n(f && f.k), p: n(f && f.p), f: n(f && f.f) })).filter(f => f.name) : undefined },
     carbs: { eventType: 'Carb Correction', carbs: n(b.value) },
     // reason: what the dose was for (meal, snack, correction, other); insKind 'other' for a mixed or unusual insulin
     insulin: { eventType: insulinType, insulin: n(b.value), reason: pick(b.insulinType, ['meal', 'snack', 'correction', 'other']), insKind: pick(b.insKind, ['other']) },

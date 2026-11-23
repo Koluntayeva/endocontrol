@@ -1,0 +1,335 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#3460f0">
+<title>Тарелка — EndoControl</title>
+<link rel="icon" href="/icon.svg" type="image/svg+xml">
+<style>
+@font-face{font-family:"Inter";font-style:normal;font-display:swap;font-weight:100 900;src:url(/fonts/inter-cyrillic-ext-wght-normal.woff2) format("woff2-variations");unicode-range:U+0460-052F,U+1C80-1C8A,U+20B4,U+2DE0-2DFF,U+A640-A69F,U+FE2E-FE2F}
+@font-face{font-family:"Inter";font-style:normal;font-display:swap;font-weight:100 900;src:url(/fonts/inter-cyrillic-wght-normal.woff2) format("woff2-variations");unicode-range:U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116}
+@font-face{font-family:"Inter";font-style:normal;font-display:swap;font-weight:100 900;src:url(/fonts/inter-latin-ext-wght-normal.woff2) format("woff2-variations");unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}
+@font-face{font-family:"Inter";font-style:normal;font-display:swap;font-weight:100 900;src:url(/fonts/inter-latin-wght-normal.woff2) format("woff2-variations");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+
+:root{
+  --bg:#f3f1ee;--card:#fff;--text:#1d1d2c;--muted:#7a7a8c;--line:#e7e4df;
+  --g1:#ff8a3d;--g2:#f0458f;--g3:#8b5cf6;--g4:#3b82f6;
+  --grad:linear-gradient(120deg,var(--g1),var(--g2) 38%,var(--g3) 70%,var(--g4));
+  --veg:#3fb27f;--grain:#e7a33e;--prot:#e2557b;--fat:#8b5cf6;--drink:#3b82f6;
+  --shadow:0 18px 40px rgba(40,30,90,.12),0 2px 6px rgba(40,30,90,.06);
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{font-family:Inter,system-ui,-apple-system,sans-serif;background:radial-gradient(1200px 700px at 70% -10%,#fff 0,transparent 60%),var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+button{font:inherit;color:inherit;cursor:pointer}
+.top{display:flex;align-items:center;gap:12px;padding:16px 22px}
+.logo{width:38px;height:38px;border-radius:12px;background:var(--grad);display:grid;place-items:center;color:#fff;font-weight:800;box-shadow:0 8px 18px rgba(240,69,143,.35)}
+.top h1{font-size:18px;margin:0;font-weight:700;letter-spacing:-.02em}
+.top small{display:block;color:var(--muted);font-weight:500;font-size:12px}
+a.demo{text-decoration:none;color:var(--text)!important;}
+.demo{margin-left:auto;font-size:12px;font-weight:600;background:#fff;border:1px solid var(--line);border-radius:999px;padding:6px 12px;color:var(--muted)}
+
+/* intro */
+#intro{position:fixed;inset:0;display:grid;place-items:center;z-index:20;background:rgba(243,241,238,.6);backdrop-filter:blur(6px);transition:opacity .45s,visibility .45s}
+body.open #intro{opacity:0;visibility:hidden}
+.introbox{text-align:center;max-width:520px;padding:24px}
+.cloche{width:260px;height:190px;margin:0 auto 18px;position:relative;cursor:pointer;transition:transform .5s cubic-bezier(.3,1.6,.5,1)}
+.cloche:hover{transform:translateY(-6px) rotate(-2deg)}
+.cloche .dome{position:absolute;left:20px;right:20px;top:20px;height:140px;border-radius:120px 120px 14px 14px;background:linear-gradient(160deg,#fff,#e9e6f2);box-shadow:var(--shadow),inset 0 -10px 20px rgba(139,92,246,.12)}
+.cloche .dome::after{content:"";position:absolute;left:30px;top:22px;width:60px;height:26px;border-radius:50%;background:rgba(255,255,255,.9);filter:blur(2px)}
+.cloche .knob{position:absolute;left:50%;top:6px;width:34px;height:22px;margin-left:-17px;border-radius:12px;background:var(--grad)}
+.cloche .base{position:absolute;left:0;right:0;bottom:18px;height:16px;border-radius:999px;background:var(--grad);opacity:.9}
+.introbox h2{font-size:34px;margin:0 0 8px;letter-spacing:-.03em}
+.introbox p{color:var(--muted);margin:0 0 18px;line-height:1.5}
+.btn{border:0;border-radius:999px;padding:13px 22px;font-weight:700;color:#fff;background:var(--grad);box-shadow:0 10px 24px rgba(240,69,143,.3);transition:transform .15s}
+.btn:active{transform:scale(.97)}
+.btn.ghost{background:#fff;color:var(--text);box-shadow:none;border:1px solid var(--line)}
+.btn:disabled{opacity:.4;cursor:default}
+
+/* layout */
+.wrap{display:grid;grid-template-columns:minmax(300px,380px) 1fr minmax(260px,320px);gap:18px;padding:0 22px 120px;align-items:start}
+.panel{background:var(--card);border-radius:24px;box-shadow:var(--shadow);padding:14px}
+.reveal{opacity:0;transform:translateY(30px) scale(.96)}
+body.open .reveal{animation:spring .6s cubic-bezier(.3,1.5,.5,1) forwards}
+@keyframes spring{to{opacity:1;transform:none}}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.tab{border:0;border-radius:999px;padding:7px 12px;font-size:13px;font-weight:600;background:#f4f2ef}
+.tab.on{background:var(--text);color:#fff}
+.tab i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;vertical-align:1px}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.prod{position:relative;border:1px solid var(--line);background:linear-gradient(180deg,#fff,#faf9f7);border-radius:18px;padding:10px 6px 8px;text-align:center;touch-action:none;user-select:none;transition:transform .15s,box-shadow .15s}
+.prod:hover{transform:translateY(-3px);box-shadow:0 10px 20px rgba(40,30,90,.1)}
+.prod .em{font-size:32px;line-height:1.1;display:block;filter:drop-shadow(0 6px 6px rgba(0,0,0,.18))}
+.prod .ph{display:block;width:58px;height:58px;margin:0 auto;border-radius:50%;box-shadow:0 6px 12px rgba(0,0,0,.18)}
+.prod b{display:block;font-size:12px;font-weight:600;margin-top:4px;line-height:1.2}
+.prod small{display:block;font-size:10.5px;color:var(--muted);margin-top:2px}
+.prod.used::after{content:"";position:absolute;top:7px;right:7px;width:8px;height:8px;border-radius:50%;background:var(--grad)}
+.ownrow{display:flex;align-items:center;gap:10px;width:100%;border:1.5px dashed #c9bff0;background:linear-gradient(120deg,rgba(255,138,61,.07),rgba(139,92,246,.09));border-radius:16px;padding:10px 12px;margin-bottom:10px;text-align:left}
+.ownrow span{width:30px;height:30px;border-radius:50%;background:var(--grad);color:#fff;display:grid;place-items:center;font-weight:700}
+.ownrow b{font-size:14px}.ownrow small{margin-left:auto;color:var(--muted);font-size:12px}
+.fld{margin-top:10px}.fld label{display:block;font-size:12px;font-weight:600;color:var(--muted);margin-bottom:5px}
+.fld input{width:100%;font:inherit;font-size:15px;border:1px solid var(--line);border-radius:12px;padding:9px 11px;outline:none}
+.fld input:focus{border-color:var(--g3)}
+.chips button.on{background:var(--text);color:#fff;border-color:var(--text)}
+.ogrid{display:grid;grid-template-columns:1fr 1fr;gap:0 10px}.ogrid .fld:first-child{grid-column:1/-1}
+.oerr{color:#d0335a;font-size:12.5px;min-height:18px;margin:6px 0}
+.psearch{width:100%;font:inherit;font-size:14px;border:1px solid var(--line);border-radius:14px;padding:10px 12px;margin-bottom:10px;outline:none;background:#faf9f7}
+.psearch:focus{border-color:var(--g3);background:#fff}
+.hint{font-size:12px;color:var(--muted);margin:10px 4px 2px;line-height:1.45}
+
+/* plate */
+.stage{position:relative;display:grid;place-items:center;padding-top:6px}
+.platebox{position:relative;width:min(560px,92vw);aspect-ratio:1}
+#plate{width:100%;height:100%;display:block;filter:drop-shadow(0 24px 34px rgba(40,30,90,.18))}
+.sector{transition:fill-opacity .2s}
+.platebox.hover .sector.target{fill-opacity:.42}
+.lbl{font-size:12.5px;font-weight:700;fill:#1d1d2c;opacity:.55;letter-spacing:.02em}
+#piles{position:absolute;inset:0;pointer-events:none}
+.pile{position:absolute;transform:translate(-50%,-50%);pointer-events:auto;cursor:pointer;text-align:center;animation:drop .5s cubic-bezier(.3,1.5,.5,1)}
+.pile .em{display:block;filter:drop-shadow(0 8px 8px rgba(0,0,0,.25));line-height:1}
+.pile .ph{display:block;margin:0 auto;border-radius:50%;box-shadow:0 8px 14px rgba(0,0,0,.25)}
+.pile .g{display:inline-block;margin-top:2px;font-size:11px;font-weight:700;background:#fff;border-radius:999px;padding:2px 7px;box-shadow:0 2px 6px rgba(0,0,0,.1)}
+.pile:hover .g{background:var(--text);color:#fff}
+@keyframes drop{0%{transform:translate(-50%,-90%) scale(1.25);opacity:0}60%{transform:translate(-50%,-50%) scale(1.08,.9);opacity:1}100%{transform:translate(-50%,-50%)}}
+.pile.fly{transition:all .45s cubic-bezier(.5,-.3,.6,1);opacity:0}
+.side{position:absolute;display:grid;place-items:center;border-radius:50%;background:#fff;box-shadow:var(--shadow);font-size:12px;font-weight:600;color:var(--muted);text-align:center}
+#glass{right:-2%;top:2%;width:21%;aspect-ratio:1}
+#oil{left:-2%;top:4%;width:17%;aspect-ratio:1}
+.side.hover{outline:3px solid var(--g3)}
+.side .em{font-size:28px;display:block}
+
+/* summary */
+.sum h3{margin:2px 4px 10px;font-size:15px}
+.kcal{font-size:44px;font-weight:300;letter-spacing:-.04em;margin:0 4px;font-variant-numeric:tabular-nums}
+.kcal small{font-size:14px;color:var(--muted);font-weight:500;margin-left:4px;letter-spacing:0}
+.mac{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0}
+.mac div{background:#f6f4f1;border-radius:14px;padding:9px 10px}
+.mac span{display:block;font-size:11px;color:var(--muted);font-weight:600}
+.mac b{font-size:18px;font-weight:600;font-variant-numeric:tabular-nums}
+.carb{border-radius:16px;padding:12px;color:#fff;background:var(--grad)}
+.carb b{font-size:26px;font-weight:700}
+.carb span{display:block;font-size:12px;opacity:.9}
+.bars{display:flex;height:10px;border-radius:999px;overflow:hidden;margin:12px 0 6px;background:#eee}
+.bars i{display:block;transition:flex .4s}
+.legend{display:flex;justify-content:space-between;font-size:11px;color:var(--muted)}
+.list{margin-top:10px;max-height:220px;overflow:auto}
+.li{display:flex;align-items:center;gap:8px;padding:6px 4px;border-bottom:1px dashed var(--line);font-size:13px}
+.li .em{font-size:18px}
+.li .grow{flex:1}
+.li button{border:0;background:#f4f2ef;border-radius:999px;width:26px;height:26px}
+.empty{color:var(--muted);font-size:13px;padding:10px 4px}
+
+/* bottom bar */
+.bar{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);display:flex;align-items:center;gap:14px;background:rgba(255,255,255,.92);backdrop-filter:blur(10px);border-radius:999px;padding:8px 8px 8px 16px;box-shadow:var(--shadow);z-index:5;max-width:calc(100vw - 20px)}
+.steps{display:flex;gap:4px}
+.step{display:flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;padding:6px 10px;border-radius:999px;color:var(--muted);white-space:nowrap}
+.step i{width:20px;height:20px;border-radius:50%;border:2px solid currentColor;display:grid;place-items:center;font-style:normal;font-size:11px}
+.step.done{color:var(--text)}
+.step.done i{background:var(--veg);border-color:var(--veg);color:#fff}
+.step.cur{background:#f1ecff;color:var(--g3)}
+.undo{border:0;background:none;text-decoration:underline;color:var(--muted);font-size:13px}
+
+/* toast */
+#toast{position:fixed;left:50%;bottom:86px;transform:translate(-50%,20px);background:var(--text);color:#fff;border-radius:999px;padding:10px 16px;font-size:13.5px;font-weight:600;opacity:0;transition:all .35s cubic-bezier(.3,1.5,.5,1);pointer-events:none;z-index:30}
+#toast.on{opacity:1;transform:translate(-50%,0)}
+
+/* held */
+#held{position:fixed;left:0;top:0;pointer-events:none;z-index:40;font-size:54px;transform:translate(-50%,-60%) rotate(-8deg);filter:drop-shadow(0 18px 18px rgba(0,0,0,.3));display:none}
+
+/* grams sheet */
+.veil{position:fixed;inset:0;background:rgba(20,18,40,.28);backdrop-filter:blur(6px);display:grid;place-items:center;z-index:50;opacity:0;visibility:hidden;transition:.25s}
+.veil.on{opacity:1;visibility:visible}
+.sheet{background:#fff;border-radius:26px;padding:20px;width:min(380px,92vw);box-shadow:var(--shadow);transform:scale(.9) rotate(-1deg);transition:transform .4s cubic-bezier(.3,1.5,.5,1)}
+.veil.on .sheet{transform:none}
+.sheet h4{margin:0 0 4px;font-size:18px;display:flex;align-items:center;gap:8px}
+.sheet h4 .em{font-size:30px}
+.sheet .per{color:var(--muted);font-size:12.5px}
+.gr{display:flex;align-items:center;gap:10px;margin:16px 0 10px}
+.gr button{width:44px;height:44px;border-radius:50%;border:1px solid var(--line);background:#fff;font-size:22px;font-weight:600}
+.gr input{flex:1;text-align:center;font:inherit;font-size:30px;font-weight:600;border:0;border-bottom:2px solid var(--line);padding:4px;width:100%;outline:none}
+.gr input:focus{border-color:var(--g3)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chips button{border:1px solid var(--line);background:#faf9f7;border-radius:999px;padding:6px 11px;font-size:12.5px;font-weight:600}
+.preview{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:14px 0}
+.preview div{background:#f6f4f1;border-radius:12px;padding:7px;text-align:center}
+.preview span{display:block;font-size:10.5px;color:var(--muted);font-weight:600}
+.preview b{font-size:15px}
+.row{display:flex;gap:8px}
+.row .btn{flex:1}
+
+/* result card (instead of a receipt) */
+.result{position:fixed;inset:0;display:grid;place-items:center;z-index:60;background:rgba(20,18,40,.3);backdrop-filter:blur(8px);opacity:0;visibility:hidden;transition:.3s}
+.result.on{opacity:1;visibility:visible}
+.paper{width:min(440px,94vw);max-height:92vh;overflow:auto;background:#fff;border-radius:28px;padding:22px 22px 18px;box-shadow:0 30px 60px rgba(20,18,40,.25);transform:translateX(-40px) rotate(-1.2deg);transition:transform .55s cubic-bezier(.3,1.5,.5,1)}
+.result.on .paper{transform:rotate(-1.2deg)}
+.dishwrap{position:relative;width:100%;aspect-ratio:1.25;margin:4px 0 6px}
+.dishwrap svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+.dcloche{position:absolute;left:12%;top:6%;width:62%;aspect-ratio:1.15;border-radius:50% 50% 12% 12%/60% 60% 12% 12%;background:linear-gradient(160deg,#fff,#e6e3ef);box-shadow:0 20px 40px rgba(40,30,90,.25);transition:transform 1s cubic-bezier(.5,-.2,.3,1),opacity .8s .3s;z-index:3}
+.dcloche::before{content:"";position:absolute;left:50%;top:-6%;width:16%;height:10%;margin-left:-8%;border-radius:10px;background:var(--grad)}
+.dcloche.up{transform:translate(18%,-85%) rotate(14deg);opacity:0}
+.dname{text-align:center;font-weight:700;font-size:15px;margin:2px 0 4px}
+.paper{width:min(520px,94vw)}
+.paper .hd{display:flex;align-items:center;gap:10px}
+.paper .hd .logo{width:34px;height:34px;border-radius:11px}
+.paper h5{margin:0;font-size:20px;letter-spacing:-.02em}
+.paper .sub{color:var(--muted);font-size:12.5px}
+.rule{border:0;border-top:2px dashed var(--line);margin:12px 0}
+.rl{display:grid;grid-template-columns:24px 1fr 44px 44px 44px 50px;gap:4px;align-items:center;font-size:12.5px;padding:4px 0;opacity:0;transform:translateY(6px);transition:.3s}
+.rl.on{opacity:1;transform:none}
+.rl.h{font-size:10.5px;color:var(--muted);font-weight:700;opacity:1;transform:none}
+.rl span:nth-child(n+3){text-align:right;font-variant-numeric:tabular-nums}
+.tot{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:6px 0 10px}
+.tot div{border-radius:16px;padding:10px 8px;text-align:center;background:#f6f4f1}
+.tot div:first-child{background:var(--grad);color:#fff}
+.tot span{display:block;font-size:11px;font-weight:600;opacity:.75}
+.tot b{font-size:20px;font-variant-numeric:tabular-nums}
+.xe{display:flex;align-items:baseline;gap:8px;padding:12px 14px;border-radius:16px;background:#f1ecff;color:#4c2fb5;margin-bottom:10px}
+.xe b{font-size:24px}
+.check{list-style:none;padding:0;margin:8px 0 12px;font-size:13px}
+.check li{display:flex;gap:8px;padding:4px 0;line-height:1.35}
+.check .ok{color:var(--veg);font-weight:800}
+.check .warn{color:var(--grain);font-weight:800}
+.note{font-size:11.5px;color:var(--muted);line-height:1.45;margin:6px 0 12px}
+
+@media (max-width:1100px){
+  .wrap{grid-template-columns:1fr;gap:14px}
+  .stage{order:-1}
+  .grid{grid-template-columns:repeat(4,1fr)}
+  .steps .step b{display:none}
+  .bar{left:10px;right:10px;transform:none;justify-content:space-between;max-width:none}
+  .step{padding:4px}
+}
+@media (max-width:520px){
+  .grid{grid-template-columns:repeat(3,1fr)}
+  .bar{gap:8px;padding-left:10px}
+  .top{padding:12px 14px}.wrap{padding:0 12px 110px}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+.save{border-top:2px dashed var(--line);margin-top:4px;padding-top:6px}
+.save .ogrid{grid-template-columns:1fr 1fr}.save .ogrid .fld:first-child{grid-column:auto}
+.fld label small{font-weight:500}
+@media (max-width:520px){.save .ogrid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="top">
+  <div class="logo">E</div>
+  <div><h1>Конструктор тарелки</h1><small>тарелка по типу гарвардской · любые блюда</small></div>
+  <a class="demo" href="/#/diary">← Дневник</a>
+</div>
+
+<div id="intro">
+  <div class="introbox">
+    <div class="cloche" id="cloche" title="Открыть"><div class="knob"></div><div class="dome"></div><div class="base"></div></div>
+    <h2>Соберите свою тарелку</h2>
+    <p>Перетащите продукты на тарелку, укажите граммы — и получите КБЖУ, углеводы и хлебные единицы.</p>
+    <button class="btn" id="openBtn">Открыть тарелку ↗</button>
+  </div>
+</div>
+
+<div class="wrap">
+  <section class="panel reveal" style="animation-delay:.05s">
+    <button class="ownrow" id="ownBtn"><span>＋</span><b>Своё блюдо</b><small>название, граммы и КБЖУ</small></button>
+    <input class="psearch" id="psearch" placeholder="Поиск: плов, арбуз, айран…" autocomplete="off">
+    <div class="tabs" id="tabs"></div>
+    <div class="grid" id="grid"></div>
+    <p class="hint">Любой гарнир и любое блюдо — без оценок «правильно» или «нет». Перетащите продукт на тарелку или просто нажмите на него. Нажатие на продукт на тарелке — изменить граммы или убрать.</p>
+  </section>
+
+  <section class="stage reveal" style="animation-delay:.12s">
+    <div class="platebox" id="platebox">
+      <svg id="plate" viewBox="0 0 400 400" aria-label="Гарвардская тарелка">
+        <defs>
+          <linearGradient id="rim" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff8a3d"/><stop offset=".38" stop-color="#f0458f"/><stop offset=".7" stop-color="#8b5cf6"/><stop offset="1" stop-color="#3b82f6"/></linearGradient>
+          <radialGradient id="glaze" cx=".35" cy=".3" r=".8"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#f1eff4"/></radialGradient>
+        </defs>
+        <circle cx="200" cy="200" r="196" fill="url(#rim)"/>
+        <circle cx="200" cy="200" r="186" fill="url(#glaze)"/>
+        <circle cx="200" cy="200" r="168" fill="#fff"/>
+        <!-- vegetables: left half; fruit: small top-left slice; grains: bottom-right; protein: top-right -->
+        <path class="sector" data-sec="veg" d="M200 200 L200 368 A168 168 0 0 1 81.2 81.2 Z" fill="#3fb27f" fill-opacity=".18"/>
+        <path class="sector" data-sec="sweet" d="M200 200 L81.2 81.2 A168 168 0 0 1 200 32 Z" fill="#f0458f" fill-opacity=".14"/>
+        <path class="sector" data-sec="main" d="M200 200 L200 32 A168 168 0 0 1 368 200 Z" fill="#e2557b" fill-opacity=".16"/>
+        <path class="sector" data-sec="side" d="M200 200 L368 200 A168 168 0 0 1 200 368 Z" fill="#e7a33e" fill-opacity=".18"/>
+        <g stroke="#fff" stroke-width="4"><line x1="200" y1="32" x2="200" y2="368"/><line x1="200" y1="200" x2="368" y2="200"/><line x1="200" y1="200" x2="81.2" y2="81.2"/></g>
+        <text class="lbl" x="118" y="330" text-anchor="middle">ОВОЩИ, САЛАТЫ</text>
+        <text class="lbl" x="160" y="62" text-anchor="middle">ДЕСЕРТ</text>
+        <text class="lbl" x="300" y="70" text-anchor="middle">ОСНОВНОЕ</text>
+        <text class="lbl" x="290" y="340" text-anchor="middle">ГАРНИР — ЛЮБОЙ</text>
+      </svg>
+      <div id="piles"></div>
+      <div class="side" id="oil" data-sec="sauce"><div><span class="em">🥫</span>соус</div></div>
+      <div class="side" id="glass" data-sec="drink"><div><span class="em">🥛</span>напиток</div></div>
+    </div>
+  </section>
+
+  <aside class="panel sum reveal" style="animation-delay:.2s">
+    <h3>Тарелка сейчас</h3>
+    <div class="kcal"><span id="kcal">0</span><small>ккал</small></div>
+    <div class="mac"><div><span>Белки</span><b id="pp">0</b> г</div><div><span>Жиры</span><b id="ff">0</b> г</div><div><span>Углеводы</span><b id="cc">0</b> г</div></div>
+    <div class="carb"><span>Углеводы на тарелке</span><b id="cc2">0 г</b> <span id="xe">0 ХЕ</span></div>
+    <div class="bars"><i id="bp" style="background:#e2557b;flex:0"></i><i id="bf" style="background:#8b5cf6;flex:0"></i><i id="bc" style="background:#e7a33e;flex:0"></i></div>
+    <div class="legend"><span>Б <b id="lp">0</b>%</span><span>Ж <b id="lf">0</b>%</span><span>У <b id="lc">0</b>%</span></div>
+    <div class="list" id="list"></div>
+  </aside>
+</div>
+
+<div class="bar reveal" style="animation-delay:.28s">
+  <div class="steps" id="steps"></div>
+  <button class="btn" id="done" disabled>Готово ↗</button>
+  <button class="undo" id="undo">↺ Отменить</button>
+</div>
+
+<div id="toast"></div>
+<div id="held"></div>
+
+<div class="veil" id="veil"><div class="sheet" role="dialog" aria-modal="true">
+  <h4><span class="em" id="sEm"></span><span id="sName"></span></h4>
+  <div class="per" id="sPer"></div>
+  <div class="gr"><button id="minus" aria-label="меньше">−</button><input id="grams" inputmode="decimal" aria-label="граммы"><button id="plus" aria-label="больше">+</button></div>
+  <div class="chips" id="sChips"></div>
+  <div class="preview" id="sPrev"></div>
+  <div class="row"><button class="btn ghost" id="sDel">Убрать</button><button class="btn" id="sOk">На тарелку</button></div>
+</div></div>
+
+<div class="veil" id="ownVeil"><div class="sheet" role="dialog" aria-modal="true">
+  <h4><span class="em">🍽️</span>Своё блюдо</h4>
+  <div class="per">Например: «Бабушкины голубцы» или блюдо из столовой. Значения возьмите с упаковки, из рецепта или примерно.</div>
+  <div class="fld"><label>Название</label><input id="oName" maxlength="60" placeholder="Название блюда"></div>
+  <div class="fld"><label>Куда на тарелке</label><div class="chips" id="oZone"></div></div>
+  <div class="fld"><label>Значения указаны</label><div class="chips" id="oPer"><button data-v="100" class="on">на 100 г</button><button data-v="portion">на всю порцию</button></div></div>
+  <div class="ogrid"><div class="fld"><label>Граммы порции</label><input id="oG" inputmode="decimal" value="200"></div><div class="fld"><label>Ккал</label><input id="oK" inputmode="decimal"></div><div class="fld"><label>Белки, г</label><input id="oP" inputmode="decimal"></div><div class="fld"><label>Жиры, г</label><input id="oF" inputmode="decimal"></div><div class="fld"><label>Углеводы, г</label><input id="oC" inputmode="decimal"></div></div>
+  <div class="oerr" id="oErr"></div>
+  <div class="row"><button class="btn ghost" id="oCancel">Отмена</button><button class="btn" id="oOk">На тарелку</button></div>
+</div></div>
+
+<div class="result" id="result"><div class="paper">
+  <div class="dishwrap" id="dish"></div><div class="dname" id="dname"></div>
+  <div class="hd"><div class="logo">E</div><div><h5>Ваше блюдо</h5><div class="sub" id="rDate"></div></div></div>
+  <hr class="rule">
+  <div class="rl h"><span></span><span>продукт</span><span>г</span><span>Б</span><span>Ж</span><span>У</span></div>
+  <div id="rLines"></div>
+  <hr class="rule">
+  <div class="tot"><div><span>ккал</span><b id="rK">0</b></div><div><span>белки</span><b id="rP">0</b></div><div><span>жиры</span><b id="rF">0</b></div><div><span>углеводы</span><b id="rC">0</b></div></div>
+  <div class="xe"><b id="rXe">0</b><span>хлебных единиц (1 ХЕ = 12 г углеводов)</span></div>
+  <div class="bars"><i id="rbp" style="background:#e2557b"></i><i id="rbf" style="background:#8b5cf6"></i><i id="rbc" style="background:#e7a33e"></i></div>
+  <div class="legend"><span id="rlp"></span><span id="rlf"></span><span id="rlc"></span></div>
+  <ul class="check" id="rCheck"></ul>
+  <p class="note">Подсчёт приблизительный: значения на 100 г — средние из таблиц состава продуктов; на упаковке точнее. Это справка, а не расчёт дозы инсулина.</p>
+  <div class="save" id="saveBox">
+    <div class="fld"><label>Приём пищи</label><div class="chips" id="sMeal"></div></div>
+    <div class="ogrid"><div class="fld"><label>Болюс, ЕД <small>(если вводили)</small></label><input id="sIns" inputmode="decimal" placeholder="например 3,5"></div>
+      <div class="fld"><label>Когда ввели болюс</label><div class="chips" id="sPre"><button data-v="15" class="on">до еды</button><button data-v="0">с едой</button><button data-v="-15">после</button></div></div></div>
+    <div class="fld"><label>Время еды</label><div class="chips" id="sWhen"><button data-v="0" class="on">сейчас</button><button data-v="15">15 мин назад</button><button data-v="30">30 мин назад</button><button data-v="60">1 ч назад</button></div></div>
+    <div class="oerr" id="sErr"></div>
+    <button class="btn" id="sSave" style="width:100%">Записать в дневник</button>
+  </div>
+  <div class="row" style="margin-top:10px"><button class="btn ghost" id="back">← К тарелке</button><button class="btn ghost" id="again">Новая тарелка</button></div>
+</div></div>
+
+<script src="/foods-plate.js"></script>
+<script src="/plate.js"></script>
+</body>
+</html>
