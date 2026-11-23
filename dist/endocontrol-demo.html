@@ -585,7 +585,11 @@ body.has-galert .hypotimer{top:calc(190px + env(safe-area-inset-top))}
     alRise: "Glucose is rising fast: {v} {u}. Check that the meal insulin was given.", alHigh: "High glucose: {v} {u}. If it stays high for over an hour, check ketones.",
     alUnitMmol: "millimoles per litre", alUnitMg: "milligrams per decilitre", alWhat: "What to do", alSnooze: "Quiet for 30 min", alOk: "Got it", alAskRise: "Why is glucose rising fast and what should I do?",
     alTitle: "Glucose alerts", alOn: "Alert on a fast fall or rise, a low or a high", alVoice: "Speak alerts aloud", alSound: "Sound and vibration", alTest: "Test an alert",
-    alNote: "Alerts work while the app is open. To get them in the background, keep your sensor app's alarms on as well.", alTestText: "This is a test alert. This is how I will tell you about a sharp change in glucose.",
+    alNote: "Sound and voice work while the app is open; push alerts arrive with it closed too. Keep your sensor app's alarms on as well.", alTestText: "This is a test alert. This is how I will tell you about a sharp change in glucose.",
+    pushTitle: "EndoControl: glucose", pushTitleCritical: "EndoControl: urgent!", alPush: "Alerts with the app closed (push)", alPushTest: "Send a test push",
+    alPushOn: "Push is on for this device.", alPushOff: "Push is off for this device.", alPushDenied: "Notifications are blocked in the browser settings.",
+    alPushNo: "This browser does not support push. On iPhone, add the app to the Home Screen (Share → Add to Home Screen) and open it from there.", alPushSent: "Test push sent",
+    e_push_none: "No device on this account has push turned on", e_push_off: "Push is not set up on the server", e_bad_subscription: "The browser returned an invalid subscription",
     urSos: "🆘 Low glucose — help", urOr: " or ", urCall: "📞 Call {n}", urTimerBtn: "⏱ Start a 15-minute timer",
     urCalm: "I'm here with you. Let's go step by step — a low can be treated quickly.",
     urLow: "Glucose {v} {u} is a low (hypoglycaemia) and needs treating right now.", urVeryLow: "Glucose {v} {u} is a dangerous low. Act now.",
@@ -715,7 +719,11 @@ body.has-galert .hypotimer{top:calc(190px + env(safe-area-inset-top))}
     alRise: "Сахар стремительно растёт: {v} {u}. Проверьте, введён ли инсулин на еду.", alHigh: "Высокий сахар: {v} {u}. Если держится больше часа — проверьте кетоны.",
     alUnitMmol: "миллимоль на литр", alUnitMg: "миллиграмм на децилитр", alWhat: "Что делать", alSnooze: "Тише на 30 мин", alOk: "Понятно", alAskRise: "Почему сахар быстро растёт и что делать?",
     alTitle: "Оповещения о сахаре", alOn: "Сигнал при резком снижении или росте, низком и высоком сахаре", alVoice: "Проговаривать голосом", alSound: "Звук и вибрация", alTest: "Проверить оповещение",
-    alNote: "Оповещения работают, пока приложение открыто. Чтобы получать сигналы в фоне, оставьте включёнными и сигналы в приложении датчика.", alTestText: "Это проверка оповещения. Так я сообщу о резком изменении сахара.",
+    alNote: "Звук и голос работают, пока приложение открыто, а push приходят и при закрытом. Тревоги в приложении датчика тоже оставьте включёнными.", alTestText: "Это проверка оповещения. Так я сообщу о резком изменении сахара.",
+    pushTitle: "EndoControl: сахар", pushTitleCritical: "EndoControl: срочно!", alPush: "Сигналы при закрытом приложении (push)", alPushTest: "Отправить тестовый push",
+    alPushOn: "Push включены на этом устройстве.", alPushOff: "Push на этом устройстве выключены.", alPushDenied: "Уведомления запрещены в настройках браузера.",
+    alPushNo: "Этот браузер не поддерживает push. На iPhone добавьте приложение на экран «Домой» (Поделиться → На экран «Домой») и откройте его оттуда.", alPushSent: "Тестовый push отправлен",
+    e_push_none: "На этом аккаунте нет устройств с включёнными push", e_push_off: "Push на сервере не настроены", e_bad_subscription: "Браузер вернул неверную подписку",
     urSos: "🆘 Низкий сахар — помощь", urOr: " или ", urCall: "📞 Позвонить {n}", urTimerBtn: "⏱ Засечь 15 минут",
     urCalm: "Я рядом. Давайте спокойно и по шагам — гипогликемия лечится быстро.",
     urLow: "Сахар {v} {u} — это гипогликемия, её нужно лечить прямо сейчас.", urVeryLow: "Сахар {v} {u} — это опасно низкий сахар. Действуем сразу.",
@@ -845,7 +853,11 @@ body.has-galert .hypotimer{top:calc(190px + env(safe-area-inset-top))}
     alRise: "Қант тез көтеріліп жатыр: {v} {u}. Тамаққа инсулин салынғанын тексеріңіз.", alHigh: "Қант жоғары: {v} {u}. Бір сағаттан артық сақталса — кетондарды тексеріңіз.",
     alUnitMmol: "литріне миллимоль", alUnitMg: "децилитріне миллиграмм", alWhat: "Не істеу керек", alSnooze: "30 мин тыныш", alOk: "Түсінікті", alAskRise: "Неге қант тез көтеріліп жатыр және не істеу керек?",
     alTitle: "Қант туралы ескертулер", alOn: "Қант күрт төмендегенде не көтерілгенде, төмен және жоғары болғанда сигнал", alVoice: "Дауыстап айту", alSound: "Дыбыс және діріл", alTest: "Ескертуді тексеру",
-    alNote: "Ескертулер қосымша ашық тұрғанда жұмыс істейді. Фондық сигналдар үшін датчик қосымшасының сигналдарын да қосулы қалдырыңыз.", alTestText: "Бұл ескертуді тексеру. Қанттың күрт өзгергені туралы осылай хабарлаймын.",
+    alNote: "Дыбыс пен дауыс қосымша ашық кезде жұмыс істейді, ал push жабық кезде де келеді. Датчик қосымшасының сигналдарын да қосулы қалдырыңыз.", alTestText: "Бұл ескертуді тексеру. Қанттың күрт өзгергені туралы осылай хабарлаймын.",
+    pushTitle: "EndoControl: қант", pushTitleCritical: "EndoControl: шұғыл!", alPush: "Қосымша жабық болғанда сигналдар (push)", alPushTest: "Тест push жіберу",
+    alPushOn: "Бұл құрылғыда push қосулы.", alPushOff: "Бұл құрылғыда push өшірулі.", alPushDenied: "Хабарландырулар браузер баптауларында тыйым салынған.",
+    alPushNo: "Бұл браузер push-ты қолдамайды. iPhone-да қосымшаны «Басты экранға» қосып (Бөлісу → Басты экранға), сол жерден ашыңыз.", alPushSent: "Тест push жіберілді",
+    e_push_none: "Бұл аккаунтта push қосылған құрылғы жоқ", e_push_off: "Серверде push бапталмаған", e_bad_subscription: "Браузер жарамсыз жазылым қайтарды",
     urSos: "🆘 Қант төмен — көмек", urOr: " немесе ", urCall: "📞 Қоңырау {n}", urTimerBtn: "⏱ 15 минут уақыт белгілеу",
     urCalm: "Мен қасыңыздамын. Асықпай, қадамдап жасайық — гипогликемия тез емделеді.",
     urLow: "Қант {v} {u} — бұл гипогликемия, оны дәл қазір емдеу керек.", urVeryLow: "Қант {v} {u} — бұл қауіпті төмен қант. Бірден әрекет етеміз.",
@@ -3126,7 +3138,7 @@ window.ECCsv = { parseCsv, parseDateTime };
     document.body.classList.add('has-galert');
     const close = () => { el.remove(); document.body.classList.remove('has-galert'); try { speechSynthesis.cancel(); } catch { /* none */ } };
     el.querySelector('[data-al=ok]').onclick = close;
-    el.querySelector('[data-al=snooze]').onclick = () => { const m = alMem(); m.snoozeUntil = Date.now() + 30 * 60e3; alMemSave(m); close(); };
+    el.querySelector('[data-al=snooze]').onclick = () => { const m = alMem(); m.snoozeUntil = Date.now() + 30 * 60e3; alMemSave(m); api('POST', '/app/push/snooze').catch(() => { }); close(); };
     el.querySelector('[data-al=help]').onclick = () => {
       close();
       S.pendingQuestion = /low|fall/.test(a.kind) ? { q: t('urSos'), force: true } : { q: t('alAskRise') };
@@ -3156,7 +3168,9 @@ window.ECCsv = { parseCsv, parseDateTime };
       <label class="check"><input type="checkbox" data-p="on" ${p.on ? 'checked' : ''}> ${esc(t('alOn'))}</label>
       <label class="check"><input type="checkbox" data-p="voice" ${p.voice ? 'checked' : ''}> ${esc(t('alVoice'))}</label>
       <label class="check"><input type="checkbox" data-p="sound" ${p.sound ? 'checked' : ''}> ${esc(t('alSound'))}</label>
-      <div class="row" style="gap:10px;margin-top:10px;flex-wrap:wrap"><button type="button" class="btn sm" id="altest">${esc(t('alTest'))}</button></div>
+      <label class="check"><input type="checkbox" id="alpush"> ${esc(t('alPush'))}</label>
+      <div class="tiny muted" id="alpushst"></div>
+      <div class="row" style="gap:10px;margin-top:10px;flex-wrap:wrap"><button type="button" class="btn sm" id="altest">${esc(t('alTest'))}</button><button type="button" class="btn ghost sm" id="alpushtest">${esc(t('alPushTest'))}</button></div>
       <p class="tiny muted" style="margin-bottom:0">${esc(t('alNote'))}</p>`;
     const head = $('#view .phead'); if (head) head.after(box); else $('#view').prepend(box);
     box.querySelectorAll('[data-p]').forEach(c => c.onchange = () => { const q = alPrefs(); q[c.dataset.p] = c.checked; alSave(q); });
@@ -3164,6 +3178,44 @@ window.ECCsv = { parseCsv, parseDateTime };
       try { if (window.Notification && Notification.permission === 'default') Notification.requestPermission(); } catch { /* none */ }
       showAlert({ kind: 'fall', level: 'urgent', v: 92 }, { test: true });
     };
+    pushSetup(box);
+  }
+  // ---- Web Push: alerts with the app closed (server checks the sensor every minute)
+  const b64ToBytes = b => { const p = '='.repeat((4 - b.length % 4) % 4), s = atob((b + p).replace(/-/g, '+').replace(/_/g, '/')); return Uint8Array.from(s, c => c.charCodeAt(0)); };
+  async function pushSetup(box) {
+    const cb = box.querySelector('#alpush'), st = box.querySelector('#alpushst'), testBtn = box.querySelector('#alpushtest');
+    const say2 = k => { st.textContent = t(k); };
+    const supported = 'serviceWorker' in navigator && 'PushManager' in window && window.Notification;
+    if (!supported) { cb.disabled = true; testBtn.disabled = true; return say2('alPushNo'); }
+    let reg; try { reg = await navigator.serviceWorker.ready; } catch { cb.disabled = true; return say2('alPushNo'); }
+    let sub = await reg.pushManager.getSubscription().catch(() => null);
+    cb.checked = !!sub; say2(sub ? 'alPushOn' : (Notification.permission === 'denied' ? 'alPushDenied' : 'alPushOff'));
+    testBtn.disabled = !sub;
+    cb.onchange = async () => {
+      cb.disabled = true;
+      try {
+        if (cb.checked) {
+          const perm = await Notification.requestPermission();
+          if (perm !== 'granted') { cb.checked = false; say2('alPushDenied'); return; }
+          const k = await api('GET', '/app/push/key');
+          if (!k.enabled || !k.key) { cb.checked = false; st.textContent = t('e_push_off'); return; }
+          sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64ToBytes(k.key) });
+          await api('POST', '/app/push/subscribe', sub.toJSON());
+          say2('alPushOn'); testBtn.disabled = false;
+        } else if (sub) {
+          await api('POST', '/app/push/unsubscribe', { endpoint: sub.endpoint }).catch(() => { });
+          await sub.unsubscribe(); sub = null; say2('alPushOff'); testBtn.disabled = true;
+        }
+      } catch (e) { cb.checked = !!sub; st.textContent = errText(e); } finally { cb.disabled = false; }
+    };
+    testBtn.onclick = async () => { try { await api('POST', '/app/push/test'); toast(t('alPushSent')); } catch (e) { toast(errText(e)); } };
+  }
+  // The service worker shows pushes when the app is closed and brings us back on a tap.
+  if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+    navigator.serviceWorker.register('/sw.js').catch(() => { /* no push on this page */ });
+    navigator.serviceWorker.addEventListener('message', e => {
+      if (e.data && e.data.type === 'alert-open') { const u = new URL(e.data.url); if (location.hash !== u.hash) location.hash = u.hash; else route(); setTimeout(alertCheck, 800); }
+    });
   }
 
   function toast(msg) { const el = $('#toast'); el.textContent = msg; el.classList.add('show'); clearTimeout(toast.t); toast.t = setTimeout(() => el.classList.remove('show'), 2800); }
@@ -3862,8 +3914,9 @@ window.ECCsv = { parseCsv, parseDateTime };
     box.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openRobotDialog(); } });
   }
 
-  async function ai() {
+  async function ai(args = []) {
     const me = S.me;
+    if (args[0] === 'sos') { history.replaceState(null, '', '#/ai'); if (!S.pendingQuestion) S.pendingQuestion = { q: t('urSos'), force: true }; }
     const { d } = await aiData();
     const { lo, hi } = targets(me.user);
     const st = C.stats(d.entries.map(e => e[1]), lo, hi);

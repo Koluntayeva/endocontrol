@@ -22,6 +22,7 @@ const ns = require('./lib/nsdata');
 const bridges = require('./lib/bridges');
 const { parseCsv } = require('./lib/csvimport');
 const ai = require('./lib/ai');
+const push = require('./lib/push');
 
 const PORT = Number(process.env.PORT || 1337);
 const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, 'data');
@@ -33,6 +34,8 @@ const PUBLIC_DIR = path.join(__dirname, 'public');
 
 sec.initKey(DATA_DIR);
 const db = dbm.open(DATA_DIR);
+// Web Push (glucose alerts with the app closed). The subject is how push services reach the operator.
+push.init(DATA_DIR, process.env.VAPID_SUBJECT || (/^https:/.test(PUBLIC_URL) ? PUBLIC_URL : 'mailto:admin@localhost'));
 
 // ------------------------------------------------------------------ helpers
 class HttpError extends Error { constructor(status, code, msg) { super(msg || code); this.status = status; this.code = code; } }
@@ -289,6 +292,32 @@ const aiRoute = async ctx => {
   }
 };
 route('POST', '/app/ai', aiRoute);
+
+// ---- Web Push subscriptions
+route('GET', '/app/push/key', async ctx => { requireUser(ctx); return { enabled: push.enabled(), key: push.publicKey() || null }; });
+route('POST', '/app/push/subscribe', async ctx => {
+  const u = requireUser(ctx); const b = await jsonBody(ctx.req, 1e4);
+  const endpoint = str(b.endpoint, 1000), p256dh = str(b.keys && b.keys.p256dh, 200), auth = str(b.keys && b.keys.auth, 100);
+  if (!/^https:\/\//.test(endpoint) || !p256dh || !auth) throw bad('bad_subscription');
+  db.prepare(`INSERT INTO push_subs (user_id, endpoint, p256dh, auth, created_at) VALUES (?,?,?,?,?)
+    ON CONFLICT(endpoint) DO UPDATE SET user_id=excluded.user_id, p256dh=excluded.p256dh, auth=excluded.auth`).run(u.id, endpoint, p256dh, auth, Date.now());
+  return { ok: true };
+});
+route('POST', '/app/push/unsubscribe', async ctx => {
+  const u = requireUser(ctx); const b = await jsonBody(ctx.req, 1e4);
+  db.prepare('DELETE FROM push_subs WHERE user_id=? AND endpoint=?').run(u.id, str(b.endpoint, 1000));
+  return { ok: true };
+});
+route('POST', '/app/push/test', async ctx => {
+  const u = requireUser(ctx);
+  if (!push.enabled()) throw new HttpError(503, 'push_off');
+  const user = db.prepare('SELECT lang, units, target_low FROM users WHERE id=?').get(u.id);
+  const m = push.message({ kind: 'fall', level: 'urgent', v: 92 }, user);
+  const sent = await push.sendTo(db, u.id, { title: m.title, body: m.body, kind: 'test', level: 'urgent', tag: 'test', url: '/#/settings' });
+  if (!sent) throw new HttpError(404, 'push_none');
+  return { ok: true, sent };
+});
+route('POST', '/app/push/snooze', async ctx => { const u = requireUser(ctx); push.snooze(db, u.id, 30); return { ok: true }; });
 
 route('POST', '/app/treatments', async ctx => {
   const u = requireUser(ctx); const b = await jsonBody(ctx.req);
@@ -582,6 +611,7 @@ if (require.main === module) {
   server.listen(PORT, () => {
     console.log(`${APP_NAME} ${VERSION} listening on http://localhost:${PORT}`);
     bridges.start(db);
+    push.start(db, ns);
   });
 }
 module.exports = { server, db };

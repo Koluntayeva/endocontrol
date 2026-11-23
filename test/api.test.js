@@ -107,3 +107,33 @@ test('glucose alerts: fast fall, predicted low, fast rise, quiet repeats', () =>
   assert.equal(A.shouldFire(A.check(series(60, 0, 'Flat'), now), { last: { kind: 'fall', at: now - 5 * 60e3 } }, now), true); // got worse
   assert.equal(A.shouldFire(a, { snoozeUntil: now + 60e3 }, now), false);
 });
+
+test('push: subscribe, a fast fall sends one alert in the user language, no repeat', async () => {
+  const push = require('../lib/push'), ns = require('../lib/nsdata');
+  const sent = [];
+  push._setSender(async (sub, payload) => { sent.push({ sub, payload: JSON.parse(payload) }); return { statusCode: 201 }; });
+  try {
+    const { db } = require('../server');
+    await new Promise(r => server.listen(0, r));
+    const base = `http://127.0.0.1:${server.address().port}`;
+    const j = { 'Content-Type': 'application/json', 'X-EC': '1' };
+    let r = await fetch(base + '/app/register', { method: 'POST', headers: j, body: JSON.stringify({ email: 'push@e.st', password: 'abcd1234', name: 'P', consent: true, lang: 'ru', units: 'mmol' }) });
+    const cookie = r.headers.get('set-cookie').split(';')[0];
+    r = await fetch(base + '/app/push/key', { headers: { cookie } });
+    const k = await r.json();
+    assert.equal(k.enabled, true); assert.ok(k.key.length > 40);
+    r = await fetch(base + '/app/push/subscribe', { method: 'POST', headers: { ...j, cookie }, body: JSON.stringify({ endpoint: 'https://push.example/abc', keys: { p256dh: 'BPk', auth: 'au' } }) });
+    assert.equal(r.status, 200);
+    const me = await (await fetch(base + '/app/me', { headers: { cookie } })).json();
+    const now = Date.now();
+    ns.insertEntries(db, me.user.id, [0, 1, 2, 3].map(i => ({ type: 'sgv', date: now - (3 - i) * 5 * 60e3, sgv: 150 - 15 * i, direction: 'SingleDown' })), 'test');
+    assert.equal(await push.checkAll(db, ns, now), 1);
+    assert.equal(sent.length, 1);
+    assert.equal(sent[0].sub.endpoint, 'https://push.example/abc');
+    assert.equal(sent[0].payload.kind, 'fallsoon');
+    assert.equal(sent[0].payload.url, '/#/ai/sos');
+    assert.match(sent[0].payload.body, /Сахар быстро снижается: 5\.8 mmol\/L/);
+    assert.equal(await push.checkAll(db, ns, now + 60e3), 0, 'no repeat a minute later');
+    server.close();
+  } finally { push._setSender(null); }
+});

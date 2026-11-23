@@ -163,7 +163,7 @@
     document.body.classList.add('has-galert');
     const close = () => { el.remove(); document.body.classList.remove('has-galert'); try { speechSynthesis.cancel(); } catch { /* none */ } };
     el.querySelector('[data-al=ok]').onclick = close;
-    el.querySelector('[data-al=snooze]').onclick = () => { const m = alMem(); m.snoozeUntil = Date.now() + 30 * 60e3; alMemSave(m); close(); };
+    el.querySelector('[data-al=snooze]').onclick = () => { const m = alMem(); m.snoozeUntil = Date.now() + 30 * 60e3; alMemSave(m); api('POST', '/app/push/snooze').catch(() => { }); close(); };
     el.querySelector('[data-al=help]').onclick = () => {
       close();
       S.pendingQuestion = /low|fall/.test(a.kind) ? { q: t('urSos'), force: true } : { q: t('alAskRise') };
@@ -193,7 +193,9 @@
       <label class="check"><input type="checkbox" data-p="on" ${p.on ? 'checked' : ''}> ${esc(t('alOn'))}</label>
       <label class="check"><input type="checkbox" data-p="voice" ${p.voice ? 'checked' : ''}> ${esc(t('alVoice'))}</label>
       <label class="check"><input type="checkbox" data-p="sound" ${p.sound ? 'checked' : ''}> ${esc(t('alSound'))}</label>
-      <div class="row" style="gap:10px;margin-top:10px;flex-wrap:wrap"><button type="button" class="btn sm" id="altest">${esc(t('alTest'))}</button></div>
+      <label class="check"><input type="checkbox" id="alpush"> ${esc(t('alPush'))}</label>
+      <div class="tiny muted" id="alpushst"></div>
+      <div class="row" style="gap:10px;margin-top:10px;flex-wrap:wrap"><button type="button" class="btn sm" id="altest">${esc(t('alTest'))}</button><button type="button" class="btn ghost sm" id="alpushtest">${esc(t('alPushTest'))}</button></div>
       <p class="tiny muted" style="margin-bottom:0">${esc(t('alNote'))}</p>`;
     const head = $('#view .phead'); if (head) head.after(box); else $('#view').prepend(box);
     box.querySelectorAll('[data-p]').forEach(c => c.onchange = () => { const q = alPrefs(); q[c.dataset.p] = c.checked; alSave(q); });
@@ -201,6 +203,44 @@
       try { if (window.Notification && Notification.permission === 'default') Notification.requestPermission(); } catch { /* none */ }
       showAlert({ kind: 'fall', level: 'urgent', v: 92 }, { test: true });
     };
+    pushSetup(box);
+  }
+  // ---- Web Push: alerts with the app closed (server checks the sensor every minute)
+  const b64ToBytes = b => { const p = '='.repeat((4 - b.length % 4) % 4), s = atob((b + p).replace(/-/g, '+').replace(/_/g, '/')); return Uint8Array.from(s, c => c.charCodeAt(0)); };
+  async function pushSetup(box) {
+    const cb = box.querySelector('#alpush'), st = box.querySelector('#alpushst'), testBtn = box.querySelector('#alpushtest');
+    const say2 = k => { st.textContent = t(k); };
+    const supported = 'serviceWorker' in navigator && 'PushManager' in window && window.Notification;
+    if (!supported) { cb.disabled = true; testBtn.disabled = true; return say2('alPushNo'); }
+    let reg; try { reg = await navigator.serviceWorker.ready; } catch { cb.disabled = true; return say2('alPushNo'); }
+    let sub = await reg.pushManager.getSubscription().catch(() => null);
+    cb.checked = !!sub; say2(sub ? 'alPushOn' : (Notification.permission === 'denied' ? 'alPushDenied' : 'alPushOff'));
+    testBtn.disabled = !sub;
+    cb.onchange = async () => {
+      cb.disabled = true;
+      try {
+        if (cb.checked) {
+          const perm = await Notification.requestPermission();
+          if (perm !== 'granted') { cb.checked = false; say2('alPushDenied'); return; }
+          const k = await api('GET', '/app/push/key');
+          if (!k.enabled || !k.key) { cb.checked = false; st.textContent = t('e_push_off'); return; }
+          sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64ToBytes(k.key) });
+          await api('POST', '/app/push/subscribe', sub.toJSON());
+          say2('alPushOn'); testBtn.disabled = false;
+        } else if (sub) {
+          await api('POST', '/app/push/unsubscribe', { endpoint: sub.endpoint }).catch(() => { });
+          await sub.unsubscribe(); sub = null; say2('alPushOff'); testBtn.disabled = true;
+        }
+      } catch (e) { cb.checked = !!sub; st.textContent = errText(e); } finally { cb.disabled = false; }
+    };
+    testBtn.onclick = async () => { try { await api('POST', '/app/push/test'); toast(t('alPushSent')); } catch (e) { toast(errText(e)); } };
+  }
+  // The service worker shows pushes when the app is closed and brings us back on a tap.
+  if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+    navigator.serviceWorker.register('/sw.js').catch(() => { /* no push on this page */ });
+    navigator.serviceWorker.addEventListener('message', e => {
+      if (e.data && e.data.type === 'alert-open') { const u = new URL(e.data.url); if (location.hash !== u.hash) location.hash = u.hash; else route(); setTimeout(alertCheck, 800); }
+    });
   }
 
   function toast(msg) { const el = $('#toast'); el.textContent = msg; el.classList.add('show'); clearTimeout(toast.t); toast.t = setTimeout(() => el.classList.remove('show'), 2800); }
@@ -899,8 +939,9 @@
     box.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openRobotDialog(); } });
   }
 
-  async function ai() {
+  async function ai(args = []) {
     const me = S.me;
+    if (args[0] === 'sos') { history.replaceState(null, '', '#/ai'); if (!S.pendingQuestion) S.pendingQuestion = { q: t('urSos'), force: true }; }
     const { d } = await aiData();
     const { lo, hi } = targets(me.user);
     const st = C.stats(d.entries.map(e => e[1]), lo, hi);

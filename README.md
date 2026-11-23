@@ -17,6 +17,7 @@ doctor access, messages and printable reports.
 | Reports | Time in ranges (international consensus), GMI, CV, AGP, TIR by day, a full chart for every day; 7/14/30/90 days; **PDF** via the browser's print dialog |
 | AI analyst | Ask any question — about a moment ("why did glucose fall 2 h after breakfast today?"), patterns over days, or diabetes in general. Claude (Anthropic) gets a 15-minute glucose timeline for today and yesterday, every diary entry, meal rises found on the curve and 14-day statistics, plus clinical background after Ragnar Hanas' "Type 1 Diabetes in Children, Adolescents and Young Adults" and ISPAD 2022. Needs `ANTHROPIC_API_KEY`; without it, questions about a meal or time of day get a curve analysis and other questions a Diabetes school lesson. Never suggests doses |
 | Diabetes school | 10 short lessons with mini quizzes and progress: basics, targets, CGM, insulin, carbs, hypo, high glucose and ketones, sport, sick days, school and travel (Russian and English; other languages fall back to them) |
+| Push alerts | With the app closed: the server checks the sensor every minute for users who turned push on (Settings) and sends a Web Push notification in their language; tapping it opens the app (lows go straight to the emergency steps). Needs HTTPS; on iPhone the app must be added to the Home Screen (iOS 16.4+) |
 | Alerts | While the app is open: a fast fall or rise, a predicted low within 20 min, low, very low and high glucose — sound, vibration, a notification, a banner and a spoken message in the user's language; snooze for 30 min; switches and a test button in Settings |
 | Doctors | Patient sends a read-only link → doctor adds it → patient list sorted with TIR/hypo flags, full history, reports, messages and written conclusions |
 | Languages | English, 简体中文, Español, العربية (RTL), Português, Bahasa Indonesia, Français, 日本語, Русский, Deutsch, Қазақша, Türkçe, हिन्दी, 한국어 · units mg/dL or mmol/L per user |
@@ -67,6 +68,7 @@ Environment variables:
 | `APP_NAME` | product name shown in the UI and to Nightscout clients |
 | `ANTHROPIC_API_KEY` | turns on the AI analyst (Claude); can also go in a `.env` file next to `server.js`, which git and Docker ignore. Without it the analyst shows a rule-based review. The question and a 14-day data summary are sent to Anthropic, so cover this in the privacy policy |
 | `AI_MODEL` | Claude model for the analyst (default `claude-opus-5-5`) |
+| `VAPID_SUBJECT` | contact for Web Push services (`mailto:you@domain` or your https site). VAPID keys are generated into `DATA_DIR/vapid.json` (or set `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY`) |
 | `AI_LIMIT_PER_HOUR` | questions per user per hour (default 30) |
 
 ## Nightscout API compatibility
@@ -89,6 +91,8 @@ lib/bridges.js       LibreLinkUp, Dexcom Share, Nightscout pull of glucose and t
 lib/csvimport.js     CSV import with automatic column/unit detection
 public/explain.js    curve analysis shared by server and browser: meal rises, peaks, falls
 public/alerts.js     glucose alerts: fast fall or rise, predicted low, low, high
+public/sw.js         service worker: shows push alerts with the app closed
+lib/push.js          Web Push: VAPID keys, subscriptions, the once-a-minute check
 public/fonts/        Onest (UI font), SIL OFL 1.1
 public/robot.js      the AI analyst's 3D robot (three.js 0.160.0, vendored in public/vendor/three, MIT)
 lib/ai.js            AI analyst: data summary, timeline and the Claude request
