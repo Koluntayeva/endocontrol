@@ -260,8 +260,11 @@ export function mount(el) {
   }
   drawFace(); loop();
 
+  // A tap: hop and wave right away.
+  function poke() { const n = performance.now(); quoteStart = n; waveStart = n; nextWave = n + 9000; gaze.ty = 0; gaze.tp = 0.05; loop(); }
+
   return {
-    setMode,
+    setMode, poke,
     destroy() {
       cancelAnimationFrame(raf); ro.disconnect(); io.disconnect();
       removeEventListener('pointermove', onMove); document.removeEventListener('visibilitychange', onVis);

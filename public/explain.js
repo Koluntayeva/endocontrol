@@ -73,6 +73,7 @@
     breakfast: /завтрак|breakfast|таңғы/i,
     lunch: /обед|lunch|түскі/i,
     dinner: /ужин|dinner|supper|кешкі/i,
+    night: /ноч|night|түн/i,
     fall: /сниж|пада|упал|опуст|drop|fall|low|гипо|hypo|төмен|түс/i,
     rise: /выс|подня|подним|рост|раст|rise|high|spike|peak|пик|жоғары|көтер/i,
     hours: /(\d+(?:[.,]\d+)?)\s*(?:-?х\s*)?(?:час|ч\b|h\b|hour|сағ)/i,
@@ -84,7 +85,7 @@
   // ctx: { entries: [[ms, mg]], treatments: [{mills, carbs, insulin, eventType}], now,
   //        lo, hi, t(key, vars), g(mg) -> string, unit, time(ms) -> "HH:MM", dayStart(ms, k) }
   function answer(q, ctx) {
-    const meal = RX.breakfast.test(q) ? 'breakfast' : RX.lunch.test(q) ? 'lunch' : RX.dinner.test(q) ? 'dinner' : null;
+    const meal = RX.breakfast.test(q) ? 'breakfast' : RX.lunch.test(q) ? 'lunch' : RX.dinner.test(q) ? 'dinner' : RX.night.test(q) ? 'night' : null;
     const clock = RX.clock.exec(q);
     const hrs = RX.hours.exec(q);
     const timeAsked = meal || clock || hrs || /сегодня|today|бүгін|вчера|yesterday|кеше/i.test(q);
@@ -92,7 +93,7 @@
     const { t, g } = ctx;
     const dayOffset = RX.dayBefore.test(q) ? -2 : RX.yesterday.test(q) ? -1 : 0;
     const d0 = ctx.dayStart(ctx.now, dayOffset), d1 = ctx.dayStart(ctx.now, dayOffset + 1);
-    const win = meal === 'breakfast' ? [5, 11] : meal === 'lunch' ? [11, 16] : meal === 'dinner' ? [16, 23]
+    const win = meal === 'breakfast' ? [5, 11] : meal === 'lunch' ? [11, 16] : meal === 'dinner' ? [16, 23] : meal === 'night' ? [0, 7]
       : clock ? [Math.max(0, +clock[1] - 1), Math.min(24, +clock[1] + 1)] : [0, 24];
     const w0 = d0 + win[0] * HOUR, w1 = Math.min(d0 + win[1] * HOUR, d1);
     const when = t(dayOffset === 0 ? 'exToday' : dayOffset === -1 ? 'exYesterday' : 'exDayBefore');

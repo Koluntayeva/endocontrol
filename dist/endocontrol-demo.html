@@ -476,6 +476,27 @@ h2.hic svg{width:20px;height:20px;color:var(--accent)}
   .card.indigo h2{color:#000}.card.indigo .daycard{background:#fff;border-color:#ddd}
   .phead{background:none;padding:0}.phead .pico,.phead::after,.daynav{display:none}
 }
+
+/* ---------- the robot is clickable; its dialog ---------- */
+.robotbox[role=button]{cursor:pointer;border-radius:24px;outline-offset:4px}
+.robotbox[role=button]:focus-visible{outline:3px solid var(--accent)}
+.robotbox[role=button]::after{content:"";position:absolute;left:50%;bottom:6px;width:46%;height:10px;transform:translateX(-50%);border-radius:50%;background:radial-gradient(rgba(124,77,255,.35),transparent 70%);pointer-events:none;animation:rdglow 2.4s ease-in-out infinite}
+@keyframes rdglow{50%{opacity:.35}}
+@media (prefers-reduced-motion:reduce){.robotbox[role=button]::after{animation:none}}
+.rdhint{opacity:.75;margin-top:6px!important}
+.modal .card.rdcard{max-width:560px}
+.rdhead{gap:12px;align-items:center;margin-bottom:12px}
+.rdhead img{width:52px;height:52px;border-radius:16px}
+.rdtabs{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px}
+.rdtab{display:grid;grid-template-columns:40px 1fr;column-gap:10px;align-items:center;text-align:start;font:inherit;color:var(--text);border:1.5px solid var(--line);background:var(--card);border-radius:20px;padding:12px;cursor:pointer;transition:.15s}
+.rdtab span{grid-row:span 2;display:grid;place-items:center;width:40px;height:40px;border-radius:50%;background:var(--t-sky);color:var(--accent)}
+.rdtab span svg{width:20px;height:20px}
+.rdtab small{color:var(--muted);font-size:12px}
+.rdtab.on{border-color:var(--accent);background:var(--accent-soft)}
+.rdtab[data-k=ask] span{background:var(--t-violet);color:var(--accent2)}
+#rdpanel .chat{max-height:min(46vh,420px)}
+.rdfoot{gap:10px;margin-top:10px}
+@media (max-width:480px){.rdtabs{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -541,6 +562,8 @@ h2.hic svg{width:20px;height:20px;color:var(--accent)}
     urAwake: "Good that they are awake. As soon as they can swallow safely, give juice or sugar, then slow carbs (bread, crackers): glucagon and juice work only briefly. Check glucose every 15–30 minutes for the next hour and stay with them. If an ambulance was called, wait for the paramedics to examine them.",
     urWorse: "If it is getting worse, call {nums} right now (again if needed) and say what changed. Unconscious — nothing by mouth, on their side, glucagon. Not breathing — start resuscitation as the dispatcher tells you.",
     urContinue: "I'm here and following what is happening. Please tell me: what is glucose now, and how is the person (awake, able to swallow)? If it gets worse, call {nums} straight away.",
+    rdTitle: "How can I help?", rdSub: "I'll review the glucose curve or answer any question.", rdAnalyze: "Review glucose", rdAnalyzeSub: "today, night, after meals", rdAsk: "Ask a question", rdAskSub: "about diabetes or your data",
+    rdChipsAnalyze: "Review today's glucose|How did last night go?|What happened after breakfast today?|What happened after lunch today?|Review the last 7 days", rdOpenFull: "Open in the AI tab", rdTap: "Tap the robot to ask", rdClose: "Close", ex_night: "Night",
     urSos: "🆘 Low glucose — help", urOr: " or ", urCall: "📞 Call {n}", urTimerBtn: "⏱ Start a 15-minute timer",
     urCalm: "I'm here with you. Let's go step by step — a low can be treated quickly.",
     urLow: "Glucose {v} {u} is a low (hypoglycaemia) and needs treating right now.", urVeryLow: "Glucose {v} {u} is a dangerous low. Act now.",
@@ -663,6 +686,8 @@ h2.hic svg{width:20px;height:20px;color:var(--accent)}
     urAwake: "Хорошо, что человек пришёл в себя. Как только может безопасно глотать — дайте сок или сахар, затем медленные углеводы (хлеб, печенье): глюкагон и сок действуют недолго. Ближайший час проверяйте сахар каждые 15–30 минут и не оставляйте одного. Если скорую вызвали — дождитесь осмотра врача.",
     urWorse: "Если стало хуже — звоните {nums} прямо сейчас (при необходимости повторно) и скажите, что изменилось. Без сознания — ничего в рот, на бок, глюкагон. Не дышит — начинайте реанимацию по указаниям диспетчера.",
     urContinue: "Я рядом и слежу за ситуацией. Напишите, пожалуйста: какой сейчас сахар и как человек себя чувствует (в сознании, может ли глотать)? Если станет хуже — сразу звоните {nums}.",
+    rdTitle: "Чем помочь?", rdSub: "Разберу график сахара или отвечу на любой вопрос.", rdAnalyze: "Разбор сахара", rdAnalyzeSub: "сегодня, ночь, после еды", rdAsk: "Задать вопрос", rdAskSub: "о диабете или ваших данных",
+    rdChipsAnalyze: "Разбери сахар сегодня|Как прошла прошлая ночь?|Что было после завтрака сегодня?|Что было после обеда сегодня?|Разбери последние 7 дней", rdOpenFull: "Открыть на вкладке ИИ", rdTap: "Нажмите на робота, чтобы спросить", rdClose: "Закрыть", ex_night: "Ночь",
     urSos: "🆘 Низкий сахар — помощь", urOr: " или ", urCall: "📞 Позвонить {n}", urTimerBtn: "⏱ Засечь 15 минут",
     urCalm: "Я рядом. Давайте спокойно и по шагам — гипогликемия лечится быстро.",
     urLow: "Сахар {v} {u} — это гипогликемия, её нужно лечить прямо сейчас.", urVeryLow: "Сахар {v} {u} — это опасно низкий сахар. Действуем сразу.",
@@ -785,6 +810,8 @@ h2.hic svg{width:20px;height:20px;color:var(--accent)}
     urAwake: "Есін жиғаны жақсы. Қауіпсіз жұта алса — шырын немесе қант, содан кейін баяу көмірсу (нан, печенье) беріңіз: глюкагон мен шырын қысқа әсер етеді. Келесі бір сағатта қантты 15–30 минут сайын тексеріп, жалғыз қалдырмаңыз. Жедел жәрдем шақырылса — дәрігердің қарауын күтіңіз.",
     urWorse: "Жағдай нашарласа — {nums} нөміріне дәл қазір (қажет болса қайта) қоңырау шалып, не өзгергенін айтыңыз. Есінен танса — ауызға ештеңе бермей, бүйірімен жатқызып, глюкагон. Тыныс алмаса — диспетчердің нұсқауымен реанимация бастаңыз.",
     urContinue: "Мен қасыңыздамын және жағдайды бақылап отырмын. Жазыңызшы: қазір қант қанша және адамның жағдайы қалай (есінде ме, жұта ала ма)? Нашарласа — бірден {nums} нөміріне қоңырау шалыңыз.",
+    rdTitle: "Қалай көмектесейін?", rdSub: "Қант графигін талдаймын немесе кез келген сұраққа жауап беремін.", rdAnalyze: "Қантты талдау", rdAnalyzeSub: "бүгін, түнде, тамақтан кейін", rdAsk: "Сұрақ қою", rdAskSub: "диабет немесе деректеріңіз туралы",
+    rdChipsAnalyze: "Бүгінгі қантты талда|Өткен түн қалай өтті?|Бүгін таңғы астан кейін не болды?|Бүгін түскі астан кейін не болды?|Соңғы 7 күнді талда", rdOpenFull: "ЖИ қойындысында ашу", rdTap: "Сұрау үшін роботты басыңыз", rdClose: "Жабу", ex_night: "Түн",
     urSos: "🆘 Қант төмен — көмек", urOr: " немесе ", urCall: "📞 Қоңырау {n}", urTimerBtn: "⏱ 15 минут уақыт белгілеу",
     urCalm: "Мен қасыңыздамын. Асықпай, қадамдап жасайық — гипогликемия тез емделеді.",
     urLow: "Қант {v} {u} — бұл гипогликемия, оны дәл қазір емдеу керек.", urVeryLow: "Қант {v} {u} — бұл қауіпті төмен қант. Бірден әрекет етеміз.",
@@ -2257,6 +2284,7 @@ h2.hic svg{width:20px;height:20px;color:var(--accent)}
     breakfast: /завтрак|breakfast|таңғы/i,
     lunch: /обед|lunch|түскі/i,
     dinner: /ужин|dinner|supper|кешкі/i,
+    night: /ноч|night|түн/i,
     fall: /сниж|пада|упал|опуст|drop|fall|low|гипо|hypo|төмен|түс/i,
     rise: /выс|подня|подним|рост|раст|rise|high|spike|peak|пик|жоғары|көтер/i,
     hours: /(\d+(?:[.,]\d+)?)\s*(?:-?х\s*)?(?:час|ч\b|h\b|hour|сағ)/i,
@@ -2268,7 +2296,7 @@ h2.hic svg{width:20px;height:20px;color:var(--accent)}
   // ctx: { entries: [[ms, mg]], treatments: [{mills, carbs, insulin, eventType}], now,
   //        lo, hi, t(key, vars), g(mg) -> string, unit, time(ms) -> "HH:MM", dayStart(ms, k) }
   function answer(q, ctx) {
-    const meal = RX.breakfast.test(q) ? 'breakfast' : RX.lunch.test(q) ? 'lunch' : RX.dinner.test(q) ? 'dinner' : null;
+    const meal = RX.breakfast.test(q) ? 'breakfast' : RX.lunch.test(q) ? 'lunch' : RX.dinner.test(q) ? 'dinner' : RX.night.test(q) ? 'night' : null;
     const clock = RX.clock.exec(q);
     const hrs = RX.hours.exec(q);
     const timeAsked = meal || clock || hrs || /сегодня|today|бүгін|вчера|yesterday|кеше/i.test(q);
@@ -2276,7 +2304,7 @@ h2.hic svg{width:20px;height:20px;color:var(--accent)}
     const { t, g } = ctx;
     const dayOffset = RX.dayBefore.test(q) ? -2 : RX.yesterday.test(q) ? -1 : 0;
     const d0 = ctx.dayStart(ctx.now, dayOffset), d1 = ctx.dayStart(ctx.now, dayOffset + 1);
-    const win = meal === 'breakfast' ? [5, 11] : meal === 'lunch' ? [11, 16] : meal === 'dinner' ? [16, 23]
+    const win = meal === 'breakfast' ? [5, 11] : meal === 'lunch' ? [11, 16] : meal === 'dinner' ? [16, 23] : meal === 'night' ? [0, 7]
       : clock ? [Math.max(0, +clock[1] - 1), Math.min(24, +clock[1] + 1)] : [0, 24];
     const w0 = d0 + win[0] * HOUR, w1 = Math.min(d0 + win[1] * HOUR, d1);
     const when = t(dayOffset === 0 ? 'exToday' : dayOffset === -1 ? 'exYesterday' : 'exDayBefore');
@@ -3186,6 +3214,7 @@ window.ECCsv = { parseCsv, parseDateTime };
       document.querySelectorAll('[data-hq]').forEach(b => b.onclick = () => toAi(b.dataset.hq));
       $('#hsos').onclick = () => toAi(t('urSos'), true);
       if (!rbox) { rbox = document.createElement('div'); rbox.className = 'robotbox homebot'; rbox.innerHTML = `<img src="${IMG('ai')}" alt="">`; }
+      robotClickable(rbox);
       $('#hrobot').appendChild(rbox);
       if (!ROBOT) mountRobot(rbox);
     };
@@ -3532,13 +3561,18 @@ window.ECCsv = { parseCsv, parseDateTime };
       if (r) { ROBOT = r; boxEl.classList.add('live'); }
     } catch { /* no WebGL or no modules (offline demo): keep the picture */ }
   }
-  async function ai() {
-    const me = S.me;
+  // ---- the analyst's chat as one component, used on the AI tab and in the robot's dialog.
+  // Data for 14 days and the AI status are cached for a minute so the dialog opens fast.
+  async function aiData() {
+    if (S.aiCtx && Date.now() - S.aiCtx.at < 60e3) return S.aiCtx;
     const to = Date.now() + 60e3, from = to - 14 * 864e5;
     const [d, status] = await Promise.all([getData(from, to), api('GET', '/app/ai').catch(() => ({ enabled: false }))]);
-    const { lo, hi } = targets(me.user);
-    const st = C.stats(d.entries.map(e => e[1]), lo, hi);
-    const found = insights(d.entries, lo, hi);
+    S.aiCtx = { at: Date.now(), d, status, to };
+    return S.aiCtx;
+  }
+  async function aiPanel(root, opts = {}) {
+    const { d, status, to } = await aiData();
+    const { lo, hi } = targets(S.me.user);
     // Without the AI: a curve analysis for questions about a meal or a moment, a school lesson
     // for general questions, and the pattern review for everything else.
     const ruleAnswer = q => {
@@ -3558,6 +3592,24 @@ window.ECCsv = { parseCsv, parseDateTime };
     };
     const uctx = (reading, extra = {}) => ({ t, g: G, unit: UL(), mmol: S.units === 'mmol', reading, now: Date.now(), state: urg.state, tz: Intl.DateTimeFormat().resolvedOptions().timeZone, lang: S.lang, ...extra });
     const keepState = st => { urg.state = st; try { if (st.country) localStorage.setItem('ec_country', st.country); } catch { /* not kept */ } };
+    let busy = false, note = status.enabled ? t('aiPrivacy') : t('aiOff') + ' ' + t('aiNoKeyShort');
+    let chips = opts.chips || t('aiChips').split('|');
+    root.innerHTML = `${opts.head || ''}<div class="chat"></div><div class="chips"></div>
+      <form class="aiform"><input maxlength="2000" autocomplete="off" placeholder="${esc(t('aiPlaceholder'))}" aria-label="${esc(t('aiAsk'))}">
+        <button class="btn" aria-label="${esc(t('aiSend'))}">➤</button></form>
+      <p class="tiny muted ainote" style="margin-bottom:0"></p>`;
+    const q$ = sel => root.querySelector(sel);
+    const draw = () => {
+      if (!document.body.contains(root)) return;
+      q$('.chat').innerHTML = chat.map(m => `<div class="msg ${m.role === 'user' ? 'u' : 'a'}${m.pending ? ' pending' : ''}${m.level ? ' urgent lv-' + esc(m.level) : ''}">${m.role === 'user' ? esc(m.text) : aiMd(m.text)}${m.lesson ? `<div><a href="#/school/${esc(m.lesson)}" class="small">🎓 ${esc(t('navSchool'))} →</a></div>` : ''}${m.actions && m.actions.length ? `<div class="uract">${m.actions.map(a => a.kind === 'call' ? `<a class="btn red sm" href="tel:${esc(a.tel)}">${esc(a.label)}</a>` : `<button type="button" class="btn sm" data-timer="1">${esc(a.label)}</button>`).join('')}</div>` : ''}</div>`).join('');
+      root.querySelectorAll('[data-timer]').forEach(b => b.onclick = () => { startHypoTimer(15); toast(t('tmLeft', { m: '15:00' })); });
+      root.querySelectorAll('.chat a[href^="#/"]').forEach(a => a.addEventListener('click', () => { if (opts.onLeave) opts.onLeave(); }));
+      q$('.chips').innerHTML = (opts.keepChips || !chat.length) ? chips.map(c => `<button type="button" class="chip">${esc(c)}</button>`).join('') : '';
+      root.querySelectorAll('.chips .chip').forEach(b => b.onclick = () => ask(b.textContent));
+      q$('.aiform button').disabled = busy;
+      q$('.ainote').textContent = note;
+      const last = q$('.chat').lastElementChild; if (last) last.scrollIntoView({ block: 'nearest' });
+    };
     async function recheck() {
       const r = window.Urgent.recheck(uctx(await latest()));
       keepState(r.state);
@@ -3565,26 +3617,6 @@ window.ECCsv = { parseCsv, parseDateTime };
       if (ROBOT) ROBOT.setMode('idle');
       draw();
     }
-    let busy = false, note = status.enabled ? t('aiPrivacy') : t('aiOff') + ' ' + t('aiNoKeyShort');
-    const chips = t('aiChips').split('|');
-    $('#view').innerHTML = `<div class="banner violet"><div class="btxt"><h1>${esc(t('navAi'))}</h1><p>${esc(t('aiIntro'))}</p></div>
-        <div class="robotbox" id="robotbox" aria-hidden="true"><img src="${IMG('ai')}" alt=""></div></div>
-      <div class="card">${metricsHtml(st, lo, hi)}
-        <h2 style="margin-top:16px">${esc(t('aiSeen'))}</h2>${found.map(x => `<div class="ins">${esc(x)}</div>`).join('')}</div>
-      <div class="card"><div class="row" style="gap:10px;flex-wrap:wrap;align-items:center"><h2 style="margin:0">${esc(t('aiAsk'))}</h2><button type="button" class="btn red sm" id="sos" style="margin-inline-start:auto">${esc(t('urSos'))}</button></div>
-        <div class="chat" id="chat"></div><div class="chips" id="chips"></div>
-        <form id="aiForm" class="aiform"><input id="aiIn" maxlength="2000" autocomplete="off" placeholder="${esc(t('aiPlaceholder'))}" aria-label="${esc(t('aiAsk'))}">
-          <button class="btn" id="aiSend" aria-label="${esc(t('aiSend'))}">➤</button></form>
-        <p class="tiny muted" id="aiNote" style="margin-bottom:0"></p></div>`;
-    const draw = () => {
-      $('#chat').innerHTML = chat.map(m => `<div class="msg ${m.role === 'user' ? 'u' : 'a'}${m.pending ? ' pending' : ''}${m.level ? ' urgent lv-' + esc(m.level) : ''}">${m.role === 'user' ? esc(m.text) : aiMd(m.text)}${m.lesson ? `<div><a href="#/school/${esc(m.lesson)}" class="small">🎓 ${esc(t('navSchool'))} →</a></div>` : ''}${m.actions && m.actions.length ? `<div class="uract">${m.actions.map(a => a.kind === 'call' ? `<a class="btn red sm" href="tel:${esc(a.tel)}">${esc(a.label)}</a>` : `<button type="button" class="btn sm" data-timer="1">${esc(a.label)}</button>`).join('')}</div>` : ''}</div>`).join('');
-      document.querySelectorAll('#chat [data-timer]').forEach(b => b.onclick = () => { startHypoTimer(15); toast(t('tmLeft', { m: '15:00' })); });
-      $('#chips').innerHTML = chat.length ? '' : chips.map(c => `<button type="button" class="chip">${esc(c)}</button>`).join('');
-      document.querySelectorAll('#chips .chip').forEach(b => b.onclick = () => ask(b.textContent));
-      $('#aiSend').disabled = busy;
-      $('#aiNote').textContent = note;
-      const last = $('#chat').lastElementChild; if (last) last.scrollIntoView({ block: 'nearest' });
-    };
     async function ask(q, force = false) {
       q = String(q || '').trim();
       if (!q || busy) return;
@@ -3613,17 +3645,62 @@ window.ECCsv = { parseCsv, parseDateTime };
       }
       reply.pending = false; busy = false;
       if (ROBOT) ROBOT.setMode(reply.local && !reply.text ? 'idle' : 'quote');
-      const chatEl = $('#chat');
-      if (chatEl) draw();
+      draw();
     }
-    $('#aiForm').onsubmit = e => { e.preventDefault(); const v = $('#aiIn').value; $('#aiIn').value = ''; ask(v); };
-    $('#sos').onclick = () => ask(t('urSos'), true);
-    // When the 15-minute timer ends on this page, check the sensor straight away.
-    HT.onDone = () => { if (!location.hash.startsWith('#/ai')) return false; htSet(0); hypoTimerDraw(); recheck(); return true; };
+    q$('.aiform').onsubmit = e => { e.preventDefault(); const inp = q$('.aiform input'); const v = inp.value; inp.value = ''; ask(v); };
     draw();
+    return { ask, recheck, draw, setChips: list => { chips = list; draw(); }, focus: () => q$('.aiform input').focus() };
+  }
+
+  // ---- tapping the robot: a dialog to review glucose or ask anything
+  function openRobotDialog() {
+    if (ROBOT && ROBOT.poke) ROBOT.poke();
+    const analyse = t('rdChipsAnalyze').split('|'), questions = t('aiChips').split('|');
+    modal(`<div class="rdlg">
+      <div class="row rdhead"><img src="${IMG('ai')}" alt=""><div class="grow"><h2 style="margin:0">${esc(t('rdTitle'))}</h2><div class="small muted">${esc(t('rdSub'))}</div></div><button class="iconbtn" data-close aria-label="${esc(t('rdClose'))}">✕</button></div>
+      <div class="rdtabs"><button type="button" class="rdtab on" data-k="analyse"><span>${icon('reports')}</span><b>${esc(t('rdAnalyze'))}</b><small>${esc(t('rdAnalyzeSub'))}</small></button>
+        <button type="button" class="rdtab" data-k="ask"><span>${icon('chat')}</span><b>${esc(t('rdAsk'))}</b><small>${esc(t('rdAskSub'))}</small></button></div>
+      <div id="rdpanel"></div>
+      <div class="row rdfoot"><button type="button" class="btn red sm" id="rdsos">${esc(t('urSos'))}</button><a class="btn ghost sm" href="#/ai" id="rdfull" style="margin-inline-start:auto">${esc(t('rdOpenFull'))} →</a></div></div>`, async () => {
+      const panel = await aiPanel($('#rdpanel'), { chips: analyse, keepChips: true, onLeave: closeModal });
+      document.querySelectorAll('.rdtab').forEach(b => b.onclick = () => {
+        document.querySelectorAll('.rdtab').forEach(x => x.classList.toggle('on', x === b));
+        if (b.dataset.k === 'analyse') panel.setChips(analyse); else { panel.setChips(questions); panel.focus(); }
+      });
+      $('#rdsos').onclick = () => panel.ask(t('urSos'), true);
+      $('#rdfull').onclick = () => closeModal();
+    });
+    document.querySelector('#modal .modal .card')?.classList.add('rdcard');
+  }
+  // Makes a robot box clickable (and keyboard-reachable).
+  function robotClickable(box) {
+    if (!box || box.dataset.click) return;
+    box.dataset.click = '1';
+    box.setAttribute('role', 'button'); box.setAttribute('tabindex', '0'); box.removeAttribute('aria-hidden');
+    box.setAttribute('aria-label', t('rdTitle')); box.title = t('rdTap');
+    box.addEventListener('click', openRobotDialog);
+    box.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openRobotDialog(); } });
+  }
+
+  async function ai() {
+    const me = S.me;
+    const { d } = await aiData();
+    const { lo, hi } = targets(me.user);
+    const st = C.stats(d.entries.map(e => e[1]), lo, hi);
+    const found = insights(d.entries, lo, hi);
+    $('#view').innerHTML = `<div class="banner violet"><div class="btxt"><h1>${esc(t('navAi'))}</h1><p>${esc(t('aiIntro'))}</p><p class="small rdhint">${esc(t('rdTap'))}</p></div>
+        <div class="robotbox" id="robotbox"><img src="${IMG('ai')}" alt=""></div></div>
+      <div class="card">${metricsHtml(st, lo, hi)}
+        <h2 style="margin-top:16px">${esc(t('aiSeen'))}</h2>${found.map(x => `<div class="ins">${esc(x)}</div>`).join('')}</div>
+      <div class="card" id="aichat"></div>`;
+    const panel = await aiPanel($('#aichat'), { head: `<div class="row" style="gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:6px"><h2 style="margin:0">${esc(t('aiAsk'))}</h2><button type="button" class="btn red sm" id="sos" style="margin-inline-start:auto">${esc(t('urSos'))}</button></div>` });
+    $('#sos').onclick = () => panel.ask(t('urSos'), true);
+    // When the 15-minute timer ends on this page, check the sensor straight away.
+    HT.onDone = () => { if (!location.hash.startsWith('#/ai')) return false; htSet(0); hypoTimerDraw(); panel.recheck(); return true; };
+    robotClickable($('#robotbox'));
     mountRobot($('#robotbox'));
-    if (S.pendingRecheck) { S.pendingRecheck = false; recheck(); }
-    if (S.pendingQuestion) { const pq = S.pendingQuestion; S.pendingQuestion = null; ask(pq.q, pq.force); }
+    if (S.pendingRecheck) { S.pendingRecheck = false; panel.recheck(); }
+    if (S.pendingQuestion) { const pq = S.pendingQuestion; S.pendingQuestion = null; panel.ask(pq.q, pq.force); }
   }
 
   // ------------------------------------------------------------ diabetes school

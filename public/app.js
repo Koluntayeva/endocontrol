@@ -342,6 +342,7 @@
       document.querySelectorAll('[data-hq]').forEach(b => b.onclick = () => toAi(b.dataset.hq));
       $('#hsos').onclick = () => toAi(t('urSos'), true);
       if (!rbox) { rbox = document.createElement('div'); rbox.className = 'robotbox homebot'; rbox.innerHTML = `<img src="${IMG('ai')}" alt="">`; }
+      robotClickable(rbox);
       $('#hrobot').appendChild(rbox);
       if (!ROBOT) mountRobot(rbox);
     };
@@ -688,13 +689,18 @@
       if (r) { ROBOT = r; boxEl.classList.add('live'); }
     } catch { /* no WebGL or no modules (offline demo): keep the picture */ }
   }
-  async function ai() {
-    const me = S.me;
+  // ---- the analyst's chat as one component, used on the AI tab and in the robot's dialog.
+  // Data for 14 days and the AI status are cached for a minute so the dialog opens fast.
+  async function aiData() {
+    if (S.aiCtx && Date.now() - S.aiCtx.at < 60e3) return S.aiCtx;
     const to = Date.now() + 60e3, from = to - 14 * 864e5;
     const [d, status] = await Promise.all([getData(from, to), api('GET', '/app/ai').catch(() => ({ enabled: false }))]);
-    const { lo, hi } = targets(me.user);
-    const st = C.stats(d.entries.map(e => e[1]), lo, hi);
-    const found = insights(d.entries, lo, hi);
+    S.aiCtx = { at: Date.now(), d, status, to };
+    return S.aiCtx;
+  }
+  async function aiPanel(root, opts = {}) {
+    const { d, status, to } = await aiData();
+    const { lo, hi } = targets(S.me.user);
     // Without the AI: a curve analysis for questions about a meal or a moment, a school lesson
     // for general questions, and the pattern review for everything else.
     const ruleAnswer = q => {
@@ -714,6 +720,24 @@
     };
     const uctx = (reading, extra = {}) => ({ t, g: G, unit: UL(), mmol: S.units === 'mmol', reading, now: Date.now(), state: urg.state, tz: Intl.DateTimeFormat().resolvedOptions().timeZone, lang: S.lang, ...extra });
     const keepState = st => { urg.state = st; try { if (st.country) localStorage.setItem('ec_country', st.country); } catch { /* not kept */ } };
+    let busy = false, note = status.enabled ? t('aiPrivacy') : t('aiOff') + ' ' + t('aiNoKeyShort');
+    let chips = opts.chips || t('aiChips').split('|');
+    root.innerHTML = `${opts.head || ''}<div class="chat"></div><div class="chips"></div>
+      <form class="aiform"><input maxlength="2000" autocomplete="off" placeholder="${esc(t('aiPlaceholder'))}" aria-label="${esc(t('aiAsk'))}">
+        <button class="btn" aria-label="${esc(t('aiSend'))}">➤</button></form>
+      <p class="tiny muted ainote" style="margin-bottom:0"></p>`;
+    const q$ = sel => root.querySelector(sel);
+    const draw = () => {
+      if (!document.body.contains(root)) return;
+      q$('.chat').innerHTML = chat.map(m => `<div class="msg ${m.role === 'user' ? 'u' : 'a'}${m.pending ? ' pending' : ''}${m.level ? ' urgent lv-' + esc(m.level) : ''}">${m.role === 'user' ? esc(m.text) : aiMd(m.text)}${m.lesson ? `<div><a href="#/school/${esc(m.lesson)}" class="small">🎓 ${esc(t('navSchool'))} →</a></div>` : ''}${m.actions && m.actions.length ? `<div class="uract">${m.actions.map(a => a.kind === 'call' ? `<a class="btn red sm" href="tel:${esc(a.tel)}">${esc(a.label)}</a>` : `<button type="button" class="btn sm" data-timer="1">${esc(a.label)}</button>`).join('')}</div>` : ''}</div>`).join('');
+      root.querySelectorAll('[data-timer]').forEach(b => b.onclick = () => { startHypoTimer(15); toast(t('tmLeft', { m: '15:00' })); });
+      root.querySelectorAll('.chat a[href^="#/"]').forEach(a => a.addEventListener('click', () => { if (opts.onLeave) opts.onLeave(); }));
+      q$('.chips').innerHTML = (opts.keepChips || !chat.length) ? chips.map(c => `<button type="button" class="chip">${esc(c)}</button>`).join('') : '';
+      root.querySelectorAll('.chips .chip').forEach(b => b.onclick = () => ask(b.textContent));
+      q$('.aiform button').disabled = busy;
+      q$('.ainote').textContent = note;
+      const last = q$('.chat').lastElementChild; if (last) last.scrollIntoView({ block: 'nearest' });
+    };
     async function recheck() {
       const r = window.Urgent.recheck(uctx(await latest()));
       keepState(r.state);
@@ -721,26 +745,6 @@
       if (ROBOT) ROBOT.setMode('idle');
       draw();
     }
-    let busy = false, note = status.enabled ? t('aiPrivacy') : t('aiOff') + ' ' + t('aiNoKeyShort');
-    const chips = t('aiChips').split('|');
-    $('#view').innerHTML = `<div class="banner violet"><div class="btxt"><h1>${esc(t('navAi'))}</h1><p>${esc(t('aiIntro'))}</p></div>
-        <div class="robotbox" id="robotbox" aria-hidden="true"><img src="${IMG('ai')}" alt=""></div></div>
-      <div class="card">${metricsHtml(st, lo, hi)}
-        <h2 style="margin-top:16px">${esc(t('aiSeen'))}</h2>${found.map(x => `<div class="ins">${esc(x)}</div>`).join('')}</div>
-      <div class="card"><div class="row" style="gap:10px;flex-wrap:wrap;align-items:center"><h2 style="margin:0">${esc(t('aiAsk'))}</h2><button type="button" class="btn red sm" id="sos" style="margin-inline-start:auto">${esc(t('urSos'))}</button></div>
-        <div class="chat" id="chat"></div><div class="chips" id="chips"></div>
-        <form id="aiForm" class="aiform"><input id="aiIn" maxlength="2000" autocomplete="off" placeholder="${esc(t('aiPlaceholder'))}" aria-label="${esc(t('aiAsk'))}">
-          <button class="btn" id="aiSend" aria-label="${esc(t('aiSend'))}">➤</button></form>
-        <p class="tiny muted" id="aiNote" style="margin-bottom:0"></p></div>`;
-    const draw = () => {
-      $('#chat').innerHTML = chat.map(m => `<div class="msg ${m.role === 'user' ? 'u' : 'a'}${m.pending ? ' pending' : ''}${m.level ? ' urgent lv-' + esc(m.level) : ''}">${m.role === 'user' ? esc(m.text) : aiMd(m.text)}${m.lesson ? `<div><a href="#/school/${esc(m.lesson)}" class="small">🎓 ${esc(t('navSchool'))} →</a></div>` : ''}${m.actions && m.actions.length ? `<div class="uract">${m.actions.map(a => a.kind === 'call' ? `<a class="btn red sm" href="tel:${esc(a.tel)}">${esc(a.label)}</a>` : `<button type="button" class="btn sm" data-timer="1">${esc(a.label)}</button>`).join('')}</div>` : ''}</div>`).join('');
-      document.querySelectorAll('#chat [data-timer]').forEach(b => b.onclick = () => { startHypoTimer(15); toast(t('tmLeft', { m: '15:00' })); });
-      $('#chips').innerHTML = chat.length ? '' : chips.map(c => `<button type="button" class="chip">${esc(c)}</button>`).join('');
-      document.querySelectorAll('#chips .chip').forEach(b => b.onclick = () => ask(b.textContent));
-      $('#aiSend').disabled = busy;
-      $('#aiNote').textContent = note;
-      const last = $('#chat').lastElementChild; if (last) last.scrollIntoView({ block: 'nearest' });
-    };
     async function ask(q, force = false) {
       q = String(q || '').trim();
       if (!q || busy) return;
@@ -769,17 +773,62 @@
       }
       reply.pending = false; busy = false;
       if (ROBOT) ROBOT.setMode(reply.local && !reply.text ? 'idle' : 'quote');
-      const chatEl = $('#chat');
-      if (chatEl) draw();
+      draw();
     }
-    $('#aiForm').onsubmit = e => { e.preventDefault(); const v = $('#aiIn').value; $('#aiIn').value = ''; ask(v); };
-    $('#sos').onclick = () => ask(t('urSos'), true);
-    // When the 15-minute timer ends on this page, check the sensor straight away.
-    HT.onDone = () => { if (!location.hash.startsWith('#/ai')) return false; htSet(0); hypoTimerDraw(); recheck(); return true; };
+    q$('.aiform').onsubmit = e => { e.preventDefault(); const inp = q$('.aiform input'); const v = inp.value; inp.value = ''; ask(v); };
     draw();
+    return { ask, recheck, draw, setChips: list => { chips = list; draw(); }, focus: () => q$('.aiform input').focus() };
+  }
+
+  // ---- tapping the robot: a dialog to review glucose or ask anything
+  function openRobotDialog() {
+    if (ROBOT && ROBOT.poke) ROBOT.poke();
+    const analyse = t('rdChipsAnalyze').split('|'), questions = t('aiChips').split('|');
+    modal(`<div class="rdlg">
+      <div class="row rdhead"><img src="${IMG('ai')}" alt=""><div class="grow"><h2 style="margin:0">${esc(t('rdTitle'))}</h2><div class="small muted">${esc(t('rdSub'))}</div></div><button class="iconbtn" data-close aria-label="${esc(t('rdClose'))}">✕</button></div>
+      <div class="rdtabs"><button type="button" class="rdtab on" data-k="analyse"><span>${icon('reports')}</span><b>${esc(t('rdAnalyze'))}</b><small>${esc(t('rdAnalyzeSub'))}</small></button>
+        <button type="button" class="rdtab" data-k="ask"><span>${icon('chat')}</span><b>${esc(t('rdAsk'))}</b><small>${esc(t('rdAskSub'))}</small></button></div>
+      <div id="rdpanel"></div>
+      <div class="row rdfoot"><button type="button" class="btn red sm" id="rdsos">${esc(t('urSos'))}</button><a class="btn ghost sm" href="#/ai" id="rdfull" style="margin-inline-start:auto">${esc(t('rdOpenFull'))} →</a></div></div>`, async () => {
+      const panel = await aiPanel($('#rdpanel'), { chips: analyse, keepChips: true, onLeave: closeModal });
+      document.querySelectorAll('.rdtab').forEach(b => b.onclick = () => {
+        document.querySelectorAll('.rdtab').forEach(x => x.classList.toggle('on', x === b));
+        if (b.dataset.k === 'analyse') panel.setChips(analyse); else { panel.setChips(questions); panel.focus(); }
+      });
+      $('#rdsos').onclick = () => panel.ask(t('urSos'), true);
+      $('#rdfull').onclick = () => closeModal();
+    });
+    document.querySelector('#modal .modal .card')?.classList.add('rdcard');
+  }
+  // Makes a robot box clickable (and keyboard-reachable).
+  function robotClickable(box) {
+    if (!box || box.dataset.click) return;
+    box.dataset.click = '1';
+    box.setAttribute('role', 'button'); box.setAttribute('tabindex', '0'); box.removeAttribute('aria-hidden');
+    box.setAttribute('aria-label', t('rdTitle')); box.title = t('rdTap');
+    box.addEventListener('click', openRobotDialog);
+    box.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openRobotDialog(); } });
+  }
+
+  async function ai() {
+    const me = S.me;
+    const { d } = await aiData();
+    const { lo, hi } = targets(me.user);
+    const st = C.stats(d.entries.map(e => e[1]), lo, hi);
+    const found = insights(d.entries, lo, hi);
+    $('#view').innerHTML = `<div class="banner violet"><div class="btxt"><h1>${esc(t('navAi'))}</h1><p>${esc(t('aiIntro'))}</p><p class="small rdhint">${esc(t('rdTap'))}</p></div>
+        <div class="robotbox" id="robotbox"><img src="${IMG('ai')}" alt=""></div></div>
+      <div class="card">${metricsHtml(st, lo, hi)}
+        <h2 style="margin-top:16px">${esc(t('aiSeen'))}</h2>${found.map(x => `<div class="ins">${esc(x)}</div>`).join('')}</div>
+      <div class="card" id="aichat"></div>`;
+    const panel = await aiPanel($('#aichat'), { head: `<div class="row" style="gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:6px"><h2 style="margin:0">${esc(t('aiAsk'))}</h2><button type="button" class="btn red sm" id="sos" style="margin-inline-start:auto">${esc(t('urSos'))}</button></div>` });
+    $('#sos').onclick = () => panel.ask(t('urSos'), true);
+    // When the 15-minute timer ends on this page, check the sensor straight away.
+    HT.onDone = () => { if (!location.hash.startsWith('#/ai')) return false; htSet(0); hypoTimerDraw(); panel.recheck(); return true; };
+    robotClickable($('#robotbox'));
     mountRobot($('#robotbox'));
-    if (S.pendingRecheck) { S.pendingRecheck = false; recheck(); }
-    if (S.pendingQuestion) { const pq = S.pendingQuestion; S.pendingQuestion = null; ask(pq.q, pq.force); }
+    if (S.pendingRecheck) { S.pendingRecheck = false; panel.recheck(); }
+    if (S.pendingQuestion) { const pq = S.pendingQuestion; S.pendingQuestion = null; panel.ask(pq.q, pq.force); }
   }
 
   // ------------------------------------------------------------ diabetes school
