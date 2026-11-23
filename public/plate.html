@@ -214,6 +214,7 @@ body.open .reveal{animation:spring .6s cubic-bezier(.3,1.5,.5,1) forwards}
 }
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 
+.prebox{display:grid;grid-template-columns:1fr auto 1fr;gap:4px;background:#f4f2ef;border-radius:16px;padding:4px}.prebox .pseg{display:flex;align-items:center;justify-content:center;gap:5px;flex-wrap:wrap;padding:7px 8px;border-radius:12px;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;text-align:center}.prebox .pseg.on{background:#fff;color:var(--text);box-shadow:0 2px 8px rgba(40,30,90,.1)}.prebox input{width:44px;padding:4px 2px;text-align:center;font:inherit;font-size:15px;font-weight:700;border:1.5px solid var(--line);border-radius:9px}.prebox .pseg.on input{border-color:var(--g3)}@media (max-width:440px){.prebox{grid-template-columns:1fr}}
 .premin{display:flex;align-items:center;gap:6px;margin-top:8px;flex-wrap:wrap}.premin input{width:60px;text-align:center;font:inherit;font-size:16px;font-weight:600;border:1px solid var(--line);border-radius:12px;padding:7px}.premin span{color:var(--muted);font-size:13px}.premin button{border:1px solid var(--line);background:#faf9f7;border-radius:999px;padding:5px 10px;font-size:12.5px;font-weight:600}
 .save{border-top:2px dashed var(--line);margin-top:4px;padding-top:6px}
 .save .ogrid{grid-template-columns:1fr 1fr}.save .ogrid .fld:first-child{grid-column:auto}
@@ -332,7 +333,7 @@ body.open .reveal{animation:spring .6s cubic-bezier(.3,1.5,.5,1) forwards}
   <div class="save" id="saveBox">
     <div class="fld"><label>Приём пищи</label><div class="chips" id="sMeal"></div></div>
     <div class="ogrid"><div class="fld"><label>Болюс, ЕД <small>(если вводили)</small></label><input id="sIns" inputmode="decimal" placeholder="например 3,5"></div>
-      <div class="fld"><label>Когда ввели болюс</label><div class="chips" id="sPre"><button data-v="before" class="on">до еды</button><button data-v="with">с едой</button><button data-v="after">после</button></div><div class="premin" id="sPreMin"><input id="sPreM" inputmode="numeric" maxlength="3" value="15" aria-label="минут"><span>мин</span><button type="button" data-m="5">5</button><button type="button" data-m="10">10</button><button type="button" data-m="15">15</button><button type="button" data-m="20">20</button></div></div></div>
+      <div class="fld"><label>Когда ввели болюс</label><div class="prebox" id="sPre"><div class="pseg on" data-p="before">за <input id="sPreB" inputmode="numeric" maxlength="3" value="15" aria-label="минут до еды"> мин до еды</div><div class="pseg" data-p="with">вместе с едой</div><div class="pseg" data-p="after">через <input id="sPreA" inputmode="numeric" maxlength="3" value="10" aria-label="минут после еды"> мин после</div></div></div></div>
     <div class="fld"><label>Время еды</label><div class="chips" id="sWhen"><button data-v="0" class="on">сейчас</button><button data-v="15">15 мин назад</button><button data-v="30">30 мин назад</button><button data-v="60">1 ч назад</button></div></div>
     <div class="oerr" id="sErr"></div>
     <button class="btn" id="sSave" style="width:100%">Записать в дневник</button>

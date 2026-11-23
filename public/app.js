@@ -640,22 +640,30 @@
 
   // ---- number fields accept "6,5" as well as "6.5"
   const parseNum = v => { const x = parseFloat(String(v == null ? '' : v).trim().replace(',', '.')); return Number.isFinite(x) ? x : NaN; };
-  // "When was the bolus given": before / with / after the meal, and the minutes of the pause, typed or picked
+  // "When was the bolus given": the three usual choices, with the minutes typed right inside them —
+  // "[15] min before the meal", "with the meal", "[10] min after the meal". Any number can be typed.
   function preHtml(id, v = 15) {
-    const dir = v > 0 ? 'before' : v < 0 ? 'after' : 'with', m = Math.abs(v) || 15;
-    return `<div class="prebox" id="${id}"><div class="seg wide" data-pdir>${[['before', t('bwBeforeS')], ['with', t('bwWith')], ['after', t('bwAfterS')]].map(([k, l]) => `<button type="button" data-v="${k}" class="${k === dir ? 'on' : ''}">${esc(l)}</button>`).join('')}</div>
-      <div class="premin" ${dir === 'with' ? 'hidden' : ''}><input type="text" inputmode="numeric" maxlength="3" value="${m}" aria-label="${esc(t('min'))}"><span>${esc(t('min'))}</span>${[5, 10, 15, 20, 30].map(n => `<button type="button" class="chip" data-m="${n}">${n}</button>`).join('')}</div></div>`;
+    const dir = v > 0 ? 'before' : v < 0 ? 'after' : 'with';
+    const minIn = (d, val) => `<input type="text" inputmode="numeric" maxlength="3" value="${val}" aria-label="${esc(t('min'))}" data-in="${d}">`;
+    return `<div class="seg wide prebox" id="${id}">
+      <div role="button" tabindex="0" class="pseg ${dir === 'before' ? 'on' : ''}" data-p="before">${esc(t('bwPreA'))} ${minIn('before', dir === 'before' ? v : 15)} ${esc(t('bwPreB'))}</div>
+      <div role="button" tabindex="0" class="pseg ${dir === 'with' ? 'on' : ''}" data-p="with">${esc(t('bwWith'))}</div>
+      <div role="button" tabindex="0" class="pseg ${dir === 'after' ? 'on' : ''}" data-p="after">${esc(t('bwPostA'))} ${minIn('after', dir === 'after' ? -v : 10)} ${esc(t('bwPostB'))}</div></div>`;
   }
   function preMount(id) {
     const box = $('#' + id); if (!box) return;
-    box.querySelectorAll('[data-pdir] button').forEach(b => b.onclick = () => { box.querySelectorAll('[data-pdir] button').forEach(x => x.classList.toggle('on', x === b)); box.querySelector('.premin').hidden = b.dataset.v === 'with'; });
-    box.querySelectorAll('[data-m]').forEach(b => b.onclick = () => { box.querySelector('.premin input').value = b.dataset.m; });
+    const pick = el => box.querySelectorAll('.pseg').forEach(x => x.classList.toggle('on', x === el));
+    box.querySelectorAll('.pseg').forEach(el => {
+      el.onclick = () => pick(el);
+      el.onkeydown = e => { if ((e.key === 'Enter' || e.key === ' ') && e.target === el) { e.preventDefault(); pick(el); } };
+    });
+    box.querySelectorAll('input').forEach(inp => { inp.onfocus = () => { pick(inp.closest('.pseg')); inp.select(); }; inp.onclick = e => e.stopPropagation(); });
   }
   function preVal(id) {
     const box = $('#' + id); if (!box) return 15;
-    const d = box.querySelector('[data-pdir] .on').dataset.v; if (d === 'with') return 0;
-    const m = Math.max(0, Math.min(180, Math.round(parseNum(box.querySelector('.premin input').value) || 0)));
-    return d === 'before' ? m : -m;
+    const on = box.querySelector('.pseg.on'); if (!on || on.dataset.p === 'with') return 0;
+    const m = Math.max(0, Math.min(180, Math.round(parseNum(on.querySelector('input').value) || 0)));
+    return on.dataset.p === 'before' ? m : -m;
   }
   const preText = v => (+v > 0 ? t('bwBeforeN', { n: +v }) : +v < 0 ? t('bwAfterN', { n: -v }) : t('bwWith'));
   const numField = (id, label, req) => `<div class="fld"><label for="${id}">${esc(label)}</label><input id="${id}" type="text" inputmode="decimal" autocomplete="off" pattern="[0-9]*[.,]?[0-9]*" ${req ? 'required' : ''}></div>`;

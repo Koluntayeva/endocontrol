@@ -318,8 +318,10 @@ let meal = MEALS.some(m => m[0] === askedMeal) ? askedMeal : byClock(new Date().
 const pickOne = (box, cb) => box.querySelectorAll('button').forEach(b => b.onclick = () => { box.querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); cb && cb(b.dataset.v); });
 function drawSave() {
   $('#sMeal').innerHTML = MEALS.map(([k, n]) => `<button data-v="${k}" class="${k === meal ? 'on' : ''}">${n}</button>`).join('');
-  pickOne($('#sMeal'), v => { meal = v; }); pickOne($('#sPre'), v => { $('#sPreMin').hidden = v === 'with'; }); pickOne($('#sWhen'));
-  document.querySelectorAll('#sPreMin [data-m]').forEach(b => b.onclick = () => { $('#sPreM').value = b.dataset.m; });
+  pickOne($('#sMeal'), v => { meal = v; }); pickOne($('#sWhen'));
+  const segs = document.querySelectorAll('#sPre .pseg'), pickSeg = el => segs.forEach(x => x.classList.toggle('on', x === el));
+  segs.forEach(el => { el.onclick = () => pickSeg(el); });
+  document.querySelectorAll('#sPre input').forEach(i => { i.onfocus = () => { pickSeg(i.closest('.pseg')); i.select(); }; i.onclick = e => e.stopPropagation(); });
   $('#sErr').textContent = ''; $('#sSave').disabled = false; $('#sSave').textContent = 'Записать в дневник';
 }
 const r1 = x => Math.round(x * 10) / 10;
@@ -328,8 +330,9 @@ $('#sSave').onclick = async () => {
   const insRaw = $('#sIns').value.trim(), ins = insRaw ? parseFloat(insRaw.replace(',', '.')) : 0;
   if (insRaw && !(ins >= 0 && ins < 100)) return ($('#sErr').textContent = 'Проверьте дозу');
   if (!(t.c > 0) && !ins) return ($('#sErr').textContent = 'На тарелке нет углеводов — записывать нечего');
-  const dir = ($('#sPre .on') || {}).dataset?.v || 'before', mins = Math.max(0, Math.min(180, Math.round(parseFloat(String($('#sPreM').value).replace(',', '.')) || 0)));
-  const pre = dir === 'with' ? 0 : dir === 'before' ? mins : -mins, ago = Number(($('#sWhen .on') || {}).dataset?.v || 0);
+  const seg = $('#sPre .pseg.on'), pd = seg ? seg.dataset.p : 'before', inp = seg && seg.querySelector('input');
+  const mins = inp ? Math.max(0, Math.min(180, Math.round(parseFloat(String(inp.value).replace(',', '.')) || 0))) : 0;
+  const pre = pd === 'with' ? 0 : pd === 'before' ? mins : -mins, ago = Number(($('#sWhen .on') || {}).dataset?.v || 0);
   const body = {
     kind: 'meal', mealType: meal, carbs: r1(t.c), insulin: ins || 0, preBolus: ins ? pre : undefined,
     foods: items.map(i => { const f = BY[i.id], k = i.g / 100; return { id: String(f.own ? 'own' : 'plate-' + f.id).slice(0, 40), name: f.name, g: r1(i.g), c: r1(f.c * k), k: Math.round(f.k * k), p: r1(f.p * k), f: r1(f.f * k) }; }),
