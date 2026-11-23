@@ -184,6 +184,13 @@ body.open .reveal{animation:spring .6s cubic-bezier(.3,1.5,.5,1) forwards}
 .tot div:first-child{background:var(--grad);color:#fff}
 .tot span{display:block;font-size:11px;font-weight:600;opacity:.75}
 .tot b{font-size:20px;font-variant-numeric:tabular-nums}
+.bje{margin-top:8px;border-radius:16px;padding:10px 12px;background:#fff4e8;color:#8a4b12}
+.bje span{display:block;font-size:12px}.bje b{font-size:20px}.bje small{display:block;font-size:11.5px;margin-top:2px;line-height:1.35}
+.xe.bjebox{background:#fff4e8;color:#8a4b12}
+.tail{border-radius:16px;padding:12px 14px;background:#fffaf0;border:1px solid #f3dcb8;font-size:13px;line-height:1.45;margin-bottom:10px}
+.tail b{display:block;font-size:14px;margin-bottom:3px}
+.tail button{margin-top:8px;border:0;border-radius:999px;padding:8px 14px;font-weight:700;font-size:13px;color:#fff;background:var(--grad)}
+.tail button:disabled{opacity:.6}
 .xe{display:flex;align-items:baseline;gap:8px;padding:12px 14px;border-radius:16px;background:#f1ecff;color:#4c2fb5;margin-bottom:10px}
 .xe b{font-size:24px}
 .check{list-style:none;padding:0;margin:8px 0 12px;font-size:13px}
@@ -270,6 +277,7 @@ body.open .reveal{animation:spring .6s cubic-bezier(.3,1.5,.5,1) forwards}
     <div class="kcal"><span id="kcal">0</span><small>ккал</small></div>
     <div class="mac"><div><span>Белки</span><b id="pp">0</b> г</div><div><span>Жиры</span><b id="ff">0</b> г</div><div><span>Углеводы</span><b id="cc">0</b> г</div></div>
     <div class="carb"><span>Углеводы на тарелке</span><b id="cc2">0 г</b> <span id="xe">0 ХЕ</span></div>
+    <div class="bje"><span>Белково-жировые единицы</span><b id="bje">0 БЖЕ</b><small id="bjeh"></small></div>
     <div class="bars"><i id="bp" style="background:#e2557b;flex:0"></i><i id="bf" style="background:#8b5cf6;flex:0"></i><i id="bc" style="background:#e7a33e;flex:0"></i></div>
     <div class="legend"><span>Б <b id="lp">0</b>%</span><span>Ж <b id="lf">0</b>%</span><span>У <b id="lc">0</b>%</span></div>
     <div class="list" id="list"></div>
@@ -314,6 +322,8 @@ body.open .reveal{animation:spring .6s cubic-bezier(.3,1.5,.5,1) forwards}
   <hr class="rule">
   <div class="tot"><div><span>ккал</span><b id="rK">0</b></div><div><span>белки</span><b id="rP">0</b></div><div><span>жиры</span><b id="rF">0</b></div><div><span>углеводы</span><b id="rC">0</b></div></div>
   <div class="xe"><b id="rXe">0</b><span>хлебных единиц (1 ХЕ = 12 г углеводов)</span></div>
+  <div class="xe bjebox"><b id="rBje">0</b><span>белково-жировых единиц (1 БЖЕ = 100 ккал из белков и жиров)</span></div>
+  <div class="tail" id="rTail"></div>
   <div class="bars"><i id="rbp" style="background:#e2557b"></i><i id="rbf" style="background:#8b5cf6"></i><i id="rbc" style="background:#e7a33e"></i></div>
   <div class="legend"><span id="rlp"></span><span id="rlf"></span><span id="rlc"></span></div>
   <ul class="check" id="rCheck"></ul>

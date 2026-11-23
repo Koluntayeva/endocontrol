@@ -119,6 +119,12 @@ function place(food, at) {
   return { x, y };
 }
 
+// ---------- protein-fat units: 1 БЖЕ = 100 kcal from protein and fat; they raise glucose slowly, for hours
+const bjeOf = t => (t.p * 4 + t.f * 9) / 100;
+// how long after the meal glucose may keep rising (the usual school rule: 1 → 3 h, 2 → 4 h, 3 → 5 h, 4+ → 6–8 h)
+const tailHours = b => (b < 1 ? null : b < 2 ? [3, 3] : b < 3 ? [4, 4] : b < 4 ? [5, 5] : [6, 8]);
+const hoursText = h => (h[0] === h[1] ? `${h[0]} ч` : `${h[0]}–${h[1]} ч`);
+
 // ---------- render
 function totals(list = items) {
   return list.reduce((t, i) => { const f = BY[i.id], k = i.g / 100; t.k += f.k * k; t.p += f.p * k; t.f += f.f * k; t.c += f.c * k; return t; }, { k: 0, p: 0, f: 0, c: 0 });
@@ -148,6 +154,8 @@ function render() {
   const t = totals();
   countUp($('#kcal'), Math.round(t.k)); countUp($('#pp'), t.p, 1); countUp($('#ff'), t.f, 1); countUp($('#cc'), t.c, 1);
   $('#cc2').textContent = `${fmt(t.c, 1)} г`; $('#xe').textContent = `${fmt(t.c / 12, 1)} ХЕ`;
+  const b = bjeOf(t), th = tailHours(b);
+  $('#bje').textContent = `${fmt(b, 1)} БЖЕ`; $('#bjeh').textContent = th ? `Сахар может подниматься ещё до ${hoursText(th)} после еды` : '';
   const kp = t.p * 4, kf = t.f * 9, kc = t.c * 4, ks = kp + kf + kc || 1;
   $('#bp').style.flex = kp; $('#bf').style.flex = kf; $('#bc').style.flex = kc;
   $('#lp').textContent = Math.round(kp / ks * 100); $('#lf').textContent = Math.round(kf / ks * 100); $('#lc').textContent = Math.round(kc / ks * 100);
@@ -185,12 +193,21 @@ $('#done').onclick = () => {
   const t = totals();
   $('#rDate').textContent = new Date().toLocaleString('ru-RU', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' });
   $('#rLines').innerHTML = items.map(i => { const f = BY[i.id], k = i.g / 100; return `<div class="rl"><span>${f.em}</span><span>${f.name}</span><span>${fmt(i.g)}</span><span>${fmt(f.p * k, 1)}</span><span>${fmt(f.f * k, 1)}</span><span><b>${fmt(f.c * k, 1)}</b></span></div>`; }).join('');
-  ['#rK', '#rP', '#rF', '#rC', '#rXe'].forEach(s => { $(s).dataset.v = 0; $(s).textContent = '0'; });
+  ['#rK', '#rP', '#rF', '#rC', '#rXe', '#rBje'].forEach(s => { $(s).dataset.v = 0; $(s).textContent = '0'; });
+  const bj = bjeOf(t), th = tailHours(bj);
+  $('#rTail').innerHTML = th
+    ? `<b>⏳ Возможен «хвост»: сахар может расти до ${hoursText(th)} после еды</b>Белки и жиры (${fmt(bj, 1)} БЖЕ) всасываются медленно: сахар может начать расти через 2–3 часа после еды и держаться повышенным до ${hoursText(th)}, когда короткий инсулин уже не действует. Проверьте сахар через 3 часа и ещё раз позже. Как компенсировать БЖЕ (например, продлённым болюсом), решает эндокринолог.<br><button type="button" id="tailBtn">⏱ Напомнить проверить сахар через 3 ч</button>`
+    : `<b>БЖЕ меньше 1</b>Белков и жиров немного — заметного позднего подъёма обычно не бывает.`;
+  const tb = $('#tailBtn'); if (tb) tb.onclick = () => {
+    // the app's own timer (the same one as on the timer screen): a "check glucose" reminder in 3 hours
+    try { localStorage.setItem('ec_hypo_timer', JSON.stringify({ end: Date.now() + 180 * 60e3, kind: 'check', min: 180 })); } catch { /* not kept */ }
+    tb.disabled = true; tb.textContent = '✓ Напоминание через 3 ч поставлено'; toast('Напомню проверить сахар через 3 часа');
+  };
   $('#result').classList.add('on'); drawSave();
   const lines = [...document.querySelectorAll('#rLines .rl')];
   lines.forEach((l, i) => setTimeout(() => l.classList.add('on'), 1300 + i * 110));
   setTimeout(() => {
-    countUp($('#rK'), Math.round(t.k), 0, 700); countUp($('#rP'), t.p, 1, 700); countUp($('#rF'), t.f, 1, 700); countUp($('#rC'), t.c, 1, 700); countUp($('#rXe'), t.c / 12, 1, 700);
+    countUp($('#rK'), Math.round(t.k), 0, 700); countUp($('#rP'), t.p, 1, 700); countUp($('#rF'), t.f, 1, 700); countUp($('#rC'), t.c, 1, 700); countUp($('#rXe'), t.c / 12, 1, 700); countUp($('#rBje'), bjeOf(t), 1, 700);
   }, 1300 + lines.length * 110);
   const kp = t.p * 4, kf = t.f * 9, kc = t.c * 4, ks = kp + kf + kc || 1;
   $('#rbp').style.flex = kp; $('#rbf').style.flex = kf; $('#rbc').style.flex = kc;
@@ -315,7 +332,7 @@ $('#sSave').onclick = async () => {
     kind: 'meal', mealType: meal, carbs: r1(t.c), insulin: ins || 0, preBolus: ins ? pre : undefined,
     foods: items.map(i => { const f = BY[i.id], k = i.g / 100; return { id: String(f.own ? 'own' : 'plate-' + f.id).slice(0, 40), name: f.name, g: r1(i.g), c: r1(f.c * k), k: Math.round(f.k * k), p: r1(f.p * k), f: r1(f.f * k) }; }),
     at: new Date(Date.now() - ago * 60e3).toISOString(),
-    notes: `Тарелка: ${Math.round(t.k)} ккал, Б ${fmt(t.p, 1)} · Ж ${fmt(t.f, 1)} · У ${fmt(t.c, 1)} г (${fmt(t.c / 12, 1)} ХЕ)`,
+    notes: `Тарелка: ${Math.round(t.k)} ккал, Б ${fmt(t.p, 1)} · Ж ${fmt(t.f, 1)} · У ${fmt(t.c, 1)} г (${fmt(t.c / 12, 1)} ХЕ, ${fmt(bjeOf(t), 1)} БЖЕ)`,
   };
   $('#sSave').disabled = true; $('#sSave').textContent = 'Записываю…';
   try {
