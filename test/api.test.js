@@ -233,3 +233,10 @@ test('plate builder: the page is served and a plate is saved as a meal with each
   assert.equal(m.carbs, 33.5); assert.deepEqual(m.foods[0], { id: 'plate-mash', name: 'Пюре картофельное', g: 200, c: 29, k: 212, p: 5, f: 8.4 });
   server.close();
 });
+
+test('bridges: Nightscout is polled every minute, sensor clouds every 5 minutes', () => {
+  const B = require('../lib/bridges');
+  assert.equal(B.pollEvery('nightscout'), 60e3);
+  assert.equal(B.pollEvery('librelinkup'), 5 * 60e3);
+  assert.equal(B.pollEvery('dexcom'), 5 * 60e3);
+});
