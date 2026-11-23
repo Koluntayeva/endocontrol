@@ -26,6 +26,8 @@
     chat: '<path d="M4.5 5.5h15a1.5 1.5 0 0 1 1.5 1.5v9a1.5 1.5 0 0 1-1.5 1.5H10l-4.5 3.5V17.5h-1A1.5 1.5 0 0 1 3 16V7a1.5 1.5 0 0 1 1.5-1.5z"/>',
     lock: '<rect x="5" y="10.5" width="14" height="10" rx="2.5"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5"/>',
     calendar: '<rect x="3.5" y="5" width="17" height="15.5" rx="3"/><path d="M3.5 9.5h17M8 3v4M16 3v4"/>',
+    clock: '<circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M9.5 2.5h5"/>',
+    camera: '<path d="M4 8h3l1.5-2.5h7L17 8h3a1 1 0 0 1 1 1v9.5a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13.5" r="3.5"/>',
     bell: '<path d="M6 16.5V11a6 6 0 0 1 12 0v5.5l1.5 2h-15z"/><path d="M10 20.5a2 2 0 0 0 4 0"/>',
     left: '<path d="m14.5 6-6 6 6 6"/>', right: '<path d="m9.5 6 6 6-6 6"/>',
   };
@@ -72,12 +74,20 @@
   }
   const errText = e => (e && e.code && I.has(S.lang, 'e_' + e.code)) ? t('e_' + e.code) : (e && e.detail) || t('e_generic');
 
-  // ------------------------------------------------------------ hypo timer (15 min), shown on every page
+  // ------------------------------------------------------------ timers, shown on every page:
+  // hypo (15 min, then measure with a meter), meal: wait after the bolus, or check glucose after eating
   const HT = { key: 'ec_hypo_timer', tick: null, onDone: null, rang: false };
-  function htEnd() { try { return Number(localStorage.getItem(HT.key)) || 0; } catch { return 0; } }
-  function htSet(v) { try { if (v) localStorage.setItem(HT.key, String(v)); else localStorage.removeItem(HT.key); } catch { /* private mode: timer lives until reload */ HT.mem = v; } }
-  function startHypoTimer(min = 15) {
-    htSet(Date.now() + min * 60e3); HT.rang = false;
+  function htGet() {
+    try { const raw = localStorage.getItem(HT.key); if (!raw) return HT.mem || null; const v = JSON.parse(raw); return typeof v === 'number' ? { end: v, kind: 'hypo', min: 15 } : v; }
+    catch { return HT.mem || null; }
+  }
+  function htSet(v) {
+    const val = typeof v === 'number' ? (v ? { end: v, kind: 'hypo', min: 15 } : null) : v;
+    try { if (val) localStorage.setItem(HT.key, JSON.stringify(val)); else localStorage.removeItem(HT.key); } catch { /* private mode: timer lives until reload */ }
+    HT.mem = val;
+  }
+  function startHypoTimer(min = 15, kind = 'hypo') {
+    htSet({ end: Date.now() + min * 60e3, kind, min }); HT.rang = false;
     try { if (window.Notification && Notification.permission === 'default') Notification.requestPermission(); } catch { /* not supported */ }
     hypoTimerDraw();
   }
@@ -91,29 +101,44 @@
       });
     } catch { /* no audio */ }
   }
+  const tmText = (tm, done, m) => done
+    ? t(tm.kind === 'hypo' ? 'tmDone' : tm.kind === 'prebolus' ? 'tmDonePre' : 'tmDoneCheck', { n: tm.min })
+    : t(tm.kind === 'hypo' ? 'tmLeft' : tm.kind === 'prebolus' ? 'tmPre' : 'tmCheckIn', { m });
   function hypoTimerDraw() {
     let el = $('#hypotimer');
-    let end = htEnd() || HT.mem || 0;
-    if (end && Date.now() - end > 30 * 60e3) { htSet(0); end = 0; } // forgotten long ago
-    if (!end) { if (el) el.remove(); clearInterval(HT.tick); HT.tick = null; return; }
-    if (!el) { el = document.createElement('div'); el.id = 'hypotimer'; el.className = 'hypotimer no-print'; el.setAttribute('role', 'status'); document.body.appendChild(el); }
-    const left = end - Date.now();
+    let tm = htGet();
+    if (tm && Date.now() - tm.end > 30 * 60e3) { htSet(null); tm = null; } // forgotten long ago
+    if (!tm) { if (el) el.remove(); clearInterval(HT.tick); HT.tick = null; return; }
+    if (!el) { el = document.createElement('div'); el.id = 'hypotimer'; el.setAttribute('role', 'status'); document.body.appendChild(el); }
+    el.className = 'hypotimer no-print' + (tm.kind === 'hypo' ? '' : ' meal');
+    const left = tm.end - Date.now();
     if (left > 0) {
       const m = Math.floor(left / 60e3), sec = Math.floor((left % 60e3) / 1000);
-      el.classList.remove('done');
-      el.innerHTML = `<span>${esc(t('tmLeft', { m: `${m}:${String(sec).padStart(2, '0')}` }))}</span><button type="button" class="tmx">${esc(t('tmCancel'))}</button>`;
+      el.innerHTML = `<span>${esc(tmText(tm, false, `${m}:${String(sec).padStart(2, '0')}`))}</span><button type="button" class="tmx">${esc(t('tmCancel'))}</button>`;
     } else {
+      el.classList.add('done');
       if (!HT.rang) {
-        HT.rang = true; el.classList.add('done'); beep();
+        HT.rang = true; beep();
         try { if (navigator.vibrate) navigator.vibrate([400, 200, 400, 200, 400]); } catch { /* no vibration */ }
-        try { if (window.Notification && Notification.permission === 'granted') new Notification('EndoControl', { body: t('tmDone'), requireInteraction: true }); } catch { /* no notifications */ }
-        if (HT.onDone && HT.onDone()) return;
+        try { if (window.Notification && Notification.permission === 'granted') new Notification('EndoControl', { body: tmText(tm, true), requireInteraction: true }); } catch { /* no notifications */ }
+        try { if (alPrefs().voice) setTimeout(() => say(tmText(tm, true)), 600); } catch { /* no speech */ }
+        if (tm.kind === 'hypo' && HT.onDone && HT.onDone()) return;
       }
-      el.innerHTML = `<span>${esc(t('tmDone'))}</span><a class="btn sm" href="#/ai" id="tmcheck">${esc(t('tmCheck'))}</a><button type="button" class="tmx">${esc(t('tmCancel'))}</button>`;
-      el.querySelector('#tmcheck').onclick = () => { S.pendingRecheck = true; htSet(0); hypoTimerDraw(); };
+      el.innerHTML = `<span>${esc(tmText(tm, true))}</span>${tm.kind === 'hypo' ? `<a class="btn sm" href="#/ai" id="tmcheck">${esc(t('tmCheck'))}</a>` : ''}<button type="button" class="tmx">${esc(t(tm.kind === 'hypo' ? 'tmCancel' : 'alOk'))}</button>`;
+      const c = el.querySelector('#tmcheck'); if (c) c.onclick = () => { S.pendingRecheck = true; htSet(null); hypoTimerDraw(); };
     }
-    el.querySelector('.tmx').onclick = () => { htSet(0); HT.mem = 0; hypoTimerDraw(); };
+    el.querySelector('.tmx').onclick = () => { htSet(null); hypoTimerDraw(); };
     if (!HT.tick) HT.tick = setInterval(hypoTimerDraw, 1000);
+  }
+  // A separate meal timer: the pause after the bolus, or when to check glucose after eating.
+  function openFoodTimer() {
+    const opts = [['prebolus', 15, 'ftPre15'], ['prebolus', 20, 'ftPre20'], ['check', 60, 'ftCheck60'], ['check', 120, 'ftCheck120']];
+    modal(`<div class="row" style="align-items:center"><h2 style="margin:0" class="grow hic">${icon('clock')}${esc(t('fdTimer'))}</h2><button class="iconbtn" data-close aria-label="${esc(t('rdClose'))}">✕</button></div>
+      <p class="small muted">${esc(t('ftIntro'))}</p>
+      <div class="ftimers">${opts.map(([k, m, key]) => `<button type="button" class="ftbtn" data-k="${k}" data-m="${m}"><b>${m < 60 ? m + ' ' + esc(t('min')) : m / 60 + ' ' + esc(t('hShort'))}</b><span>${esc(t(key))}</span></button>`).join('')}</div>
+      <p class="tiny muted" style="margin-bottom:0">${esc(t('ftNote'))}</p>`, () => {
+      document.querySelectorAll('.ftbtn').forEach(b => b.onclick = () => { startHypoTimer(+b.dataset.m, b.dataset.k); closeModal(); toast(t('ftStarted')); });
+    });
   }
 
   // ------------------------------------------------------------ glucose alerts (while the app is open)
@@ -447,7 +472,7 @@
       ${C.line(d.entries, now - range * 3600e3, now + 5 * 60e3, { lo, hi, units: S.units, treatments: d.treatments, locale: locale(), label: t('glucose') })}
       <div class="legend"><i style="background:var(--ins)"></i>${esc(t('tInsulin'))}<i style="background:var(--carb)"></i>${esc(t('tCarbs'))}<i style="background:var(--in-soft);border:1px solid var(--in)"></i>${esc(t('targetRange'))} ${G(lo)}–${G(hi)}</div>
       </div>
-      <div class="quick no-print">${[['meal', '🍽', 'tMealEntry'], ['insulin', '💉', 'tBolus'], ['bg', '🩸', 'tBg'], ['exercise', '🏃', 'tExercise'], ['note', '📝', 'tNote']].map(q => `<button data-q="${q[0]}"><span>${icon(q[0])}</span>${esc(t(q[2]))}</button>`).join('')}</div>
+      <div class="quick no-print">${[['meal', 'meal', 'tMealEntry'], ['timer', 'clock', 'fdTimer'], ['insulin', 'insulin', 'tBolus'], ['bg', 'bg', 'tBg'], ['note', 'note', 'tNote']].map(q => `<button data-q="${q[0]}"><span>${icon(q[1])}</span>${esc(t(q[2]))}</button>`).join('')}</div>
       <div class="card aihome no-print">
         <div class="row aihead"><div class="hrobot" id="hrobot" aria-hidden="true"></div><div class="grow"><h2>${esc(t('navAi'))}</h2><div class="small muted">${esc(t('aiSeen'))}</div></div>
           <button type="button" class="btn red sm" id="hsos">${esc(t('urSos'))}</button></div>
@@ -464,7 +489,7 @@
         <a class="dcard peach" href="#/reports"><img src="${IMG('l-targets')}" alt="" loading="lazy"><b>${esc(t('navReports'))}</b><span>${esc(t('timeInRanges'))}</span></a>
       </div>`;
       document.querySelectorAll('#rng button').forEach(b => b.onclick = () => { range = +b.dataset.h; sessionStorage.setItem('range', range); draw(); });
-      document.querySelectorAll('[data-q]').forEach(b => b.onclick = () => addEntry(b.dataset.q, draw));
+      document.querySelectorAll('[data-q]').forEach(b => b.onclick = () => b.dataset.q === 'timer' ? openFoodTimer() : b.dataset.q === 'meal' ? addFood((h => h >= 5 && h < 11 ? 'breakfast' : h >= 11 && h < 16 ? 'lunch' : h >= 16 && h < 22 ? 'dinner' : 'snack')(new Date().getHours()), draw) : addEntry(b.dataset.q, draw));
       // Questions asked here open the analyst with the answer.
       const toAi = (q, force = false) => { if (!q || !q.trim()) return; S.pendingQuestion = { q: q.trim(), force }; location.hash = '#/ai'; };
       $('#hask').onsubmit = e => { e.preventDefault(); toAi($('#haskIn').value); };
@@ -691,31 +716,164 @@
   }
 
   // ------------------------------------------------------------ diary
+  // ------------------------------------------------------------ diary: meals like a food diary
+  const MEALS = ['breakfast', 'lunch', 'dinner', 'snack'];
+  const mealOf = x => x.mealType || (x.carbs > 0 || /meal/i.test(x.eventType) ? (h => h >= 5 && h < 11 ? 'breakfast' : h >= 11 && h < 16 ? 'lunch' : h >= 16 && h < 22 ? 'dinner' : 'snack')(new Date(x.mills).getHours()) : null);
+  const xe = g => (Math.round(g / 12 * 10) / 10).toString().replace('.', S.lang === 'en' ? '.' : ',');
+  const fmtG1 = g => (Math.round(g * 10) / 10).toString().replace('.', S.lang === 'en' ? '.' : ',');
   async function diary(args) {
-    const me = S.me;
     let day = args[0] ? Number(args[0]) : dayStart(Date.now());
     const draw = async () => {
       const d = await getData(day, dayStart(day, 1));
       const { lo, hi } = targets(d.patient);
-      const st = C.stats(d.entries.map(e => e[1]), lo, hi);
-      const carbs = d.treatments.reduce((a, x) => a + (+x.carbs || 0), 0), ins = d.treatments.reduce((a, x) => a + (+x.insulin || 0), 0);
+      const tr = [...d.treatments].sort((a, b) => a.mills - b.mills);
+      const carbs = tr.reduce((a, x) => a + (+x.carbs || 0), 0);
+      const bolus = tr.filter(x => !/basal/i.test(x.eventType)).reduce((a, x) => a + (+x.insulin || 0), 0);
+      const basal = tr.filter(x => /basal/i.test(x.eventType)).reduce((a, x) => a + (+x.insulin || 0), 0);
+      const byMeal = Object.fromEntries(MEALS.map(m => [m, tr.filter(x => mealOf(x) === m && !/basal|temp/i.test(x.eventType))]));
+      const others = tr.filter(x => !MEALS.some(m => byMeal[m].includes(x)) && x.eventType !== 'Temp Basal');
+      const del = x => `<button class="xdel" data-del="${esc(x._id)}" aria-label="${esc(t('delete'))}">✕</button>`;
+      const mealCard = (m, i) => {
+        const list = byMeal[m], sum = list.reduce((a, x) => a + (+x.carbs || 0), 0), ins = list.reduce((a, x) => a + (+x.insulin || 0), 0);
+        return `<div class="card mealcard tone${i}"><div class="mhead"><span class="mico">${icon('meal')}</span><div class="grow"><h2>${esc(t(m === 'snack' ? 'mSnacks' : 'ex_' + m))}</h2>
+            <div class="small muted">${sum ? `${esc(fmtG1(sum))} ${esc(t('gCarbs'))} · ${esc(xe(sum))} ${esc(t('unitXE'))}` : esc(t('fdEmpty'))}${ins ? ` · ${esc(fmtG1(ins))} ${esc(t('uIns'))}` : ''}</div></div>
+            <button class="addbtn" data-add="${m}" aria-label="${esc(t('fdAdd'))}">+</button></div>
+          ${list.map(x => `<div class="mrec"><div class="row small muted" style="gap:8px"><span>${fmtTime(x.mills)}</span><span class="grow"></span>${del(x)}</div>
+            ${(x.foods && x.foods.length ? x.foods : [{ name: t('carbsLabel'), c: +x.carbs || 0 }]).filter(f => f.c || f.g || !x.insulin).map(f => `<div class="fline"><span class="grow">${esc(f.name)}${f.g ? ` <span class="muted">${esc(fmtG1(f.g))} г</span>` : ''}</span><b>${esc(fmtG1(f.c))} ${esc(t('gCarbs'))}</b></div>`).join('')}
+            ${x.insulin ? `<div class="fline ins"><span class="grow">💉 ${esc(t('bolusLabel').replace(/,.*/, ''))}${Number.isFinite(+x.preBolus) && x.carbs ? ` <span class="muted">${esc(+x.preBolus > 0 ? t('bwBefore') : +x.preBolus < 0 ? t('bwAfter') : t('bwWith'))}</span>` : ''}</span><b>${esc(fmtG1(+x.insulin))} ${esc(t('uIns'))}</b></div>` : ''}
+            ${trBg(x, lo, hi)}${x.notes ? `<div class="small muted">${esc(x.notes)}</div>` : ''}</div>`).join('')}</div>`;
+      };
       $('#view').innerHTML = `${pageHead('calendar', esc(fmtDate(day, { weekday: 'long', day: 'numeric', month: 'long' })), t('navDiary'), 'sky',
           `<div class="daynav"><button class="navbtn" id="prev" aria-label="←">${icon('left')}</button><button class="navbtn" id="next" aria-label="→" ${day >= dayStart(Date.now()) ? 'disabled' : ''}>${icon('right')}</button></div>`)}
-        <div class="card chartcard indigo">${C.line(d.entries, day, dayStart(day, 1), { lo, hi, units: S.units, treatments: d.treatments, locale: locale() })}
-        <div class="grid g4" style="margin-top:8px">
-          <div class="metric"><div class="l">${esc(t('tir'))}</div><div class="v">${st.n ? st.tir.toFixed(0) + '%' : '—'}</div></div>
-          <div class="metric"><div class="l">${esc(t('mean'))}</div><div class="v">${G(st.mean)}</div><div class="t">${UL()}</div></div>
-          <div class="metric"><div class="l">${esc(t('tCarbs'))}</div><div class="v">${Math.round(carbs)}</div><div class="t">${esc(t('gCarbs'))}</div></div>
-          <div class="metric"><div class="l">${esc(t('tInsulin'))}</div><div class="v">${+ins.toFixed(1)}</div><div class="t">${esc(t('uIns'))}</div></div></div></div>
-        <div class="quick no-print">${[['meal', '🍽', 'tMealEntry'], ['insulin', '💉', 'tBolus'], ['bg', '🩸', 'tBg'], ['exercise', '🏃', 'tExercise'], ['note', '📝', 'tNote']].map(q => `<button data-q="${q[0]}"><span>${icon(q[0])}</span>${esc(t(q[2]))}</button>`).join('')}</div>
-        <div class="card" style="margin-top:12px"><h2>${esc(t('entries'))}</h2>
-        ${d.treatments.length ? `<table><tr><th>${esc(t('time'))}</th><th>${esc(t('entry'))}</th><th></th><th></th></tr>${[...d.treatments].reverse().map(x => `<tr><td>${fmtTime(x.mills)}</td><td><b>${esc(trTitle(x))}</b> ${esc(trValue(x))}${trBg(x, lo, hi)}${x.notes ? `<div class="small muted">${esc(x.notes)}</div>` : ''}</td><td class="small muted">${esc(x.enteredBy || '')}</td><td><button class="btn sm ghost" data-del="${esc(x._id)}" aria-label="${esc(t('delete'))}">✕</button></td></tr>`).join('')}</table>` : `<div class="muted">${esc(t('noEntries'))}</div>`}</div>`;
+        <div class="card daysum"><div class="grid g4">
+          <div class="metric"><div class="l">${esc(t('tCarbs'))}</div><div class="v">${esc(fmtG1(carbs))}</div><div class="t">${esc(t('gCarbs'))} · ${esc(xe(carbs))} ${esc(t('unitXE'))}</div></div>
+          <div class="metric"><div class="l">${esc(t('fdBolus'))}</div><div class="v">${esc(fmtG1(bolus))}</div><div class="t">${esc(t('uIns'))}</div></div>
+          <div class="metric"><div class="l">${esc(t('insBasal'))}</div><div class="v">${esc(fmtG1(basal))}</div><div class="t">${esc(t('uIns'))}</div></div>
+          <div class="metric"><div class="l">${esc(t('fdMeals'))}</div><div class="v">${MEALS.filter(m => byMeal[m].length).length}</div><div class="t">${esc(t('fdOf4'))}</div></div></div></div>
+        <div class="quick no-print">${[['timer', 'fdTimer'], ['insulin', 'tBolus'], ['bg', 'tBg'], ['exercise', 'tExercise'], ['note', 'tNote']].map(q => `<button data-q="${q[0]}"><span>${icon(q[0] === 'timer' ? 'clock' : q[0])}</span>${esc(t(q[1]))}</button>`).join('')}</div>
+        ${MEALS.map(mealCard).join('')}
+        ${others.length ? `<div class="card"><h2>${esc(t('fdOther'))}</h2>${others.map(x => `<div class="mrec"><div class="fline"><span class="small muted" style="min-width:46px">${fmtTime(x.mills)}</span><span class="grow"><b>${esc(trTitle(x))}</b> ${esc(trValue(x))}${x.notes ? `<div class="small muted">${esc(x.notes)}</div>` : ''}</span>${del(x)}</div></div>`).join('')}</div>` : ''}`;
       $('#prev').onclick = () => { day = dayStart(day, -1); history.replaceState(null, '', '#/diary/' + day); draw(); };
       $('#next').onclick = () => { day = dayStart(day, 1); history.replaceState(null, '', '#/diary/' + day); draw(); };
-      document.querySelectorAll('[data-q]').forEach(b => b.onclick = () => addEntry(b.dataset.q, draw));
+      document.querySelectorAll('[data-q]').forEach(b => b.onclick = () => b.dataset.q === 'timer' ? openFoodTimer() : addEntry(b.dataset.q, draw));
+      document.querySelectorAll('[data-add]').forEach(b => b.onclick = () => addFood(b.dataset.add, draw));
       document.querySelectorAll('[data-del]').forEach(b => b.onclick = async () => { await api('DELETE', '/app/treatments/' + b.dataset.del); toast(t('deleted')); draw(); });
     };
     await draw();
+  }
+
+  // ---- adding food to a meal: search, portions, automatic carbs, or a photo of the plate
+  const RECENT = 'ec_recent_foods';
+  const recentFoods = () => { try { return JSON.parse(localStorage.getItem(RECENT) || '[]').map(id => window.Foods.BY_ID[id]).filter(Boolean); } catch { return []; } };
+  const rememberFood = id => { try { const r = JSON.parse(localStorage.getItem(RECENT) || '[]').filter(x => x !== id); r.unshift(id); localStorage.setItem(RECENT, JSON.stringify(r.slice(0, 12))); } catch { /* not kept */ } };
+  async function shrinkPhoto(file) {
+    const url = URL.createObjectURL(file);
+    try {
+      const img = await new Promise((ok, no) => { const i = new Image(); i.onload = () => ok(i); i.onerror = no; i.src = url; });
+      const k = Math.min(1, 1280 / Math.max(img.width, img.height)), c = document.createElement('canvas');
+      c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      return c.toDataURL('image/jpeg', 0.85);
+    } finally { URL.revokeObjectURL(url); }
+  }
+  function addFood(meal, done) {
+    const F = window.Foods, cart = [];
+    const nm = f => F.name(f, S.lang);
+    modal(`<div class="fsheet"><div class="row" style="align-items:center;gap:10px"><h2 style="margin:0" class="grow">${esc(t(meal === 'snack' ? 'mSnacks' : 'ex_' + meal))} — ${esc(t('fdAdd').toLowerCase())}</h2><button class="iconbtn" data-close aria-label="${esc(t('rdClose'))}">✕</button></div>
+      <div class="fsearch"><input id="fq" autocomplete="off" placeholder="${esc(t('fdSearch'))}" aria-label="${esc(t('fdSearch'))}">
+        <button type="button" class="btn ghost sm" id="fphoto">${icon('camera')}<span>${esc(t('fdPhoto'))}</span></button><input type="file" id="ffile" accept="image/*" capture="environment" hidden></div>
+      <div class="tiny muted" id="fhint">${esc(t('fdRecent'))}</div>
+      <div class="flist" id="fres"></div>
+      <div id="fpick"></div>
+      <div class="fcart" id="fcart"></div>
+      <form id="fform" novalidate>
+        <div class="grid g2" style="gap:10px">${numField('fins', t('bolusLabel'))}<div class="fld"><label>${esc(t('bolusWhen'))}</label><div class="seg wide" data-seg="pre"><button type="button" data-v="15" class="on">${esc(t('bwBefore'))}</button><button type="button" data-v="0">${esc(t('bwWith'))}</button><button type="button" data-v="-15">${esc(t('bwAfter'))}</button></div></div></div>
+        ${wheelHtml()}
+        <div class="fld"><label for="fnote">${esc(t('comment'))}</label><input id="fnote" maxlength="1000"></div>
+        <div class="err" id="ferr"></div>
+        <div class="row"><button class="btn grow" id="fsave">${esc(t('save'))}</button><button type="button" class="btn ghost" data-close>${esc(t('cancel'))}</button></div>
+        <p class="tiny muted" style="margin-bottom:0">${esc(t('fdDisclaimer'))}</p></form></div>`, () => {
+      const wheel = wheelMount(() => { });
+      const total = () => cart.reduce((a, x) => a + x.c, 0);
+      const drawCart = () => {
+        $('#fcart').innerHTML = cart.length ? `<div class="ftitle"><b>${esc(t('fdOnPlate'))}</b><span class="grow"></span><b class="ftotal">${esc(fmtG1(total()))} ${esc(t('gCarbs'))} · ${esc(xe(total()))} ${esc(t('unitXE'))}</b></div>
+          ${cart.map((x, i) => `<div class="fline"><span class="grow">${esc(x.name)}${x.ai ? ` <span class="aitag" title="${esc(t('fdAiTag'))}">≈ ${esc(t('fdAi'))}</span>` : ''}</span>
+            <input class="fg" data-i="${i}" type="text" inputmode="decimal" value="${esc(fmtG1(x.g))}" aria-label="${esc(t('fdGrams'))}"><span class="muted small">г</span>
+            <b class="fc">${esc(fmtG1(x.c))}</b><button type="button" class="xdel" data-rm="${i}" aria-label="${esc(t('delete'))}">✕</button></div>`).join('')}` : '';
+        document.querySelectorAll('#fcart [data-rm]').forEach(b => b.onclick = () => { cart.splice(+b.dataset.rm, 1); drawCart(); });
+        document.querySelectorAll('#fcart .fg').forEach(inp => inp.oninput = () => {
+          const x = cart[+inp.dataset.i], g = parseNum(inp.value);
+          if (!Number.isFinite(g) || g < 0) return;
+          x.g = g; x.c = Math.round(x.per100 * g / 10) / 10;
+          inp.parentElement.querySelector('.fc').textContent = fmtG1(x.c);
+          const tt = document.querySelector('#fcart .ftotal'); if (tt) tt.textContent = `${fmtG1(total())} ${t('gCarbs')} · ${xe(total())} ${t('unitXE')}`;
+        });
+      };
+      const pick = f => {
+        let g = f.p[0] ? f.p[0].g : 100;
+        const box = $('#fpick');
+        box.innerHTML = `<div class="fpick"><div class="row" style="gap:8px"><b class="grow">${esc(nm(f))}</b><span class="small muted">${esc(fmtG1(f.c))} ${esc(t('gCarbs'))} / 100 г</span></div>
+          <div class="chips">${[...f.p.filter(p => p.g !== 100), { g: 100, ru: '', en: '' }].map(p => `<button type="button" class="chip" data-g="${p.g}">${(S.lang === 'en' ? p.en : p.ru) ? esc(S.lang === 'en' ? p.en : p.ru) + ' · ' : ''}${p.g} ${S.lang === 'en' ? 'g' : 'г'}</button>`).join('')}</div>
+          <div class="row" style="gap:10px;align-items:center"><input id="fpg" type="text" inputmode="decimal" value="${g}" style="max-width:110px" aria-label="${esc(t('fdGrams'))}"><span class="muted">г →</span><b id="fpc" class="grow"></b><button type="button" class="btn sm" id="fpadd">${esc(t('fdAddItem'))}</button></div></div>`;
+        const upd = () => { const v = parseNum($('#fpg').value); $('#fpc').textContent = Number.isFinite(v) ? `${fmtG1(F.carbs(f, v))} ${t('gCarbs')}` : '—'; };
+        box.querySelectorAll('[data-g]').forEach(b => b.onclick = () => { $('#fpg').value = b.dataset.g; upd(); });
+        $('#fpg').oninput = upd; upd();
+        $('#fpadd').onclick = () => {
+          const v = parseNum($('#fpg').value);
+          if (!Number.isFinite(v) || v <= 0) return;
+          cart.push({ id: f.id, name: nm(f), g: v, per100: f.c, c: F.carbs(f, v) }); rememberFood(f.id);
+          box.innerHTML = ''; $('#fq').value = ''; showResults(''); drawCart();
+        };
+        $('#fpg').focus();
+      };
+      const custom = q => {
+        $('#fpick').innerHTML = `<div class="fpick"><b>${esc(q)}</b><div class="grid g2" style="gap:10px;margin-top:8px">${numField('cg', t('fdGrams'))}${numField('cc', t('fdCarbs100'))}</div><button type="button" class="btn sm" id="cadd">${esc(t('fdAddItem'))}</button></div>`;
+        $('#cadd').onclick = () => {
+          const g = parseNum($('#cg').value), c100 = parseNum($('#cc').value);
+          if (!(g > 0) || !(c100 >= 0) || c100 > 100) return;
+          cart.push({ id: null, name: q, g, per100: c100, c: Math.round(c100 * g / 10) / 10 });
+          $('#fpick').innerHTML = ''; $('#fq').value = ''; showResults(''); drawCart();
+        };
+      };
+      const showResults = q => {
+        const POPULAR = ['bread_white', 'rice', 'buckwheat', 'potato', 'pasta', 'apple', 'banana', 'milk', 'plov', 'manty'];
+        const list = q ? F.search(q, S.lang, 20) : recentFoods().length ? recentFoods() : POPULAR.map(id => F.BY_ID[id]);
+        $('#fhint').textContent = q ? '' : t(recentFoods().length ? 'fdRecent' : 'fdPopular');
+        $('#fres').innerHTML = list.map(f => `<button type="button" class="fitem" data-id="${f.id}"><span class="grow">${esc(nm(f))}</span><span class="small muted">${esc(fmtG1(f.c))} ${esc(t('gCarbs'))}/100 г</span></button>`).join('')
+          + (q ? `<button type="button" class="fitem custom" id="fcustom">+ ${esc(t('fdCustom'))}: «${esc(q)}»</button>` : '');
+        document.querySelectorAll('#fres [data-id]').forEach(b => b.onclick = () => pick(F.BY_ID[b.dataset.id]));
+        const cb = $('#fcustom'); if (cb) cb.onclick = () => custom(q);
+      };
+      let tq; $('#fq').oninput = e => { clearTimeout(tq); tq = setTimeout(() => showResults(e.target.value), 120); };
+      showResults('');
+      // photo of the plate → the AI lists the foods and grams; carbs per 100 g from our list
+      $('#fphoto').onclick = () => $('#ffile').click();
+      $('#ffile').onchange = async () => {
+        const file = $('#ffile').files[0]; if (!file) return;
+        $('#fhint').textContent = t('fdPhotoWorking'); $('#fphoto').disabled = true;
+        try {
+          const image = await shrinkPhoto(file);
+          const r = await api('POST', '/app/food/photo', { image, lang: S.lang });
+          if (!r.items.length) { $('#fhint').textContent = r.note || t('fdPhotoNone'); return; }
+          for (const it of r.items) cart.push({ id: it.id, name: it.name, g: it.g, per100: it.per100, c: it.c, ai: true });
+          $('#fhint').textContent = (r.note ? r.note + ' ' : '') + t('fdPhotoCheck'); drawCart();
+        } catch (e) { $('#fhint').textContent = e.code === 'ai_needed' ? t('fdPhotoNeedsAi') : errText(e); }
+        finally { $('#fphoto').disabled = false; $('#ffile').value = ''; }
+      };
+      document.querySelectorAll('#fform [data-seg] button').forEach(b => b.onclick = () => b.parentElement.querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)));
+      $('#fform').onsubmit = async e => {
+        e.preventDefault();
+        const ins = $('#fins').value.trim() ? parseNum($('#fins').value) : 0;
+        if (Number.isNaN(ins) || ins < 0) return ($('#ferr').textContent = t('eNum'));
+        if (!cart.length && !ins) return ($('#ferr').textContent = t('fdNeedFood'));
+        const pre = document.querySelector('#fform [data-seg="pre"] .on').dataset.v;
+        try {
+          await api('POST', '/app/treatments', { kind: 'meal', mealType: meal, carbs: Math.round(total() * 10) / 10, insulin: ins, preBolus: ins ? Number(pre) : undefined,
+            foods: cart.map(x => ({ id: x.id, name: x.name, g: x.g, c: x.c })), at: new Date(wheel.value()).toISOString(), notes: $('#fnote').value });
+          closeModal(); toast(t('saved')); done && done();
+        } catch (er) { $('#ferr').textContent = errText(er); }
+      };
+    });
   }
 
   // ------------------------------------------------------------ reports (also used for doctor & shared views)
@@ -859,7 +1017,7 @@
     const draw = () => {
       if (!document.body.contains(root)) return;
       q$('.chat').innerHTML = chat.map(m => `<div class="msg ${m.role === 'user' ? 'u' : 'a'}${m.pending ? ' pending' : ''}${m.level ? ' urgent lv-' + esc(m.level) : ''}">${m.role === 'user' ? esc(m.text) : aiMd(m.text)}${m.lesson ? `<div><a href="#/school/${esc(m.lesson)}" class="small">🎓 ${esc(t('navSchool'))} →</a></div>` : ''}${m.actions && m.actions.length ? `<div class="uract">${m.actions.map(a => a.kind === 'call' ? `<a class="btn red sm" href="tel:${esc(a.tel)}">${esc(a.label)}</a>` : `<button type="button" class="btn sm" data-timer="1">${esc(a.label)}</button>`).join('')}</div>` : ''}</div>`).join('');
-      root.querySelectorAll('[data-timer]').forEach(b => b.onclick = () => { startHypoTimer(15); toast(t('tmLeft', { m: '15:00' })); });
+      root.querySelectorAll('[data-timer]').forEach(b => b.onclick = () => { startHypoTimer(15, 'hypo'); toast(t('tmLeft', { m: '15:00' })); });
       root.querySelectorAll('.chat a[href^="#/"]').forEach(a => a.addEventListener('click', () => { if (opts.onLeave) opts.onLeave(); }));
       q$('.chips').innerHTML = (opts.keepChips || !chat.length) ? chips.map(c => `<button type="button" class="chip">${esc(c)}</button>`).join('') : '';
       root.querySelectorAll('.chips .chip').forEach(b => b.onclick = () => ask(b.textContent));
@@ -870,6 +1028,7 @@
     async function recheck() {
       const r = window.Urgent.recheck(uctx(await latest()));
       keepState(r.state);
+      if (r.level === 'low' || r.level === 'critical') { startHypoTimer(15, 'hypo'); r.text += '\n\n' + t('urTimerAuto'); }
       chat.push({ role: 'assistant', text: r.text, actions: r.actions, level: r.level, local: true });
       if (ROBOT) ROBOT.setMode('idle');
       draw();
@@ -885,6 +1044,8 @@
       const u = window.Urgent.assess(q, uctx(await latest(), { force }));
       if (u) {
         keepState(u.state);
+        // Treating a low: the 15-minute timer starts by itself (and restarts when it is still low).
+        if (u.level === 'low' || u.level === 'severe' || (u.level === 'critical' && u.actions.some(x => x.kind === 'timer'))) { startHypoTimer(15, 'hypo'); u.text += '\n\n' + t('urTimerAuto'); }
         Object.assign(reply, { text: u.text, actions: u.actions, level: u.level, local: true, pending: false });
         busy = false; if (ROBOT) ROBOT.setMode('quote'); draw();
         return;

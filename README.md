@@ -14,6 +14,7 @@ doctor access, messages and printable reports.
 | Accounts | Registration and login (e-mail + password, scrypt hashes, HttpOnly session cookie), patient/family or doctor role, change password, data export (CSV), account deletion |
 | Any sensor | **Cloud bridges** (server pulls every 5 min): LibreLinkUp (FreeStyle Libre 1/2/3), Dexcom Share (G6/G7/ONE, US/OUS/JP), another Nightscout site · **Uploaders** (push to us): xDrip+, Juggluco, Spike, Diabox, Tomato, Shuggah, Loop, Trio, iAPS, AndroidAPS (NSClient v1) · **CSV import**: LibreView, Dexcom Clarity, Medtronic CareLink, Eversense, Glooko, Tidepool, meters |
 | Patient app | Current value with trend arrow, 3/6/12/24 h chart, diary (carbs, insulin, finger stick, exercise, notes), today's metrics |
+| Food diary | Breakfast, lunch, dinner and snacks like a food diary: search a list of ~130 foods and dishes (Kazakh and Russian cuisine included) with carbs per 100 g and typical portions, automatic carbs and bread units, the bolus and its timing in the same entry, glucose at the meal and 2 h later; a photo of the plate is recognised by Claude (foods and grams; carbs per 100 g from the list) and stays editable. A meal timer (pause after the bolus, check after 1 or 2 h) |
 | Reports | Time in ranges (international consensus), GMI, CV, AGP, TIR by day, a full chart for every day; 7/14/30/90 days; **PDF** via the browser's print dialog |
 | AI analyst | Ask any question — about a moment ("why did glucose fall 2 h after breakfast today?"), patterns over days, or diabetes in general. Claude (Anthropic) gets a 15-minute glucose timeline for today and yesterday, every diary entry, meal rises found on the curve and 14-day statistics, plus clinical background after Ragnar Hanas' "Type 1 Diabetes in Children, Adolescents and Young Adults" and ISPAD 2022. Needs `ANTHROPIC_API_KEY`; without it, questions about a meal or time of day get a curve analysis and other questions a Diabetes school lesson. Never suggests doses |
 | Diabetes school | 10 short lessons with mini quizzes and progress: basics, targets, CGM, insulin, carbs, hypo, high glucose and ketones, sport, sick days, school and travel (Russian and English; other languages fall back to them) |
@@ -91,6 +92,7 @@ lib/bridges.js       LibreLinkUp, Dexcom Share, Nightscout pull of glucose and t
 lib/csvimport.js     CSV import with automatic column/unit detection
 public/explain.js    curve analysis shared by server and browser: meal rises, peaks, falls
 public/alerts.js     glucose alerts: fast fall or rise, predicted low, low, high
+public/foods.js      food list: carbs per 100 g and portions
 public/sw.js         service worker: shows push alerts with the app closed
 lib/push.js          Web Push: VAPID keys, subscriptions, the once-a-minute check
 public/fonts/        Onest (UI font), SIL OFL 1.1

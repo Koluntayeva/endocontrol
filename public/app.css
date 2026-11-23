@@ -504,3 +504,43 @@ h2.hic svg{width:20px;height:20px;color:var(--accent)}
 @keyframes galpulse{50%{box-shadow:0 0 0 10px rgba(212,32,95,.25),0 16px 40px rgba(20,20,40,.3)}}
 @media (prefers-reduced-motion:reduce){.galert,.galert.lv-critical{animation:none}}
 body.has-galert .hypotimer{top:calc(190px + env(safe-area-inset-top))}
+
+/* ---------- food diary: meal cards ---------- */
+.daysum{padding:14px}
+.mealcard{background:linear-gradient(160deg,var(--tint),var(--card) 55%);padding:14px 16px}
+.mhead{display:flex;align-items:center;gap:12px}
+.mhead h2{margin:0;font-size:18px}
+.mico{display:grid;place-items:center;width:44px;height:44px;border-radius:50%;background:var(--card);color:var(--accent);box-shadow:0 4px 12px rgba(52,96,240,.12);flex:none}
+.mico svg{width:22px;height:22px}
+.mealcard.tone2 .mico{color:var(--warm)}.mealcard.tone1 .mico{color:#b98400}.mealcard.tone0 .mico{color:var(--accent2)}
+.addbtn{flex:none;width:44px;height:44px;border-radius:50%;border:0;background:var(--grad);color:#fff;font-size:26px;line-height:1;cursor:pointer;box-shadow:0 8px 18px rgba(52,96,240,.3)}
+.mrec{margin-top:10px;padding:10px 12px;border-radius:16px;background:var(--card);border:1px solid var(--line)}
+.fline{display:flex;align-items:center;gap:8px;padding:4px 0;font-size:14px}
+.fline.ins{color:var(--accent)}
+.xdel{border:0;background:var(--bg2);color:var(--muted);width:28px;height:28px;border-radius:50%;cursor:pointer;font:inherit;font-size:12px;flex:none}
+/* add-food sheet */
+.modal .card:has(.fsheet){max-width:620px}
+.fsearch{display:flex;gap:8px;margin:12px 0 6px}
+.fsearch input{flex:1}
+.fsearch .btn{display:inline-flex;align-items:center;gap:6px}
+.fsearch .btn svg{width:18px;height:18px}
+.flist{display:flex;flex-direction:column;gap:4px;max-height:220px;overflow-y:auto;margin:6px 0}
+.fitem{display:flex;align-items:center;gap:10px;text-align:start;font:inherit;color:var(--text);border:1px solid var(--line);background:var(--card);border-radius:14px;padding:10px 12px;cursor:pointer}
+.fitem:hover{border-color:var(--accent)}
+.fitem.custom{color:var(--accent);font-weight:600}
+.fpick{border:1.5px solid var(--accent);background:var(--accent-soft);border-radius:18px;padding:12px;margin:8px 0}
+.fpick .chips{margin:8px 0}
+.fcart{margin:10px 0}
+.fcart .ftitle{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--line)}
+.fcart .fg{width:70px;padding:6px 8px;text-align:end}
+.fcart .fc{min-width:44px;text-align:end}
+.aitag{font-size:11px;font-weight:700;color:var(--accent2);background:var(--t-violet);padding:2px 6px;border-radius:999px}
+/* meal timer */
+.ftimers{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:10px 0}
+.ftbtn{display:flex;flex-direction:column;gap:4px;align-items:flex-start;text-align:start;font:inherit;color:var(--text);border:1.5px solid var(--line);background:linear-gradient(160deg,var(--t-sky),var(--card));border-radius:20px;padding:14px;cursor:pointer}
+.ftbtn:nth-child(n+3){background:linear-gradient(160deg,var(--t-peach),var(--card))}
+.ftbtn b{font-size:22px}.ftbtn span{font-size:13px;color:var(--muted)}
+.ftbtn:hover{border-color:var(--accent)}
+.hypotimer.meal{border-color:var(--accent)}
+.hypotimer.meal.done{background:var(--accent);animation:none}
+.hypotimer.meal.done .btn{color:var(--accent)}

@@ -319,6 +319,18 @@ route('POST', '/app/push/test', async ctx => {
 });
 route('POST', '/app/push/snooze', async ctx => { const u = requireUser(ctx); push.snooze(db, u.id, 30); return { ok: true }; });
 
+// ---- food photo recognition (needs the AI): items with estimated grams and carbs
+route('POST', '/app/food/photo', async ctx => {
+  const u = requireUser(ctx);
+  const b = await jsonBody(ctx.req, 8e6);
+  const m = /^data:(image\/(jpeg|png|webp));base64,([A-Za-z0-9+/=]+)$/.exec(String(b.image || ''));
+  if (!m) throw bad('bad_image');
+  if (!ai.enabled()) throw new HttpError(503, 'ai_needed');
+  if (!ai.allow(u.id)) throw new HttpError(429, 'ai_limit');
+  try { return await ai.recognizeFood(m[3], m[1], str(b.lang, 16)); }
+  catch (e) { const [status, code] = ai.errorCode(e); console.error('Food photo:', e && e.message); throw new HttpError(status, code); }
+});
+
 route('POST', '/app/treatments', async ctx => {
   const u = requireUser(ctx); const b = await jsonBody(ctx.req);
   const at = ns.toMillis(b.at) ?? Date.now();
@@ -327,7 +339,9 @@ route('POST', '/app/treatments', async ctx => {
   const insulinType = { meal: 'Meal Bolus', correction: 'Correction Bolus', basal: 'Basal Insulin' }[b.insulinType] || (b.basal ? 'Basal Insulin' : 'Correction Bolus');
   const kinds = {
     // A meal with its carbs and bolus in one entry (Nightscout "Meal Bolus"; preBolus = minutes the bolus came before the meal).
-    meal: { eventType: 'Meal Bolus', carbs: n(b.carbs), insulin: n(b.insulin) || undefined, preBolus: Number.isFinite(+b.preBolus) ? +b.preBolus : undefined, mealType: ['breakfast', 'lunch', 'dinner', 'snack'].includes(b.mealType) ? b.mealType : undefined },
+    meal: { eventType: 'Meal Bolus', carbs: n(b.carbs), insulin: n(b.insulin) || undefined, preBolus: Number.isFinite(+b.preBolus) ? +b.preBolus : undefined, mealType: ['breakfast', 'lunch', 'dinner', 'snack'].includes(b.mealType) ? b.mealType : undefined,
+      // the foods that make up the meal: name, grams, carbs
+      foods: Array.isArray(b.foods) && b.foods.length ? b.foods.slice(0, 30).map(f => ({ id: str(f && f.id, 40) || undefined, name: str(f && f.name, 80), g: n(f && f.g) || 0, c: n(f && f.c) || 0 })).filter(f => f.name) : undefined },
     carbs: { eventType: 'Carb Correction', carbs: n(b.value) },
     insulin: { eventType: insulinType, insulin: n(b.value) },
     bg: { eventType: 'BG Check', glucose: n(b.value), glucoseType: 'Finger', units: 'mg/dl' },

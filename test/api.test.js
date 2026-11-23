@@ -137,3 +137,26 @@ test('push: subscribe, a fast fall sends one alert in the user language, no repe
     server.close();
   } finally { push._setSender(null); }
 });
+
+test('food diary: food search, a meal with its foods, photo needs the AI', async () => {
+  const F = require('../public/foods.js');
+  assert.equal(F.search('плов', 'ru')[0].id, 'plov');
+  assert.equal(F.carbs(F.BY_ID.rice, 150), 42);
+  await new Promise(r => server.listen(0, r));
+  const base = `http://127.0.0.1:${server.address().port}`;
+  const j = { 'Content-Type': 'application/json', 'X-EC': '1' };
+  let r = await fetch(base + '/app/register', { method: 'POST', headers: j, body: JSON.stringify({ email: 'food@e.st', password: 'abcd1234', name: 'F', consent: true }) });
+  const cookie = r.headers.get('set-cookie').split(';')[0];
+  r = await fetch(base + '/app/treatments', { method: 'POST', headers: { ...j, cookie }, body: JSON.stringify({ kind: 'meal', mealType: 'lunch', carbs: 62, insulin: '4,5', preBolus: 15,
+    foods: [{ id: 'plov', name: 'Плов с мясом', g: 250, c: 50 }, { id: 'bread_white', name: 'Хлеб', g: 25, c: 12 }], at: new Date().toISOString() }) });
+  assert.equal(r.status, 200);
+  const d = await (await fetch(`${base}/app/data?from=${Date.now() - 3600e3}&to=${Date.now() + 60e3}`, { headers: { cookie } })).json();
+  const meal = d.treatments.find(x => x.eventType === 'Meal Bolus');
+  assert.equal(meal.foods.length, 2); assert.equal(meal.foods[0].name, 'Плов с мясом'); assert.equal(meal.insulin, 4.5); assert.equal(meal.mealType, 'lunch');
+  delete process.env.ANTHROPIC_API_KEY;
+  r = await fetch(base + '/app/food/photo', { method: 'POST', headers: { ...j, cookie }, body: JSON.stringify({ image: 'data:image/jpeg;base64,AAAA' }) });
+  assert.equal(r.status, 503); assert.equal((await r.json()).error, 'ai_needed');
+  r = await fetch(base + '/app/food/photo', { method: 'POST', headers: { ...j, cookie }, body: JSON.stringify({ image: 'not an image' }) });
+  assert.equal(r.status, 400);
+  server.close();
+});
