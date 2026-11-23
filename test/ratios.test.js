@@ -39,10 +39,23 @@ test('sensitivity is measured from a correction without food', () => {
   assert.ok(Math.abs(r.isf.value / 18.0182 - 2.25) < 0.1, String(r.isf.value / 18.0182));
 });
 
-test('stacked boluses are left out: it is not clear which one did what', () => {
+test('a later correction does not drop the meal; a second meal bolus does', () => {
   const t = T0 + 12 * H;
   const entries = curve([[t, 6], [t + 5 * H, 6]]);
-  const r = R.compute({ entries, mealOf, now: t + 6 * H, treatments: [
-    { mills: t, carbs: 40, insulin: 4, eventType: 'Meal Bolus', mealType: 'lunch' }, { mills: t + H, insulin: 1, eventType: 'Correction Bolus' }] });
+  const lunch = { mills: t, carbs: 52, insulin: 4, eventType: 'Meal Bolus', mealType: 'lunch' };
+  let r = R.compute({ entries, mealOf, now: t + 6 * H, treatments: [lunch, { mills: t + 3.8 * H, insulin: .5, eventType: 'Correction Bolus' }] });
+  assert.equal(r.byMeal.lunch.ratio, 13, '52 g ÷ 4 U = 1:13');
+  assert.equal(r.byMeal.lunch.items[0].corrections[0].insulin, .5);
+  r = R.compute({ entries, mealOf, now: t + 6 * H, treatments: [lunch, { mills: t + H, carbs: 20, insulin: 2, eventType: 'Meal Bolus', mealType: 'snack' }] });
   assert.equal(r.byMeal.lunch, null);
+});
+
+test('the family method: carbs ÷ bolus, then (carbs + snacks without a bolus) ÷ bolus', () => {
+  const t = T0 + 9 * H;
+  const entries = curve([[t, 6], [t + 5 * H, 6]]);
+  const r = R.compute({ entries, mealOf, now: t + 6 * H, treatments: [
+    { mills: t, carbs: 52, insulin: 4, eventType: 'Meal Bolus', mealType: 'breakfast' },
+    { mills: t + 3 * H, carbs: 5, eventType: 'Meal Bolus', mealType: 'snack' }] });
+  const m = r.byMeal.breakfast.items[0];
+  assert.equal(m.base, 13); assert.equal(m.raw, 57 / 4); assert.equal(r.byMeal.breakfast.ratio, 14.25);
 });

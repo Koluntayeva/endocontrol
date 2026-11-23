@@ -1118,7 +1118,7 @@
       const [cls, txt] = badge(b.conf, b.days);
       return `<div class="rtmeal"><div class="rth"><b>${esc(mealName(k))}</b><span class="rtv">${esc(ratioText(b))}</span></div>
         <div class="tiny muted">${esc(t('rtXe', { u: fmtG1(Math.round(12 / b.ratio * 10) / 10) }))}</div>
-        <ul class="rtitems">${b.items.map(m => `<li>${esc(fmtDate(m.at, { day: '2-digit', month: '2-digit' }))} ${esc(fmtTime(m.at))}: ${esc(fmtG1(m.ownCarbs))} ${esc(t('gCarbs'))}${m.snacks.length ? ' + ' + m.snacks.map(x => esc(t('rtSnack', { g: fmtG1(x.carbs), t: fmtTime(x.at) }))).join(' + ') : ''} / ${esc(fmtG1(m.insulin))} ${esc(t('uIns'))} → ${esc(fmtG1(Math.round(m.raw * 10) / 10))} ${esc(t('gCarbs'))}${m.b0 != null && m.b1 != null ? `, ${esc(t('rtBg', { a: G(m.b0), b: G(m.b1) }))}` : ''}${m.low ? ` · <span class="rtlow">${esc(t('rtWasLow'))}</span>` : ''}</li>`).join('')}</ul>
+        <ul class="rtitems">${b.items.map(m => `<li><b>${esc(fmtDate(m.at, { day: '2-digit', month: '2-digit' }))} ${esc(fmtTime(m.at))}</b>: ${esc(fmtG1(m.ownCarbs))} ${esc(t('gCarbs'))} ÷ ${esc(fmtG1(m.insulin))} ${esc(t('uIns'))} = <b>1:${esc(fmtG1(Math.round(m.base * 10) / 10))}</b>${m.snacks.length ? `<br>+ ${m.snacks.map(x => esc(t('rtSnack', { g: fmtG1(x.carbs), t: fmtTime(x.at) }))).join(' + ')} → (${esc(fmtG1(m.carbs))} ${esc(t('gCarbs'))}) ÷ ${esc(fmtG1(m.insulin))} = <b>1:${esc(fmtG1(Math.round(m.raw * 10) / 10))}</b>` : ''}${m.corrections && m.corrections.length ? `<br><span class="muted">${esc(t('rtCorr', { list: m.corrections.map(c => `${fmtG1(c.insulin)} ${t('uIns')} ${fmtTime(c.at)}`).join(', ') }))}</span>` : ''}${m.low ? ` · <span class="rtlow">${esc(t('rtWasLow'))}</span>` : ''}</li>`).join('')}</ul>
         <span class="rtbadge ${cls}">${esc(txt)}</span></div>`;
     };
     const isf = r.isf;
@@ -1129,7 +1129,7 @@
       <div class="rtisf"><div class="small muted">${esc(t('rtIsf'))}</div>
         ${isf ? `<div class="rth"><span class="rtv">${esc(t('rtIsfVal', { v: G(isf.value), u: UL() }))}</span><span class="rtbadge ${isf.method === 'measured' ? badge(isf.conf, isf.n)[0] : 'bad'}">${esc(isf.method === 'measured' ? t('rtIsfMeasured', { n: isf.n }) : t('rtIsfRule'))}</span></div>
         <div class="tiny muted">${esc(t(isf.method === 'measured' ? 'rtIsfHowM' : 'rtIsfHowR'))}</div>` : `<div class="tiny muted">${esc(t('rtNoData'))}</div>`}</div>
-      <p class="tiny muted" style="margin:10px 0 0">${esc(t('rtSnackRule'))} ${esc(t('rtMore'))}</p></div>`;
+      <p class="tiny muted" style="margin:10px 0 0">${esc(t('rtHow'))} ${esc(t('rtMore'))}</p></div>`;
   }
   // one line for the home screen: the ratio for the meal of this hour, or the first one known
   function ratiosLine(r) {

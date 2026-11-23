@@ -40,7 +40,8 @@
     for (const m of tr) {
       if (!(m.carbs > 0 && m.insulin > 0) || isBasal(m)) continue;
       const end = m.mills + 4 * H;
-      if (tr.some(x => x !== m && x.insulin > 0 && !isBasal(x) && x.mills > m.mills - 2 * H && x.mills < end)) continue; // stacked boluses: can't tell which did what
+      if (tr.some(x => x !== m && x.insulin > 0 && x.carbs > 0 && !isBasal(x) && x.mills > m.mills - 2 * H && x.mills < end)) continue; // two meals with boluses overlap: can't tell which did what
+      const corrections = tr.filter(x => x !== m && x.insulin > 0 && !(x.carbs > 0) && !isBasal(x) && x.mills > m.mills && x.mills < end).map(x => ({ at: x.mills, insulin: +x.insulin }));
       const snacks = tr.filter(x => x.carbs > 0 && !(x.insulin > 0) && x.mills > m.mills + 20 * MIN && x.mills <= end);
       const carbs = +m.carbs + snacks.reduce((a, x) => a + +x.carbs, 0);
       const b0 = valueAt(entries, m.mills, 15 * MIN);
@@ -48,7 +49,7 @@
       let b1 = valueAt(entries, end, 20 * MIN);
       if (!b1 && now - m.mills >= 3 * H) b1 = entries.filter(e => e[0] >= m.mills + 3 * H && e[0] <= end + 20 * MIN).pop() || null;
       const nadir = entries.filter(e => e[0] > m.mills && e[0] <= end).reduce((a, e) => (!a || e[1] < a[1] ? e : a), null);
-      meals.push({ at: m.mills, meal: mealOf(m), carbs, ownCarbs: +m.carbs, insulin: +m.insulin, snacks: snacks.map(x => ({ at: x.mills, carbs: +x.carbs })), b0: b0 && b0[1], b1: b1 && b1[1], nadir: nadir && nadir[1], raw: carbs / m.insulin });
+      meals.push({ at: m.mills, meal: mealOf(m), carbs, ownCarbs: +m.carbs, insulin: +m.insulin, snacks: snacks.map(x => ({ at: x.mills, carbs: +x.carbs })), corrections, base: +m.carbs / m.insulin, b0: b0 && b0[1], b1: b1 && b1[1], nadir: nadir && nadir[1], raw: carbs / m.insulin });
     }
 
     // 2) sensitivity: corrections without food (bolus, no carbs from 1 h before to 3 h after, glucose high at the start)
@@ -75,7 +76,7 @@
     for (const k of MEALS) {
       const list = meals.filter(m => m.meal === k);
       if (!list.length) { byMeal[k] = null; continue; }
-      const vals = list.flatMap(m => [m.raw, m.adj].filter(v => v != null && isFinite(v)));
+      const vals = list.map(m => m.raw).filter(v => isFinite(v)); // (meal carbs + snacks without a bolus) ÷ bolus
       byMeal[k] = { ratio: median(vals), min: Math.min(...vals), max: Math.max(...vals), n: list.length, days: new Set(list.map(m => new Date(m.at).toDateString())).size, conf: conf(list.length), items: list };
     }
     return { byMeal, isf: isf ? { value: isf, method: isfMethod, n: corr.length, conf: isfMethod === 'measured' ? conf(corr.length) : 'rule' } : null, meals };
