@@ -52,5 +52,21 @@
     return true;
   }
 
-  return { rate, check, shouldFire };
+  // Every alert the rules would have raised over a stretch of readings, oldest first: the app's
+  // event log. Built from the readings themselves, so it is complete even when the app was closed.
+  function history(entries, o = {}) {
+    const out = [], mem = { last: null, snoozeUntil: 0 };
+    const quiet = k => (k === 'high' || k === 'rise' ? 120 : 45); // a long high is logged every 2 h, lows every 45 min
+    let start = 0;
+    for (let i = 0; i < entries.length; i++) {
+      const now = entries[i][0];
+      while (entries[start][0] < now - 20 * MIN) start++;
+      const a = check(entries.slice(start, i + 1), now, o);
+      if (!a) { if (mem.last && now - mem.last.at > 15 * MIN) mem.last = null; continue; } // back in range: a new episode starts fresh
+      if (shouldFire(a, mem, now, quiet(a.kind))) { mem.last = { kind: a.kind, at: now }; out.push(a); }
+    }
+    return out;
+  }
+
+  return { rate, check, shouldFire, history };
 });

@@ -108,8 +108,8 @@
   });
   on('POST', /^\/app\/treatments$/, b => {
     const u = me(); const at = Date.parse(b.at) || Date.now();
-    const it = { meal: 'Meal Bolus', correction: 'Correction Bolus', basal: 'Basal Insulin' }[b.insulinType] || (b.basal ? 'Basal Insulin' : 'Correction Bolus');
-    const k = { meal: { eventType: 'Meal Bolus', carbs: b.carbs || undefined, insulin: b.insulin || undefined, preBolus: b.preBolus, mealType: b.mealType, glucose: b.glucose }, carbs: { eventType: 'Carb Correction', carbs: b.value }, insulin: { eventType: it, insulin: b.value }, bg: { eventType: 'BG Check', glucose: b.value, units: 'mg/dl' }, exercise: { eventType: 'Exercise', duration: b.value }, note: { eventType: 'Note' } }[b.kind];
+    const it = { meal: 'Meal Bolus', snack: 'Meal Bolus', correction: 'Correction Bolus', basal: 'Basal Insulin', other: 'Bolus' }[b.insulinType] || (b.basal ? 'Basal Insulin' : 'Correction Bolus');
+    const k = { meal: { eventType: 'Meal Bolus', carbs: b.carbs || undefined, insulin: b.insulin || undefined, preBolus: b.preBolus, mealType: b.mealType, glucose: b.glucose }, carbs: { eventType: 'Carb Correction', carbs: b.value }, insulin: { eventType: it, insulin: b.value, reason: b.insulinType !== 'basal' ? b.insulinType : undefined, insKind: b.insKind }, bg: { eventType: 'BG Check', glucose: b.value, units: 'mg/dl', bgContext: b.bgContext }, med: { eventType: 'Medication', meds: b.meds }, weight: { eventType: 'Weight', weight: b.value, fat: b.fat }, exercise: { eventType: 'Exercise', duration: b.value }, note: { eventType: 'Note' } }[b.kind];
     const x = { _id: 'u' + seq++, ...k, mills: at, created_at: new Date(at).toISOString(), notes: b.notes || undefined, enteredBy: 'EndoControl' };
     u.diary.push(x); return x;
   });

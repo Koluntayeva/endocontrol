@@ -336,20 +336,29 @@ route('POST', '/app/treatments', async ctx => {
   const at = ns.toMillis(b.at) ?? Date.now();
   // Decimal doses may come as "6,5".
   const n = v => { const x = typeof v === 'string' ? parseFloat(v.replace(',', '.')) : Number(v); return Number.isFinite(x) && x >= 0 ? x : undefined; };
-  const insulinType = { meal: 'Meal Bolus', correction: 'Correction Bolus', basal: 'Basal Insulin' }[b.insulinType] || (b.basal ? 'Basal Insulin' : 'Correction Bolus');
+  const insulinType = { meal: 'Meal Bolus', snack: 'Meal Bolus', correction: 'Correction Bolus', basal: 'Basal Insulin', other: 'Bolus' }[b.insulinType] || (b.basal ? 'Basal Insulin' : 'Correction Bolus');
+  const pick = (v, list) => (list.includes(v) ? v : undefined);
+  const meds = Array.isArray(b.meds) ? b.meds.slice(0, 10).map(m => ({ name: str(m && m.name, 80), dose: str(m && m.dose, 40) || undefined })).filter(m => m.name) : [];
   const kinds = {
     // A meal with its carbs and bolus in one entry (Nightscout "Meal Bolus"; preBolus = minutes the bolus came before the meal).
     meal: { eventType: 'Meal Bolus', carbs: n(b.carbs), insulin: n(b.insulin) || undefined, preBolus: Number.isFinite(+b.preBolus) ? +b.preBolus : undefined, mealType: ['breakfast', 'lunch', 'dinner', 'snack'].includes(b.mealType) ? b.mealType : undefined,
       // the foods that make up the meal: name, grams, carbs
       foods: Array.isArray(b.foods) && b.foods.length ? b.foods.slice(0, 30).map(f => ({ id: str(f && f.id, 40) || undefined, name: str(f && f.name, 80), g: n(f && f.g) || 0, c: n(f && f.c) || 0 })).filter(f => f.name) : undefined },
     carbs: { eventType: 'Carb Correction', carbs: n(b.value) },
-    insulin: { eventType: insulinType, insulin: n(b.value) },
-    bg: { eventType: 'BG Check', glucose: n(b.value), glucoseType: 'Finger', units: 'mg/dl' },
+    // reason: what the dose was for (meal, snack, correction, other); insKind 'other' for a mixed or unusual insulin
+    insulin: { eventType: insulinType, insulin: n(b.value), reason: pick(b.insulinType, ['meal', 'snack', 'correction', 'other']), insKind: pick(b.insKind, ['other']) },
+    // bgContext: when the finger-prick was taken
+    bg: { eventType: 'BG Check', glucose: n(b.value), glucoseType: 'Finger', units: 'mg/dl', bgContext: pick(b.bgContext, ['fasting', 'before', 'after', 'bedtime', 'night', 'random']) },
+    med: { eventType: 'Medication', meds },
+    weight: { eventType: 'Weight', weight: n(b.value), fat: n(b.fat) },
     exercise: { eventType: 'Exercise', duration: n(b.value) || undefined },
     note: { eventType: 'Note' },
   };
   const k = kinds[b.kind]; if (!k) throw bad('bad_kind');
   if (b.kind === 'meal' && !(k.carbs > 0) && !(k.insulin > 0)) throw bad('empty_entry');
+  if (b.kind === 'med' && !meds.length) throw bad('empty_entry');
+  if (b.kind === 'weight' && !(k.weight > 0 && k.weight < 400)) throw bad('bad_number');
+  if (b.kind === 'weight' && k.fat !== undefined && !(k.fat < 80)) throw bad('bad_number');
   if (['carbs', 'insulin', 'bg'].includes(b.kind) && k[b.kind === 'bg' ? 'glucose' : b.kind] === undefined) throw bad('bad_number');
   // Glucose at the moment of the meal: the value typed in, otherwise the sensor reading nearest to that time.
   if (b.kind === 'meal') {

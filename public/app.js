@@ -28,6 +28,8 @@
     calendar: '<rect x="3.5" y="5" width="17" height="15.5" rx="3"/><path d="M3.5 9.5h17M8 3v4M16 3v4"/>',
     clock: '<circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M9.5 2.5h5"/>',
     camera: '<path d="M4 8h3l1.5-2.5h7L17 8h3a1 1 0 0 1 1 1v9.5a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13.5" r="3.5"/>',
+    pill: '<rect x="3.2" y="8.6" width="17.6" height="6.8" rx="3.4" transform="rotate(-40 12 12)"/><path d="m9.4 9.1 5.2 5.8"/>',
+    scale: '<rect x="3.5" y="3.5" width="17" height="17" rx="4"/><path d="M8 9.5a5.5 5.5 0 0 1 8 0"/><path d="m12 11 1.5-2.5"/>',
     bell: '<path d="M6 16.5V11a6 6 0 0 1 12 0v5.5l1.5 2h-15z"/><path d="M10 20.5a2 2 0 0 0 4 0"/>',
     left: '<path d="m14.5 6-6 6 6 6"/>', right: '<path d="m9.5 6 6 6-6 6"/>',
   };
@@ -321,7 +323,7 @@
     if (!S.me) { if (page === 'register') return register(); return login(); }
     const doc = S.me.user.role === 'doctor';
     const settingsPage = async a => { await settings(a); alertSettings(); };
-    const pages = doc ? { patients, p: doctorPatient, settings } : { home, connect, diary, reports, ai, school, share, settings: settingsPage };
+    const pages = doc ? { patients, p: doctorPatient, settings } : { home, connect, diary, reports, ai, school, share, events, settings: settingsPage };
     const fn = pages[page] || (doc ? patients : home);
     if (!pages[page]) history.replaceState(null, '', doc ? '#/patients' : '#/home');
     view.innerHTML = `<div class="loading">${esc(t('loading'))}</div>`;
@@ -411,6 +413,8 @@
       ${m('GMI', st.gmi.toFixed(1) + '%', 'CV ' + st.cv.toFixed(0) + '% · ' + t('goal') + ' ≤36%')}</div>`;
   }
   function trTitle(x) {
+    if (x.eventType === 'Medication') return t('tMed');
+    if (x.eventType === 'Weight') return t('tWeight');
     if (x.carbs && x.insulin) return t('tMeal');
     if (x.carbs) return t('tCarbs');
     if (x.insulin) return /basal/i.test(x.eventType) ? t('tBasal') : t('tInsulin');
@@ -426,6 +430,11 @@
     if (x.insulin) p.push(`${+x.insulin} ${t('uIns')}`);
     if (x.glucose && x.bgAt == null) p.push(`${G(x.units === 'mmol' ? x.glucose * C.MMOL : x.glucose)} ${UL()}`);
     if (x.duration) p.push(`${x.duration} ${t('min')}`);
+    if (Array.isArray(x.meds)) p.push(x.meds.map(m => m.name + (m.dose ? ' ' + m.dose : '')).join(', '));
+    if (x.weight) p.push(`${fmtG1(x.weight)} ${t('kgU')}${x.fat != null ? ` · ${t('fatShort')} ${fmtG1(x.fat)}%` : ''}`);
+    if (x.bgContext) p.push(t('bgc_' + x.bgContext));
+    if (x.insulin && !x.carbs && x.reason && x.reason !== 'correction') p.push(t(x.reason === 'snack' ? 'mSnack' : x.reason === 'meal' ? 'whyMeal' : 'insWhyOther'));
+    if (x.insKind === 'other') p.push(t('insOther'));
     if (x.insulin && Number.isFinite(+x.preBolus) && x.carbs) p.push(+x.preBolus > 0 ? t('bwBefore') : +x.preBolus < 0 ? t('bwAfter') : t('bwWith'));
     return p.join(' · ');
   }
@@ -449,6 +458,41 @@
       ${extra || ''}</div></div>`;
   }
 
+  // ------------------------------------------------------------ events (alert log)
+  // Events after this moment are new; on the first visit, the last 24 hours count as new.
+  const evSeen = () => { let v = 0; try { v = +localStorage.getItem('evSeen') || 0; } catch { /* private mode */ } return v || Date.now() - 864e5; };
+  const EVGROUP = { verylow: 'low', low: 'low', fallsoon: 'low', fall: 'low', rise: 'high', high: 'high' };
+  async function events() {
+    const now = Date.now(), seen = evSeen();
+    try { localStorage.setItem('evSeen', String(now)); } catch { /* private mode */ }
+    let tab = 'all', days = 7;
+    const draw = async () => {
+      const d = await getData(now - days * 864e5, now + 60e3);
+      const { lo, hi } = targets(S.me.user);
+      const all = window.Alerts.history(d.entries, { lo, hi }).reverse();
+      const n = g => all.filter(a => EVGROUP[a.kind] === g).length;
+      const list = tab === 'all' ? all : all.filter(a => EVGROUP[a.kind] === tab);
+      let lastDay = '';
+      const rows = list.map(a => {
+        const day = fmtDate(a.at, { weekday: 'long', day: 'numeric', month: 'long' });
+        const head = day !== lastDay ? `<h3 class="evday">${esc(day)}</h3>` : ''; lastDay = day;
+        const low = EVGROUP[a.kind] === 'low';
+        return `${head}<div class="evcard ${low ? 'lowc' : 'highc'} lv-${a.level}">
+          <div class="evh"><span class="evic">${icon(low ? 'bg' : 'reports')}</span><b class="grow">${esc(t('ev_' + a.kind))}</b>${a.at > seen ? `<span class="evnew">${esc(t('evNewTag'))}</span>` : ''}<span class="evt">${esc(fmtTime(a.at))}</span></div>
+          <div class="evb"><div class="evv">${G(a.v)}<small>${UL()}</small></div><p>${esc(t('evTip_' + ({ verylow: 'low', low: 'low', fallsoon: 'fall', fall: 'fall' }[a.kind] || a.kind)))}</p></div>
+          ${low && a.kind !== 'fall' ? `<a class="linkbtn" href="#/ai/sos">${esc(t('alWhat'))} →</a>` : ''}</div>`;
+      }).join('');
+      $('#view').innerHTML = `${pageHead('bell', esc(t('evTitle')), t('evSub'), 'peach')}
+        <div class="row stctl"><div class="seg" id="evtabs">${[['all', t('evAll'), all.length], ['low', t('evLows'), n('low')], ['high', t('evHighs'), n('high')]].map(([k, l, c]) => `<button data-k="${k}" class="${k === tab ? 'on' : ''}">${esc(l)} <small>${c}</small></button>`).join('')}</div>
+        <div class="seg" id="evdays" style="margin-inline-start:auto">${[1, 7, 30].map(x => `<button data-n="${x}" class="${x === days ? 'on' : ''}">${x === 1 ? esc(t('day1')) : x + ' ' + esc(t('daysShort'))}</button>`).join('')}</div></div>
+        ${rows || `<div class="card evempty">${icon('bell')}<p>${esc(t(d.entries.length ? 'evEmpty' : 'noData'))}</p></div>`}
+        <p class="tiny muted">${esc(t('evFoot'))}</p>`;
+      document.querySelectorAll('#evtabs button').forEach(b => b.onclick = () => { tab = b.dataset.k; draw(); });
+      document.querySelectorAll('#evdays button').forEach(b => b.onclick = () => { days = +b.dataset.n; draw(); });
+    };
+    await draw();
+  }
+
   // ------------------------------------------------------------ home
   // Time in range as a ring (white on the indigo card).
   const tirRing = pct => { const r = 26, c = 2 * Math.PI * r, v = Math.max(0, Math.min(100, pct || 0));
@@ -459,7 +503,7 @@
   const zoneLabel = z => ({ none: '', vlow: t('veryLow'), low: t('low'), in: t('inRange'), high: t('high'), vhigh: t('veryHigh') }[z]);
   // "Add a record": a bottom panel with large icons.
   function openAddSheet(done) {
-    const items = [['meal', 'meal', 'tMealEntry', 'peach'], ['insulin', 'insulin', 'tBolus', 'sky'], ['bg', 'bg', 'tBg', 'violet'], ['exercise', 'exercise', 'tExercise', 'yellow'], ['note', 'note', 'tNote', 'mix'], ['timer', 'clock', 'fdTimer', 'sky']];
+    const items = [['meal', 'meal', 'tMealEntry', 'peach'], ['insulin', 'insulin', 'tBolus', 'sky'], ['bg', 'bg', 'tBg', 'violet'], ['exercise', 'exercise', 'tExercise', 'yellow'], ['med', 'pill', 'tMed', 'mix'], ['weight', 'scale', 'tWeight', 'peach'], ['note', 'note', 'tNote', 'mix'], ['timer', 'clock', 'fdTimer', 'sky']];
     modal(`<div class="row" style="align-items:center"><h2 style="margin:0" class="grow">${esc(t('hmAdd'))}</h2><button class="iconbtn" data-close aria-label="${esc(t('rdClose'))}">✕</button></div>
       <div class="addgrid">${items.map(([k, ic, key, tone]) => `<button type="button" class="addtile ${tone}" data-k="${k}"><span>${icon(ic)}</span>${esc(t(key))}</button>`).join('')}</div>`, () => {
       document.querySelectorAll('.addtile').forEach(b => b.onclick = () => {
@@ -481,7 +525,7 @@
     let rbox = null;
     const draw = async () => {
       const now = Date.now();
-      const [d, dt] = await Promise.all([getData(now - range * 3600e3, now + 60e3), getData(dayStart(now), now + 60e3)]);
+      const [d, dt, d24] = await Promise.all([getData(now - range * 3600e3, now + 60e3), getData(dayStart(now), now + 60e3), getData(now - 24 * 3600e3, now + 60e3)]);
       const { lo, hi } = targets(me.user);
       const last = dt.entries[dt.entries.length - 1] || d.entries[d.entries.length - 1];
       const st = C.stats(dt.entries.map(e => e[1]), lo, hi);         // today, for the ring
@@ -494,6 +538,7 @@
       const fingers = tr.filter(x => /BG Check/i.test(x.eventType)).length;
       const actMin = tr.filter(x => /exercise/i.test(x.eventType)).reduce((a, x) => a + (+x.duration || 0), 0);
       const recent = [...tr].sort((a, b) => b.mills - a.mills).slice(0, 3);
+      const evNew = window.Alerts.history(d24.entries, { lo, hi }).filter(a => a.at > evSeen()).length;
       $('#view').innerHTML = `
       ${noSource ? `<div class="cta"><h2>${esc(t('connectFirst'))}</h2><p>${esc(t('connectFirstText'))}</p><a class="btn" href="#/connect">${esc(t('connectSensor'))}</a></div>` : ''}
       <div class="hero-card homehero st-${z}">
@@ -521,6 +566,7 @@
         ${recent.length ? `<div class="dlog">${recent.map(x => `<div class="dlrow"><span class="dlt">${fmtTime(x.mills)}</span><span class="chip2">${esc(trTitle(x))}</span><span class="grow small muted">${esc(trValue(x))}</span></div>`).join('')}<a class="small" href="#/diary">${esc(t('navDiary'))} →</a></div>` : `<p class="small muted" style="margin:8px 0 0">${esc(t('hmNoLog'))}</p>`}
       </div>
       <div class="linkrows">
+        <a class="linkrow" href="#/events"><span class="lri peach">${icon('bell')}</span><span class="grow">${esc(t('evTitle'))}<small>${evNew ? esc(t('evNewN', { n: evNew })) : esc(t('evNone'))}</small></span>${evNew ? `<span class="evbadge">${evNew}</span>` : ''}${icon('right')}</a>
         <a class="linkrow" href="#/reports"><span class="lri sky">${icon('reports')}</span><span class="grow">${esc(t('hmReports'))}</span>${icon('right')}</a>
         <a class="linkrow" href="#/school"><span class="lri yellow">${icon('school')}</span><span class="grow">${esc(t('navSchool'))}<small>${esc(t('schProgress', { n: schoolDone().length, total: SCH.lessons(S.lang).length }))}</small></span>${icon('right')}</a>
         <a class="linkrow" href="#/connect"><span class="lri violet">${icon('sensor')}</span><span class="grow">${esc(t('dataSources'))}<small>${me.bridges.length ? esc(me.bridges.map(b => ({ librelinkup: 'LibreLinkUp', dexcom: 'Dexcom Share', nightscout: 'Nightscout' }[b.kind] || b.kind) + (b.status === 'ok' ? ' ✓' : '')).join(', ')) : esc(t('noSources'))}</small></span>${icon('right')}</a>
@@ -585,10 +631,57 @@
     return { value };
   }
 
+  const BGCTX = ['fasting', 'before', 'after', 'bedtime', 'night', 'random'];
+  // Extra behaviour of the insulin, medicine and weight forms: recent entries to repeat with one tap.
+  async function entryExtras(kind, segVal) {
+    if (kind === 'med') {
+      const add = (name = '', dose = '') => {
+        const r = document.createElement('div'); r.className = 'medrow';
+        r.innerHTML = `<input class="mn" maxlength="80" placeholder="${esc(t('medName'))}" list="medlist" value="${esc(name)}"><input class="md" maxlength="40" placeholder="${esc(t('medDose'))}" value="${esc(dose)}"><button type="button" class="iconbtn" aria-label="${esc(t('delete'))}">✕</button>`;
+        r.querySelector('button').onclick = () => { if (document.querySelectorAll('#medrows .medrow').length > 1) r.remove(); else r.querySelectorAll('input').forEach(i => { i.value = ''; }); };
+        $('#medrows').appendChild(r); return r;
+      };
+      add(); $('#medadd').onclick = () => add().querySelector('.mn').focus();
+      const tr = await recentTreatments(x => x.eventType === 'Medication' && Array.isArray(x.meds));
+      const seen = new Map(); for (const x of tr) for (const m of x.meds) { const k = (m.name + '|' + (m.dose || '')).toLowerCase(); if (!seen.has(k)) seen.set(k, m); }
+      const list = [...seen.values()].slice(0, 5); if (!list.length || !$('#recent')) return;
+      document.body.insertAdjacentHTML('beforeend', `<datalist id="medlist">${[...new Set(list.map(m => m.name))].map(n => `<option value="${esc(n)}">`).join('')}</datalist>`);
+      $('#recent').hidden = false;
+      $('#recent .rchips').innerHTML = list.map((m, i) => `<button type="button" class="rchip" data-i="${i}">${icon('pill')}${esc(m.name)}${m.dose ? ` <small>${esc(m.dose)}</small>` : ''}</button>`).join('');
+      document.querySelectorAll('#recent .rchip').forEach(b => b.onclick = () => {
+        const m = list[+b.dataset.i]; const empty = [...document.querySelectorAll('#medrows .medrow')].find(r => !r.querySelector('.mn').value.trim()) || add();
+        empty.querySelector('.mn').value = m.name; empty.querySelector('.md').value = m.dose || '';
+      });
+    }
+    if (kind === 'insulin') {
+      const tr = await recentTreatments(x => x.insulin > 0 && !x.carbs);
+      const kindOf = x => (/basal/i.test(x.eventType) ? 'basal' : x.insKind === 'other' ? 'other' : 'rapid');
+      const seen = new Set(), list = [];
+      for (const x of tr) { const k = kindOf(x) + '|' + +x.insulin; if (!seen.has(k)) { seen.add(k); list.push({ k: kindOf(x), dose: +x.insulin, why: x.reason || (/correction/i.test(x.eventType) ? 'correction' : 'meal') }); } if (list.length === 5) break; }
+      if (!list.length || !$('#recent')) return;
+      $('#recent').hidden = false;
+      const name = { rapid: t('insRapid'), basal: t('insBasal'), other: t('insOther') };
+      $('#recent .rchips').innerHTML = list.map((r, i) => `<button type="button" class="rchip" data-i="${i}">${icon('insulin')}${esc(name[r.k])} <b>${esc(fmtG1(r.dose))}</b> <small>${esc(t('uIns'))}</small></button>`).join('');
+      document.querySelectorAll('#recent .rchip').forEach(b => b.onclick = () => {
+        const r = list[+b.dataset.i]; $('#ev').value = fmtG1(r.dose);
+        const pickSeg = (n, v) => { const sg = document.querySelector(`[data-seg="${n}"]`); const btn = sg && sg.querySelector(`[data-v="${v}"]`); if (btn) btn.click(); };
+        pickSeg('ikind', r.k); if (r.k !== 'basal') pickSeg('ik', r.why);
+      });
+    }
+    if (kind === 'weight') {
+      const tr = await recentTreatments(x => x.eventType === 'Weight' && x.weight > 0, 365);
+      if (tr[0] && $('#wlast')) $('#wlast').textContent = t('weightLast', { v: fmtG1(tr[0].weight), d: fmtDate(tr[0].mills) });
+    }
+  }
+  // The user's own entries of the last days that match, newest first.
+  async function recentTreatments(match, days = 60) {
+    try { const d = await getData(Date.now() - days * 864e5, Date.now() + 60e3); return d.treatments.filter(match).sort((a, b) => b.mills - a.mills); } catch { return []; }
+  }
+
   function addEntry(kind, done) {
-    const titles = { meal: 'tMealEntry', carbs: 'tCarbs', insulin: 'tBolus', bg: 'tBg', exercise: 'tExercise', note: 'tNote' };
+    const titles = { meal: 'tMealEntry', carbs: 'tCarbs', insulin: 'tInsEntry', bg: 'tBg', exercise: 'tExercise', note: 'tNote', med: 'tMed', weight: 'tWeight' };
     const mealByHour = h => h >= 5 && h < 11 ? 'breakfast' : h >= 11 && h < 16 ? 'lunch' : h >= 16 && h < 22 ? 'dinner' : 'snack';
-    const seg = (name, opts, on) => `<div class="seg wide" data-seg="${name}">${opts.map(([v, l]) => `<button type="button" data-v="${v}" class="${v === on ? 'on' : ''}">${esc(l)}</button>`).join('')}</div>`;
+    const seg = (name, opts, on, cls = 'wide') => `<div class="seg ${cls}" data-seg="${name}">${opts.map(([v, l]) => `<button type="button" data-v="${v}" class="${v === on ? 'on' : ''}">${esc(l)}</button>`).join('')}</div>`;
     let body = '';
     if (kind === 'meal') {
       body = `${seg('meal', [['breakfast', t('ex_breakfast')], ['lunch', t('ex_lunch')], ['dinner', t('ex_dinner')], ['snack', t('mSnack')]], mealByHour(new Date().getHours()))}
@@ -599,8 +692,20 @@
         <div class="fld"><label>${esc(t('bolusWhen'))}</label>${seg('pre', [['15', t('bwBefore')], ['0', t('bwWith')], ['-15', t('bwAfter')]], '15')}</div>
         <div class="fld"><label for="eg">${esc(t('bgAtMeal'))}, ${esc(UL())}</label><input id="eg" type="text" inputmode="decimal" autocomplete="off"><div class="tiny muted" id="egs"></div></div>`;
     } else if (kind === 'insulin') {
-      body = `${numField('ev', t('amount') + ', ' + t('uIns'), true)}
-        <div class="fld"><label>${esc(t('insKind'))}</label>${seg('ik', [['meal', t('insMeal')], ['correction', t('insCorr')], ['basal', t('insBasal')]], 'correction')}</div>`;
+      body = `<div class="fld"><label>${esc(t('insType'))}</label>${seg('ikind', [['rapid', t('insRapid')], ['basal', t('insBasal')], ['other', t('insOther')]], 'rapid')}</div>
+        ${numField('ev', t('dose') + ', ' + t('uIns'), true)}
+        <div class="fld" id="whyf"><label>${esc(t('insWhy'))}</label>${seg('ik', [['meal', t('whyMeal')], ['snack', t('mSnack')], ['correction', t('insCorr')], ['other', t('insWhyOther')]], 'meal', 'wide grid4')}</div>
+        <div class="fld" id="recent" hidden><label>${esc(t('recentDoses'))}</label><div class="rchips"></div></div>`;
+    } else if (kind === 'bg') {
+      const h = new Date().getHours();
+      body = `${numField('ev', `${t('bgValue')}, ${UL()}`, true)}
+        <div class="fld"><label>${esc(t('bgWhen'))}</label>${seg('bgc', BGCTX.map(k => [k, t('bgc_' + k)]), h < 5 ? 'night' : 'random', 'wide grid3')}</div>`;
+    } else if (kind === 'med') {
+      body = `<div class="fld"><label>${esc(t('medList'))}</label><div id="medrows"></div>
+        <button type="button" class="linkbtn" id="medadd">+ ${esc(t('medMore'))}</button></div>
+        <div class="fld" id="recent" hidden><label>${esc(t('medRecent'))}</label><div class="rchips"></div></div>`;
+    } else if (kind === 'weight') {
+      body = `<div class="grid g2" style="gap:10px">${numField('ev', t('weightKg'), true)}${numField('efat', t('fatPct'))}</div><div class="tiny muted" id="wlast"></div>`;
     } else if (kind !== 'note') {
       const unit = { carbs: t('gCarbs'), bg: UL(), exercise: t('min') }[kind];
       body = numField('ev', `${t('amount')}, ${unit}`, true);
@@ -615,11 +720,13 @@
       document.querySelectorAll('[data-seg] button').forEach(b => b.onclick = () => { b.parentElement.querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); refresh(); });
       // Carbs in bread units are shown in grams (1 XE = 12 g) as you type.
       const refresh = () => {
+        const wf = $('#whyf'); if (wf) wf.hidden = segVal('ikind') === 'basal';
         const x = $('#ecx'); if (!x) return;
         const v = parseNum($('#ec').value);
         x.textContent = segVal('cu') === 'xe' && v > 0 ? `= ${Math.round(v * 12)} ${t('gCarbs')} · ${t('xeNote')}` : '';
       };
       if ($('#ec')) $('#ec').addEventListener('input', refresh);
+      entryExtras(kind, segVal);
       // The sensor value at the chosen time is filled in for a meal unless typed by hand.
       let bgTyped = false, sensorMg = null;
       if ($('#eg')) $('#eg').addEventListener('input', () => { bgTyped = true; });
@@ -652,11 +759,21 @@
           if (segVal('cu') === 'xe') carbs = carbs * 12;
           const typedBg = bgTyped && $('#eg').value.trim() ? parseNum($('#eg').value) : NaN;
           payload = { ...payload, carbs, insulin: ins, mealType: segVal('meal'), preBolus: ins ? Number(segVal('pre')) : undefined, glucose: Number.isFinite(typedBg) ? toMg(typedBg) : undefined };
+        } else if (kind === 'med') {
+          payload.meds = [...document.querySelectorAll('#medrows .medrow')].map(r => ({ name: r.querySelector('.mn').value.trim(), dose: r.querySelector('.md').value.trim() })).filter(m => m.name);
+          if (!payload.meds.length) return err(t('eMedEmpty'));
         } else if (kind !== 'note') {
           const v = parseNum($('#ev').value);
           if (Number.isNaN(v) || v < 0) return err(t('eNum'));
           payload.value = kind === 'bg' ? toMg(v) : v;
-          if (kind === 'insulin') payload.insulinType = segVal('ik');
+          if (kind === 'insulin') { const ik = segVal('ikind'); payload.insulinType = ik === 'basal' ? 'basal' : segVal('ik'); if (ik === 'other') payload.insKind = 'other'; }
+          if (kind === 'bg') payload.bgContext = segVal('bgc');
+          if (kind === 'weight') {
+            if (!(v > 0 && v < 400)) return err(t('eNum'));
+            const f = $('#efat').value.trim() ? parseNum($('#efat').value) : undefined;
+            if (f !== undefined && !(f >= 0 && f < 80)) return err(t('eNum'));
+            payload.fat = f;
+          }
         }
         try {
           await api('POST', '/app/treatments', payload);

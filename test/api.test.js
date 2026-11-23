@@ -160,3 +160,38 @@ test('food diary: food search, a meal with its foods, photo needs the AI', async
   assert.equal(r.status, 400);
   server.close();
 });
+
+test('diary: insulin with its purpose, a meter reading with context, medicines, weight', async () => {
+  await new Promise(r => server.listen(0, r));
+  const base = `http://127.0.0.1:${server.address().port}`;
+  const j = { 'Content-Type': 'application/json', 'X-EC': '1' };
+  let r = await fetch(base + '/app/register', { method: 'POST', headers: j, body: JSON.stringify({ email: 'rec@e.st', password: 'abcd1234', name: 'R', consent: true }) });
+  const cookie = r.headers.get('set-cookie').split(';')[0];
+  const post = (body, min) => fetch(base + '/app/treatments', { method: 'POST', headers: { ...j, cookie }, body: JSON.stringify({ ...body, at: new Date(Date.now() - min * 60e3).toISOString() }) });
+  assert.equal((await post({ kind: 'insulin', value: '1,5', insulinType: 'snack' }, 50)).status, 200);
+  assert.equal((await post({ kind: 'insulin', value: 8, insulinType: 'basal' }, 40)).status, 200);
+  assert.equal((await post({ kind: 'bg', value: 112, bgContext: 'before' }, 30)).status, 200);
+  assert.equal((await post({ kind: 'med', meds: [{ name: 'Парацетамол', dose: '1 таб.' }, { name: '' }] }, 20)).status, 200);
+  assert.equal((await post({ kind: 'weight', value: '31,4', fat: 18 }, 10)).status, 200);
+  assert.equal((await post({ kind: 'med', meds: [] }, 5)).status, 400);
+  assert.equal((await post({ kind: 'weight', value: 0 }, 5)).status, 400);
+  const d = await (await fetch(`${base}/app/data?from=${Date.now() - 3600e3}&to=${Date.now() + 60e3}`, { headers: { cookie } })).json();
+  const by = e => d.treatments.find(x => x.eventType === e);
+  assert.equal(by('Meal Bolus').reason, 'snack'); assert.equal(by('Meal Bolus').insulin, 1.5);
+  assert.equal(by('Basal Insulin').insulin, 8);
+  assert.equal(by('BG Check').bgContext, 'before');
+  assert.deepEqual(by('Medication').meds, [{ name: 'Парацетамол', dose: '1 таб.' }]);
+  assert.equal(by('Weight').weight, 31.4); assert.equal(by('Weight').fat, 18);
+  server.close();
+});
+
+test('notifications log: alerts worked out from the readings, without repeats', () => {
+  const A = require('../public/alerts.js');
+  const M = 60e3, T = Date.UTC(2026, 0, 1), es = [];
+  for (let i = 0; i < 40; i++) es.push([T + i * 5 * M, i < 20 ? 120 : i < 30 ? 120 - (i - 20) * 9 : 50, null]); // slow fall into a long low
+  for (let i = 40; i < 100; i++) es.push([T + i * 5 * M, i < 50 ? 120 : 270, null]);                        // back in range, then a long high
+  const kinds = A.history(es, { lo: 70, hi: 180 }).map(a => a.kind);
+  assert.deepEqual(kinds.slice(0, 2), ['low', 'verylow']);
+  assert.equal(kinds.filter(k => k === 'verylow').length, 2, 'a low still there after 45 minutes is logged again, not every reading');
+  assert.ok(kinds.filter(k => k === 'high').length <= 2, 'a long high is not logged every reading');
+});

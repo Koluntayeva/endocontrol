@@ -640,3 +640,38 @@ body.has-galert .hypotimer{top:calc(190px + env(safe-area-inset-top))}
   .sttile b{font-size:21px}
 }
 @media print{.tirwrap .tirbar{display:none}.sttile{border:1px solid #ddd;background:#fff}}
+
+/* ---------- entry forms: insulin type, meter context, medicines, recent chips ---------- */
+.seg.grid3,.seg.grid4{display:grid;border-radius:16px;gap:4px}
+.seg.grid3{grid-template-columns:repeat(3,1fr)}
+.seg.grid4{grid-template-columns:repeat(4,1fr)}
+.seg.grid3 button,.seg.grid4 button{border-radius:12px;padding:9px 4px;font-size:13px}
+@media (max-width:420px){.seg.grid4{grid-template-columns:repeat(2,1fr)}}
+.rchips{display:flex;flex-wrap:wrap;gap:8px}
+.rchip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--card);border-radius:999px;padding:7px 12px;font:inherit;font-size:13px;color:var(--text);cursor:pointer}
+.rchip svg{width:15px;height:15px;color:var(--accent)}
+.rchip small{color:var(--muted)}
+.rchip:active{background:var(--accent-soft)}
+.medrow{display:grid;grid-template-columns:1.4fr 1fr auto;gap:8px;margin-bottom:8px;align-items:center}
+.medrow .iconbtn{width:34px;height:34px;padding:0}
+
+/* ---------- notifications (alert log) ---------- */
+.evday{font-size:13px;font-weight:600;color:var(--muted);margin:18px 4px 8px}.evday::first-letter{text-transform:uppercase}
+.evcard{background:var(--card);border-radius:20px;padding:14px 16px;margin-bottom:10px;box-shadow:0 2px 10px rgba(40,30,90,.06);border-inline-start:5px solid var(--high)}
+.evcard.lowc{border-inline-start-color:var(--low)}
+.evcard.lv-critical{border-inline-start-color:var(--vlow)}
+.evh{display:flex;align-items:center;gap:10px}
+.evic{display:grid;place-items:center;width:30px;height:30px;border-radius:10px;background:var(--bg2);color:var(--high)}
+.lowc .evic{color:var(--low)}
+.evic svg{width:17px;height:17px}
+.evt{font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+.evnew{font-size:11px;font-weight:600;color:#fff;background:var(--warm);border-radius:999px;padding:2px 8px}
+.evb{display:flex;align-items:center;gap:14px;margin-top:8px}
+.evv{font-size:30px;font-weight:300;line-height:1;white-space:nowrap;font-variant-numeric:tabular-nums}
+.evv small{font-size:12px;color:var(--muted);margin-inline-start:4px}
+.evb p{margin:0;font-size:13px;color:var(--muted);line-height:1.35}
+.evcard .linkbtn{display:inline-block;margin-top:8px;font-size:13px}
+.evempty{text-align:center;color:var(--muted)}
+.evempty svg{width:34px;height:34px;color:var(--in)}
+.evbadge{min-width:22px;height:22px;border-radius:999px;background:var(--warm);color:#fff;font-size:12px;font-weight:700;display:grid;place-items:center;padding:0 6px;margin-inline-end:6px}
+.seg small{opacity:.6;margin-inline-start:2px}
