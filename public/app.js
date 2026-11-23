@@ -450,51 +450,85 @@
   }
 
   // ------------------------------------------------------------ home
+  // Time in range as a ring (white on the indigo card).
+  const tirRing = pct => { const r = 26, c = 2 * Math.PI * r, v = Math.max(0, Math.min(100, pct || 0));
+    return `<svg class="tirring" viewBox="0 0 64 64" width="64" height="64" aria-hidden="true"><circle cx="32" cy="32" r="${r}" fill="none" stroke="rgba(255,255,255,.22)" stroke-width="6"/>
+      <circle cx="32" cy="32" r="${r}" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round" stroke-dasharray="${(c * v / 100).toFixed(1)} ${c.toFixed(1)}" transform="rotate(-90 32 32)"/>
+      <text x="32" y="37" text-anchor="middle" style="fill:#fff;font-size:15px;font-weight:700">${Math.round(v)}<tspan style="font-size:9px">%</tspan></text></svg>`; };
+  const zoneOf = (v, lo, hi) => v == null ? 'none' : v < 54 ? 'vlow' : v < lo ? 'low' : v <= hi ? 'in' : v <= 250 ? 'high' : 'vhigh';
+  const zoneLabel = z => ({ none: '', vlow: t('veryLow'), low: t('low'), in: t('inRange'), high: t('high'), vhigh: t('veryHigh') }[z]);
+  // "Add a record": a bottom panel with large icons.
+  function openAddSheet(done) {
+    const items = [['meal', 'meal', 'tMealEntry', 'peach'], ['insulin', 'insulin', 'tBolus', 'sky'], ['bg', 'bg', 'tBg', 'violet'], ['exercise', 'exercise', 'tExercise', 'yellow'], ['note', 'note', 'tNote', 'mix'], ['timer', 'clock', 'fdTimer', 'sky']];
+    modal(`<div class="row" style="align-items:center"><h2 style="margin:0" class="grow">${esc(t('hmAdd'))}</h2><button class="iconbtn" data-close aria-label="${esc(t('rdClose'))}">✕</button></div>
+      <div class="addgrid">${items.map(([k, ic, key, tone]) => `<button type="button" class="addtile ${tone}" data-k="${k}"><span>${icon(ic)}</span>${esc(t(key))}</button>`).join('')}</div>`, () => {
+      document.querySelectorAll('.addtile').forEach(b => b.onclick = () => {
+        const k = b.dataset.k; closeModal();
+        if (k === 'meal') addFood((h => h >= 5 && h < 11 ? 'breakfast' : h >= 11 && h < 16 ? 'lunch' : h >= 16 && h < 22 ? 'dinner' : 'snack')(new Date().getHours()), done);
+        else if (k === 'timer') openFoodTimer();
+        else addEntry(k, done);
+      });
+    });
+  }
+
+  // ------------------------------------------------------------ home
   async function home() {
     const me = S.me = await api('GET', '/app/me');
     S.units = me.user.units;
-    let range = Number(sessionStorage.getItem('range') || 24);
+    let range = Number(sessionStorage.getItem('range') || 3);
+    if (![3, 6, 12, 24].includes(range)) range = 3;
     // The 3D robot lives in one element that is moved into each redraw, so it is built once per visit.
     let rbox = null;
     const draw = async () => {
       const now = Date.now();
-      const d = await getData(now - range * 3600e3, now + 60e3);
+      const [d, dt] = await Promise.all([getData(now - range * 3600e3, now + 60e3), getData(dayStart(now), now + 60e3)]);
       const { lo, hi } = targets(me.user);
-      const last = d.entries[d.entries.length - 1];
-      const today = d.entries.filter(e => e[0] >= dayStart(now)).map(e => e[1]);
-      const st = C.stats(today, lo, hi);
+      const last = dt.entries[dt.entries.length - 1] || d.entries[d.entries.length - 1];
+      const st = C.stats(dt.entries.map(e => e[1]), lo, hi);         // today, for the ring
+      const rs = C.stats(d.entries.map(e => e[1]), lo, hi);          // the chart's range
       const stale = !last || now - last[0] > 15 * 60e3;
       const noSource = !me.bridges.length && !me.last;
+      const z = zoneOf(last && last[1], lo, hi);
+      const tr = dt.treatments.filter(x => x.eventType !== 'Temp Basal');
+      const sum = k => tr.reduce((a, x) => a + (+x[k] || 0), 0);
+      const fingers = tr.filter(x => /BG Check/i.test(x.eventType)).length;
+      const actMin = tr.filter(x => /exercise/i.test(x.eventType)).reduce((a, x) => a + (+x.duration || 0), 0);
+      const recent = [...tr].sort((a, b) => b.mills - a.mills).slice(0, 3);
       $('#view').innerHTML = `
       ${noSource ? `<div class="cta"><h2>${esc(t('connectFirst'))}</h2><p>${esc(t('connectFirstText'))}</p><a class="btn" href="#/connect">${esc(t('connectSensor'))}</a></div>` : ''}
-      ${heroHtml(last, lo, hi, me.user.patient_name || me.user.name, (last ? esc(ago(last[0])) : esc(t('noData'))) + (stale && last ? ` · ${esc(t('stale'))}` : ''), `<div class="seg" id="rng">${[3, 6, 12, 24].map(h => `<button data-h="${h}" class="${h === range ? 'on' : ''}">${h}${esc(t('hShort'))}</button>`).join('')}</div>`)}
-      <div class="card chartcard indigo">
-      ${C.line(d.entries, now - range * 3600e3, now + 5 * 60e3, { lo, hi, units: S.units, treatments: d.treatments, locale: locale(), label: t('glucose') })}
-      <div class="legend"><i style="background:var(--ins)"></i>${esc(t('tInsulin'))}<i style="background:var(--carb)"></i>${esc(t('tCarbs'))}<i style="background:var(--in-soft);border:1px solid var(--in)"></i>${esc(t('targetRange'))} ${G(lo)}–${G(hi)}</div>
+      <div class="hero-card homehero st-${z}">
+        <div class="hh-top"><div class="who">${esc(me.user.patient_name || me.user.name)}</div><div class="meta">${icon('clock')}${last ? esc(fmtTime(last[0])) + ' · ' + esc(ago(last[0])) : esc(t('noData'))}${stale && last ? ` · ${esc(t('stale'))}` : ''}</div></div>
+        <div class="now"><div class="valbox"><div class="val">${last ? G(last[1]) : '—'}<span class="arrow">${last ? (C.ARROWS[last[2]] || '') : ''}</span></div>
+          <div class="unit">${UL()}${zoneLabel(z) ? `<span class="zone z-${z}"><i></i>${esc(zoneLabel(z))}</span>` : ''}</div></div></div>
+        <div class="tirstrip"><div class="grow"><b>${esc(t('hmTir'))}</b><span>${esc(t('hmTarget', { r: `${G(lo)}–${G(hi)} ${UL()}` }))}</span></div>${st.n ? tirRing(st.tir) : `<span class="muted">—</span>`}</div>
       </div>
-      <div class="quick no-print">${[['meal', 'meal', 'tMealEntry'], ['timer', 'clock', 'fdTimer'], ['insulin', 'insulin', 'tBolus'], ['bg', 'bg', 'tBg'], ['note', 'note', 'tNote']].map(q => `<button data-q="${q[0]}"><span>${icon(q[1])}</span>${esc(t(q[2]))}</button>`).join('')}</div>
-      <div class="card aihome no-print">
-        <div class="row aihead"><div class="hrobot" id="hrobot" aria-hidden="true"></div><div class="grow"><h2>${esc(t('navAi'))}</h2><div class="small muted">${esc(t('aiSeen'))}</div></div>
-          <button type="button" class="btn red sm" id="hsos">${esc(t('urSos'))}</button></div>
-        ${insights(d.entries, lo, hi).slice(0, 3).map(x => `<div class="ins">${esc(x)}</div>`).join('')}
-        <form id="hask" class="aiform"><input id="haskIn" maxlength="2000" autocomplete="off" placeholder="${esc(t('aiPlaceholder'))}" aria-label="${esc(t('aiAsk'))}"><button class="btn" aria-label="${esc(t('aiSend'))}">➤</button></form>
-        <div class="chips">${t('aiChips').split('|').slice(0, 3).map(c => `<button type="button" class="chip" data-hq="${esc(c)}">${esc(c)}</button>`).join('')}</div>
+      <div class="aistrip no-print"><div class="hrobot" id="hrobot"></div>
+        <form id="hask" class="aiq"><input id="haskIn" maxlength="2000" autocomplete="off" placeholder="${esc(t('hmAsk'))}" aria-label="${esc(t('aiAsk'))}"><button aria-label="${esc(t('aiSend'))}">${icon('right')}</button></form></div>
+      <div class="card chartcard indigo homechart">
+        <div class="seg rng" id="rng">${[3, 6, 12, 24].map(h => `<button data-h="${h}" class="${h === range ? 'on' : ''}">${h} ${esc(t('hShort'))}</button>`).join('')}</div>
+        <div class="cur"><b>${esc(t('hmCurrent'))}</b>${zoneLabel(z) ? `<span class="zone z-${z}"><i></i>${esc(zoneLabel(z))}</span>` : ''}</div>
+        ${C.line(d.entries, now - range * 3600e3, now + 5 * 60e3, { lo, hi, units: S.units, treatments: d.treatments, locale: locale(), label: t('glucose') })}
+        <div class="rstats">${[['hmMax', rs.max], ['hmMin', rs.min], ['hmMean', rs.mean]].map(([k, v]) => `<div><span>${esc(t(k))}</span><b>${rs.n ? G(v) : '—'}<small>${UL()}</small></b></div>`).join('')}</div>
       </div>
-      <div class="grid g2" style="margin-top:12px">
-        <div class="card"><h2>${esc(t('today'))}</h2>${metricsHtml(st, lo, hi)}</div>
-        <div class="card"><h2>${esc(t('dataSources'))}</h2>${sourcesHtml(me)}<a class="btn ghost sm" href="#/connect" style="margin-top:8px">${esc(t('connectSensor'))}</a></div>
+      <div class="card daily">
+        <div class="row" style="align-items:center;margin-bottom:10px"><h2 class="grow" style="margin:0">${esc(t('hmDaily'))}</h2><button type="button" class="linkbtn" id="addrec">+ ${esc(t('hmAdd'))}</button></div>
+        <div class="dtiles">
+          <div class="dtile peach"><span>${icon('meal')}${esc(t('tCarbs'))}</span><b>${sum('carbs') ? esc(fmtG1(sum('carbs'))) + '<small> ' + esc(t('gCarbs')) + '</small>' : '—'}</b></div>
+          <div class="dtile sky"><span>${icon('insulin')}${esc(t('tInsulin'))}</span><b>${sum('insulin') ? esc(fmtG1(sum('insulin'))) + '<small> ' + esc(t('uIns')) + '</small>' : '—'}</b></div>
+          <div class="dtile violet"><span>${icon('bg')}${esc(t('tBg'))}</span><b>${fingers ? esc(t('hmTimes', { n: fingers })) : '—'}</b></div>
+          <div class="dtile yellow"><span>${icon('exercise')}${esc(t('tExercise'))}</span><b>${actMin ? actMin + '<small> ' + esc(t('min')) + '</small>' : '—'}</b></div>
+        </div>
+        ${recent.length ? `<div class="dlog">${recent.map(x => `<div class="dlrow"><span class="dlt">${fmtTime(x.mills)}</span><span class="chip2">${esc(trTitle(x))}</span><span class="grow small muted">${esc(trValue(x))}</span></div>`).join('')}<a class="small" href="#/diary">${esc(t('navDiary'))} →</a></div>` : `<p class="small muted" style="margin:8px 0 0">${esc(t('hmNoLog'))}</p>`}
       </div>
-      <div class="discover no-print">
-        <a class="dcard yellow" href="#/school"><img src="${IMG('home')}" alt="" loading="lazy"><b>${esc(t('navSchool'))}</b><span>${esc(t('schProgress', { n: schoolDone().length, total: SCH.lessons(S.lang).length }))}</span></a>
-        <a class="dcard peach" href="#/reports"><img src="${IMG('l-targets')}" alt="" loading="lazy"><b>${esc(t('navReports'))}</b><span>${esc(t('timeInRanges'))}</span></a>
+      <div class="linkrows">
+        <a class="linkrow" href="#/reports"><span class="lri sky">${icon('reports')}</span><span class="grow">${esc(t('hmReports'))}</span>${icon('right')}</a>
+        <a class="linkrow" href="#/school"><span class="lri yellow">${icon('school')}</span><span class="grow">${esc(t('navSchool'))}<small>${esc(t('schProgress', { n: schoolDone().length, total: SCH.lessons(S.lang).length }))}</small></span>${icon('right')}</a>
+        <a class="linkrow" href="#/connect"><span class="lri violet">${icon('sensor')}</span><span class="grow">${esc(t('dataSources'))}<small>${me.bridges.length ? esc(me.bridges.map(b => ({ librelinkup: 'LibreLinkUp', dexcom: 'Dexcom Share', nightscout: 'Nightscout' }[b.kind] || b.kind) + (b.status === 'ok' ? ' ✓' : '')).join(', ')) : esc(t('noSources'))}</small></span>${icon('right')}</a>
       </div>`;
       document.querySelectorAll('#rng button').forEach(b => b.onclick = () => { range = +b.dataset.h; sessionStorage.setItem('range', range); draw(); });
-      document.querySelectorAll('[data-q]').forEach(b => b.onclick = () => b.dataset.q === 'timer' ? openFoodTimer() : b.dataset.q === 'meal' ? addFood((h => h >= 5 && h < 11 ? 'breakfast' : h >= 11 && h < 16 ? 'lunch' : h >= 16 && h < 22 ? 'dinner' : 'snack')(new Date().getHours()), draw) : addEntry(b.dataset.q, draw));
-      // Questions asked here open the analyst with the answer.
-      const toAi = (q, force = false) => { if (!q || !q.trim()) return; S.pendingQuestion = { q: q.trim(), force }; location.hash = '#/ai'; };
-      $('#hask').onsubmit = e => { e.preventDefault(); toAi($('#haskIn').value); };
-      document.querySelectorAll('[data-hq]').forEach(b => b.onclick = () => toAi(b.dataset.hq));
-      $('#hsos').onclick = () => toAi(t('urSos'), true);
+      $('#addrec').onclick = () => openAddSheet(draw);
+      // A question asked here opens the analyst with the answer.
+      $('#hask').onsubmit = e => { e.preventDefault(); const q = $('#haskIn').value.trim(); if (!q) return; S.pendingQuestion = { q }; location.hash = '#/ai'; };
       if (!rbox) { rbox = document.createElement('div'); rbox.className = 'robotbox homebot'; rbox.innerHTML = `<img src="${IMG('ai')}" alt="">`; }
       robotClickable(rbox);
       $('#hrobot').appendChild(rbox);

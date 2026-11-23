@@ -553,6 +553,69 @@ body.has-galert .hypotimer{top:calc(190px + env(safe-area-inset-top))}
 .hypotimer.meal{border-color:var(--accent)}
 .hypotimer.meal.done{background:var(--accent);animation:none}
 .hypotimer.meal.done .btn{color:var(--accent)}
+
+/* ---------- home screen (Ottai-inspired blocks, EndoControl style) ---------- */
+.homehero{padding:18px 20px 16px}
+.homehero .hh-top{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;position:relative;z-index:1;margin-bottom:6px}
+.homehero .hh-top .who{font-weight:700;font-size:17px}
+.homehero .hh-top .meta{display:inline-flex;align-items:center;gap:6px;font-size:13px;opacity:.85}
+.homehero .hh-top .meta svg{width:15px;height:15px}
+.homehero .now .val{font-size:84px}
+.tirstrip{display:flex;align-items:center;gap:12px;margin-top:14px;padding:10px 12px 10px 16px;border-radius:20px;background:rgba(255,255,255,.12);position:relative;z-index:1}
+.tirstrip b{display:block;font-size:15px}
+.tirstrip span{font-size:12.5px;opacity:.8}
+.tirring{flex:none}
+/* AI analyst: the robot and one question line */
+.aistrip{display:flex;align-items:center;gap:6px;margin:10px 0 14px}
+.aistrip .hrobot{flex:none;width:96px;height:118px;margin:-14px -6px -10px -8px}
+.aistrip .robotbox.homebot{width:96px;height:118px}
+.aiq{flex:1;display:flex;align-items:center;gap:6px;background:var(--card);border:1px solid var(--line);border-radius:999px;padding:5px 5px 5px 16px;box-shadow:var(--shadow)}
+.aiq input{flex:1;min-width:0;border:0;background:none;padding:10px 0;box-shadow:none}
+.aiq input:focus{box-shadow:none;background:none}
+.aiq button{flex:none;display:grid;place-items:center;width:42px;height:42px;border-radius:50%;border:0;background:var(--grad);color:#fff;cursor:pointer}
+.aiq button svg{width:20px;height:20px}
+/* chart card */
+.homechart .rng{display:flex;width:100%;background:rgba(255,255,255,.1);margin-bottom:10px}
+.homechart .rng button{flex:1;color:rgba(255,255,255,.75)}
+.homechart .rng button.on{background:#fff;color:#2c2fae}
+.homechart .cur{display:flex;align-items:center;gap:10px;margin:2px 4px 4px;font-size:15px}
+.homechart .zone{background:rgba(255,255,255,.12);color:#fff}
+.rstats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:6px}
+.rstats div{background:rgba(255,255,255,.08);border-radius:16px;padding:10px 12px}
+.rstats span{display:block;font-size:12px;color:rgba(255,255,255,.7)}
+.rstats b{font-size:22px;font-weight:650}
+.rstats small{font-size:11px;font-weight:500;margin-inline-start:4px;opacity:.75}
+/* daily data */
+.linkbtn{border:0;background:none;color:var(--accent);font:inherit;font-weight:650;cursor:pointer;padding:4px 0}
+.dtiles{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.dtile{border-radius:18px;padding:12px 14px;background:linear-gradient(160deg,var(--tint),var(--card) 80%)}
+.dtile span{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted);font-weight:600}
+.dtile span svg{width:18px;height:18px}
+.dtile.peach span svg{color:var(--warm)}.dtile.sky span svg{color:var(--accent)}.dtile.violet span svg{color:var(--accent2)}.dtile.yellow span svg{color:#b98400}
+.dtile b{display:block;font-size:24px;font-weight:650;margin-top:4px}
+.dtile small{font-size:12px;font-weight:500;color:var(--muted)}
+.dlog{margin-top:12px;border-top:1px solid var(--line);padding-top:8px}
+.dlrow{display:flex;align-items:center;gap:8px;padding:6px 0}
+.dlt{font-weight:650;min-width:46px;font-variant-numeric:tabular-nums}
+.chip2{font-size:12px;font-weight:600;color:var(--accent2);background:var(--t-violet);padding:3px 9px;border-radius:999px;white-space:nowrap}
+/* link rows */
+.linkrows{display:flex;flex-direction:column;gap:10px;margin-bottom:14px}
+.linkrow{display:flex;align-items:center;gap:12px;padding:14px 16px;border-radius:22px;background:var(--card);border:1px solid var(--line);box-shadow:var(--shadow);color:var(--text);text-decoration:none;font-weight:650}
+.linkrow small{display:block;font-weight:500;font-size:12.5px;color:var(--muted)}
+.linkrow>svg{width:18px;height:18px;color:var(--muted)}
+.lri{display:grid;place-items:center;width:40px;height:40px;border-radius:50%;flex:none;background:var(--tint);color:var(--accent)}
+.lri svg{width:20px;height:20px}
+.lri.yellow{color:#b98400}.lri.violet{color:var(--accent2)}
+/* add-a-record sheet */
+.addgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:16px 0 6px}
+.addtile{display:flex;flex-direction:column;align-items:center;gap:8px;border:0;background:none;font:inherit;font-size:13px;color:var(--text);cursor:pointer;text-align:center}
+.addtile span{display:grid;place-items:center;width:62px;height:62px;border-radius:50%;background:var(--tint);color:var(--accent)}
+.addtile span svg{width:28px;height:28px}
+.addtile.peach span{color:var(--warm)}.addtile.violet span{color:var(--accent2)}.addtile.yellow span{color:#b98400}
+.mix{--tint:var(--t-mix);--tint2:var(--t-mix2)}
+@media (prefers-color-scheme:dark){.dtile.yellow span svg,.lri.yellow,.addtile.yellow span{color:var(--sun)}}
+.daily h2{font-size:17px;white-space:nowrap}
+.daily .linkbtn{white-space:nowrap;font-size:14px}
 </style>
 </head>
 <body>
@@ -640,6 +703,8 @@ body.has-galert .hypotimer{top:calc(190px + env(safe-area-inset-top))}
     ftIntro: "Choose a timer. When it ends you'll get a sound, vibration and a spoken reminder.", ftPre15: "pause after the bolus, then eat", ftPre20: "pause after the bolus, then eat", ftCheck60: "check glucose after the meal", ftCheck120: "check glucose after the meal",
     ftNote: "The pause between the bolus and the meal is set by your doctor; 15–20 minutes is typical for rapid-acting insulin when glucose is in range.", ftStarted: "Timer started",
     urTimerAuto: "⏱ I started a 15-minute timer. When it rings, measure glucose with a meter: during a fast change the sensor lags by 5–15 minutes.",
+    hmTir: "Time in range today", hmTarget: "Target range: {r}", hmAsk: "Ask the AI analyst…", hmCurrent: "Current glucose", hmMax: "Highest", hmMin: "Lowest", hmMean: "Average",
+    hmDaily: "Daily data", hmAdd: "Add a record", hmTimes: "{n} times", hmNoLog: "No records today yet", hmReports: "Statistics and reports",
     urSos: "🆘 Low glucose — help", urOr: " or ", urCall: "📞 Call {n}", urTimerBtn: "⏱ Restart 15 minutes",
     urCalm: "I'm here with you. Let's go step by step — a low can be treated quickly.",
     urLow: "Glucose {v} {u} is a low (hypoglycaemia) and needs treating right now.", urVeryLow: "Glucose {v} {u} is a dangerous low. Act now.",
@@ -784,6 +849,8 @@ body.has-galert .hypotimer{top:calc(190px + env(safe-area-inset-top))}
     ftIntro: "Выберите таймер. Когда время выйдет — звук, вибрация и голосовое напоминание.", ftPre15: "пауза после болюса, потом еда", ftPre20: "пауза после болюса, потом еда", ftCheck60: "проверить сахар после еды", ftCheck120: "проверить сахар после еды",
     ftNote: "Паузу между болюсом и едой назначает врач; для ультракороткого инсулина при сахаре в норме обычно 15–20 минут.", ftStarted: "Таймер запущен",
     urTimerAuto: "⏱ Я сам засёк 15 минут. Когда таймер зазвонит, измерьте сахар глюкометром: при быстром изменении датчик отстаёт на 5–15 минут.",
+    hmTir: "Время в диапазоне сегодня", hmTarget: "Целевой диапазон: {r}", hmAsk: "Спросите ИИ-аналитика…", hmCurrent: "Текущая глюкоза", hmMax: "Самое высокое", hmMin: "Самое низкое", hmMean: "Среднее",
+    hmDaily: "Ежедневные данные", hmAdd: "Добавить запись", hmTimes: "{n} раз", hmNoLog: "Сегодня записей пока нет", hmReports: "Статистика и отчёты",
     urSos: "🆘 Низкий сахар — помощь", urOr: " или ", urCall: "📞 Позвонить {n}", urTimerBtn: "⏱ Заново 15 минут",
     urCalm: "Я рядом. Давайте спокойно и по шагам — гипогликемия лечится быстро.",
     urLow: "Сахар {v} {u} — это гипогликемия, её нужно лечить прямо сейчас.", urVeryLow: "Сахар {v} {u} — это опасно низкий сахар. Действуем сразу.",
@@ -928,6 +995,8 @@ body.has-galert .hypotimer{top:calc(190px + env(safe-area-inset-top))}
     ftIntro: "Таймерді таңдаңыз. Уақыт біткенде — дыбыс, діріл және дауыстық еске салу.", ftPre15: "болюстан кейін үзіліс, содан соң тамақ", ftPre20: "болюстан кейін үзіліс, содан соң тамақ", ftCheck60: "тамақтан кейін қантты тексеру", ftCheck120: "тамақтан кейін қантты тексеру",
     ftNote: "Болюс пен тамақ арасындағы үзілісті дәрігер белгілейді; қант қалыпты болса, ультрақысқа инсулин үшін әдетте 15–20 минут.", ftStarted: "Таймер қосылды",
     urTimerAuto: "⏱ 15 минутты өзім белгіледім. Таймер шырылдағанда қантты глюкометрмен өлшеңіз: қант тез өзгергенде датчик 5–15 минутқа кешігеді.",
+    hmTir: "Бүгін диапазондағы уақыт", hmTarget: "Мақсатты диапазон: {r}", hmAsk: "ЖИ-талдаушыдан сұраңыз…", hmCurrent: "Ағымдағы глюкоза", hmMax: "Ең жоғары", hmMin: "Ең төмен", hmMean: "Орташа",
+    hmDaily: "Күнделікті деректер", hmAdd: "Жазба қосу", hmTimes: "{n} рет", hmNoLog: "Бүгін әзірге жазба жоқ", hmReports: "Статистика және есептер",
     urSos: "🆘 Қант төмен — көмек", urOr: " немесе ", urCall: "📞 Қоңырау {n}", urTimerBtn: "⏱ Қайтадан 15 минут",
     urCalm: "Мен қасыңыздамын. Асықпай, қадамдап жасайық — гипогликемия тез емделеді.",
     urLow: "Қант {v} {u} — бұл гипогликемия, оны дәл қазір емдеу керек.", urVeryLow: "Қант {v} {u} — бұл қауіпті төмен қант. Бірден әрекет етеміз.",
@@ -3674,51 +3743,85 @@ window.ECCsv = { parseCsv, parseDateTime };
   }
 
   // ------------------------------------------------------------ home
+  // Time in range as a ring (white on the indigo card).
+  const tirRing = pct => { const r = 26, c = 2 * Math.PI * r, v = Math.max(0, Math.min(100, pct || 0));
+    return `<svg class="tirring" viewBox="0 0 64 64" width="64" height="64" aria-hidden="true"><circle cx="32" cy="32" r="${r}" fill="none" stroke="rgba(255,255,255,.22)" stroke-width="6"/>
+      <circle cx="32" cy="32" r="${r}" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round" stroke-dasharray="${(c * v / 100).toFixed(1)} ${c.toFixed(1)}" transform="rotate(-90 32 32)"/>
+      <text x="32" y="37" text-anchor="middle" style="fill:#fff;font-size:15px;font-weight:700">${Math.round(v)}<tspan style="font-size:9px">%</tspan></text></svg>`; };
+  const zoneOf = (v, lo, hi) => v == null ? 'none' : v < 54 ? 'vlow' : v < lo ? 'low' : v <= hi ? 'in' : v <= 250 ? 'high' : 'vhigh';
+  const zoneLabel = z => ({ none: '', vlow: t('veryLow'), low: t('low'), in: t('inRange'), high: t('high'), vhigh: t('veryHigh') }[z]);
+  // "Add a record": a bottom panel with large icons.
+  function openAddSheet(done) {
+    const items = [['meal', 'meal', 'tMealEntry', 'peach'], ['insulin', 'insulin', 'tBolus', 'sky'], ['bg', 'bg', 'tBg', 'violet'], ['exercise', 'exercise', 'tExercise', 'yellow'], ['note', 'note', 'tNote', 'mix'], ['timer', 'clock', 'fdTimer', 'sky']];
+    modal(`<div class="row" style="align-items:center"><h2 style="margin:0" class="grow">${esc(t('hmAdd'))}</h2><button class="iconbtn" data-close aria-label="${esc(t('rdClose'))}">✕</button></div>
+      <div class="addgrid">${items.map(([k, ic, key, tone]) => `<button type="button" class="addtile ${tone}" data-k="${k}"><span>${icon(ic)}</span>${esc(t(key))}</button>`).join('')}</div>`, () => {
+      document.querySelectorAll('.addtile').forEach(b => b.onclick = () => {
+        const k = b.dataset.k; closeModal();
+        if (k === 'meal') addFood((h => h >= 5 && h < 11 ? 'breakfast' : h >= 11 && h < 16 ? 'lunch' : h >= 16 && h < 22 ? 'dinner' : 'snack')(new Date().getHours()), done);
+        else if (k === 'timer') openFoodTimer();
+        else addEntry(k, done);
+      });
+    });
+  }
+
+  // ------------------------------------------------------------ home
   async function home() {
     const me = S.me = await api('GET', '/app/me');
     S.units = me.user.units;
-    let range = Number(sessionStorage.getItem('range') || 24);
+    let range = Number(sessionStorage.getItem('range') || 3);
+    if (![3, 6, 12, 24].includes(range)) range = 3;
     // The 3D robot lives in one element that is moved into each redraw, so it is built once per visit.
     let rbox = null;
     const draw = async () => {
       const now = Date.now();
-      const d = await getData(now - range * 3600e3, now + 60e3);
+      const [d, dt] = await Promise.all([getData(now - range * 3600e3, now + 60e3), getData(dayStart(now), now + 60e3)]);
       const { lo, hi } = targets(me.user);
-      const last = d.entries[d.entries.length - 1];
-      const today = d.entries.filter(e => e[0] >= dayStart(now)).map(e => e[1]);
-      const st = C.stats(today, lo, hi);
+      const last = dt.entries[dt.entries.length - 1] || d.entries[d.entries.length - 1];
+      const st = C.stats(dt.entries.map(e => e[1]), lo, hi);         // today, for the ring
+      const rs = C.stats(d.entries.map(e => e[1]), lo, hi);          // the chart's range
       const stale = !last || now - last[0] > 15 * 60e3;
       const noSource = !me.bridges.length && !me.last;
+      const z = zoneOf(last && last[1], lo, hi);
+      const tr = dt.treatments.filter(x => x.eventType !== 'Temp Basal');
+      const sum = k => tr.reduce((a, x) => a + (+x[k] || 0), 0);
+      const fingers = tr.filter(x => /BG Check/i.test(x.eventType)).length;
+      const actMin = tr.filter(x => /exercise/i.test(x.eventType)).reduce((a, x) => a + (+x.duration || 0), 0);
+      const recent = [...tr].sort((a, b) => b.mills - a.mills).slice(0, 3);
       $('#view').innerHTML = `
       ${noSource ? `<div class="cta"><h2>${esc(t('connectFirst'))}</h2><p>${esc(t('connectFirstText'))}</p><a class="btn" href="#/connect">${esc(t('connectSensor'))}</a></div>` : ''}
-      ${heroHtml(last, lo, hi, me.user.patient_name || me.user.name, (last ? esc(ago(last[0])) : esc(t('noData'))) + (stale && last ? ` · ${esc(t('stale'))}` : ''), `<div class="seg" id="rng">${[3, 6, 12, 24].map(h => `<button data-h="${h}" class="${h === range ? 'on' : ''}">${h}${esc(t('hShort'))}</button>`).join('')}</div>`)}
-      <div class="card chartcard indigo">
-      ${C.line(d.entries, now - range * 3600e3, now + 5 * 60e3, { lo, hi, units: S.units, treatments: d.treatments, locale: locale(), label: t('glucose') })}
-      <div class="legend"><i style="background:var(--ins)"></i>${esc(t('tInsulin'))}<i style="background:var(--carb)"></i>${esc(t('tCarbs'))}<i style="background:var(--in-soft);border:1px solid var(--in)"></i>${esc(t('targetRange'))} ${G(lo)}–${G(hi)}</div>
+      <div class="hero-card homehero st-${z}">
+        <div class="hh-top"><div class="who">${esc(me.user.patient_name || me.user.name)}</div><div class="meta">${icon('clock')}${last ? esc(fmtTime(last[0])) + ' · ' + esc(ago(last[0])) : esc(t('noData'))}${stale && last ? ` · ${esc(t('stale'))}` : ''}</div></div>
+        <div class="now"><div class="valbox"><div class="val">${last ? G(last[1]) : '—'}<span class="arrow">${last ? (C.ARROWS[last[2]] || '') : ''}</span></div>
+          <div class="unit">${UL()}${zoneLabel(z) ? `<span class="zone z-${z}"><i></i>${esc(zoneLabel(z))}</span>` : ''}</div></div></div>
+        <div class="tirstrip"><div class="grow"><b>${esc(t('hmTir'))}</b><span>${esc(t('hmTarget', { r: `${G(lo)}–${G(hi)} ${UL()}` }))}</span></div>${st.n ? tirRing(st.tir) : `<span class="muted">—</span>`}</div>
       </div>
-      <div class="quick no-print">${[['meal', 'meal', 'tMealEntry'], ['timer', 'clock', 'fdTimer'], ['insulin', 'insulin', 'tBolus'], ['bg', 'bg', 'tBg'], ['note', 'note', 'tNote']].map(q => `<button data-q="${q[0]}"><span>${icon(q[1])}</span>${esc(t(q[2]))}</button>`).join('')}</div>
-      <div class="card aihome no-print">
-        <div class="row aihead"><div class="hrobot" id="hrobot" aria-hidden="true"></div><div class="grow"><h2>${esc(t('navAi'))}</h2><div class="small muted">${esc(t('aiSeen'))}</div></div>
-          <button type="button" class="btn red sm" id="hsos">${esc(t('urSos'))}</button></div>
-        ${insights(d.entries, lo, hi).slice(0, 3).map(x => `<div class="ins">${esc(x)}</div>`).join('')}
-        <form id="hask" class="aiform"><input id="haskIn" maxlength="2000" autocomplete="off" placeholder="${esc(t('aiPlaceholder'))}" aria-label="${esc(t('aiAsk'))}"><button class="btn" aria-label="${esc(t('aiSend'))}">➤</button></form>
-        <div class="chips">${t('aiChips').split('|').slice(0, 3).map(c => `<button type="button" class="chip" data-hq="${esc(c)}">${esc(c)}</button>`).join('')}</div>
+      <div class="aistrip no-print"><div class="hrobot" id="hrobot"></div>
+        <form id="hask" class="aiq"><input id="haskIn" maxlength="2000" autocomplete="off" placeholder="${esc(t('hmAsk'))}" aria-label="${esc(t('aiAsk'))}"><button aria-label="${esc(t('aiSend'))}">${icon('right')}</button></form></div>
+      <div class="card chartcard indigo homechart">
+        <div class="seg rng" id="rng">${[3, 6, 12, 24].map(h => `<button data-h="${h}" class="${h === range ? 'on' : ''}">${h} ${esc(t('hShort'))}</button>`).join('')}</div>
+        <div class="cur"><b>${esc(t('hmCurrent'))}</b>${zoneLabel(z) ? `<span class="zone z-${z}"><i></i>${esc(zoneLabel(z))}</span>` : ''}</div>
+        ${C.line(d.entries, now - range * 3600e3, now + 5 * 60e3, { lo, hi, units: S.units, treatments: d.treatments, locale: locale(), label: t('glucose') })}
+        <div class="rstats">${[['hmMax', rs.max], ['hmMin', rs.min], ['hmMean', rs.mean]].map(([k, v]) => `<div><span>${esc(t(k))}</span><b>${rs.n ? G(v) : '—'}<small>${UL()}</small></b></div>`).join('')}</div>
       </div>
-      <div class="grid g2" style="margin-top:12px">
-        <div class="card"><h2>${esc(t('today'))}</h2>${metricsHtml(st, lo, hi)}</div>
-        <div class="card"><h2>${esc(t('dataSources'))}</h2>${sourcesHtml(me)}<a class="btn ghost sm" href="#/connect" style="margin-top:8px">${esc(t('connectSensor'))}</a></div>
+      <div class="card daily">
+        <div class="row" style="align-items:center;margin-bottom:10px"><h2 class="grow" style="margin:0">${esc(t('hmDaily'))}</h2><button type="button" class="linkbtn" id="addrec">+ ${esc(t('hmAdd'))}</button></div>
+        <div class="dtiles">
+          <div class="dtile peach"><span>${icon('meal')}${esc(t('tCarbs'))}</span><b>${sum('carbs') ? esc(fmtG1(sum('carbs'))) + '<small> ' + esc(t('gCarbs')) + '</small>' : '—'}</b></div>
+          <div class="dtile sky"><span>${icon('insulin')}${esc(t('tInsulin'))}</span><b>${sum('insulin') ? esc(fmtG1(sum('insulin'))) + '<small> ' + esc(t('uIns')) + '</small>' : '—'}</b></div>
+          <div class="dtile violet"><span>${icon('bg')}${esc(t('tBg'))}</span><b>${fingers ? esc(t('hmTimes', { n: fingers })) : '—'}</b></div>
+          <div class="dtile yellow"><span>${icon('exercise')}${esc(t('tExercise'))}</span><b>${actMin ? actMin + '<small> ' + esc(t('min')) + '</small>' : '—'}</b></div>
+        </div>
+        ${recent.length ? `<div class="dlog">${recent.map(x => `<div class="dlrow"><span class="dlt">${fmtTime(x.mills)}</span><span class="chip2">${esc(trTitle(x))}</span><span class="grow small muted">${esc(trValue(x))}</span></div>`).join('')}<a class="small" href="#/diary">${esc(t('navDiary'))} →</a></div>` : `<p class="small muted" style="margin:8px 0 0">${esc(t('hmNoLog'))}</p>`}
       </div>
-      <div class="discover no-print">
-        <a class="dcard yellow" href="#/school"><img src="${IMG('home')}" alt="" loading="lazy"><b>${esc(t('navSchool'))}</b><span>${esc(t('schProgress', { n: schoolDone().length, total: SCH.lessons(S.lang).length }))}</span></a>
-        <a class="dcard peach" href="#/reports"><img src="${IMG('l-targets')}" alt="" loading="lazy"><b>${esc(t('navReports'))}</b><span>${esc(t('timeInRanges'))}</span></a>
+      <div class="linkrows">
+        <a class="linkrow" href="#/reports"><span class="lri sky">${icon('reports')}</span><span class="grow">${esc(t('hmReports'))}</span>${icon('right')}</a>
+        <a class="linkrow" href="#/school"><span class="lri yellow">${icon('school')}</span><span class="grow">${esc(t('navSchool'))}<small>${esc(t('schProgress', { n: schoolDone().length, total: SCH.lessons(S.lang).length }))}</small></span>${icon('right')}</a>
+        <a class="linkrow" href="#/connect"><span class="lri violet">${icon('sensor')}</span><span class="grow">${esc(t('dataSources'))}<small>${me.bridges.length ? esc(me.bridges.map(b => ({ librelinkup: 'LibreLinkUp', dexcom: 'Dexcom Share', nightscout: 'Nightscout' }[b.kind] || b.kind) + (b.status === 'ok' ? ' ✓' : '')).join(', ')) : esc(t('noSources'))}</small></span>${icon('right')}</a>
       </div>`;
       document.querySelectorAll('#rng button').forEach(b => b.onclick = () => { range = +b.dataset.h; sessionStorage.setItem('range', range); draw(); });
-      document.querySelectorAll('[data-q]').forEach(b => b.onclick = () => b.dataset.q === 'timer' ? openFoodTimer() : b.dataset.q === 'meal' ? addFood((h => h >= 5 && h < 11 ? 'breakfast' : h >= 11 && h < 16 ? 'lunch' : h >= 16 && h < 22 ? 'dinner' : 'snack')(new Date().getHours()), draw) : addEntry(b.dataset.q, draw));
-      // Questions asked here open the analyst with the answer.
-      const toAi = (q, force = false) => { if (!q || !q.trim()) return; S.pendingQuestion = { q: q.trim(), force }; location.hash = '#/ai'; };
-      $('#hask').onsubmit = e => { e.preventDefault(); toAi($('#haskIn').value); };
-      document.querySelectorAll('[data-hq]').forEach(b => b.onclick = () => toAi(b.dataset.hq));
-      $('#hsos').onclick = () => toAi(t('urSos'), true);
+      $('#addrec').onclick = () => openAddSheet(draw);
+      // A question asked here opens the analyst with the answer.
+      $('#hask').onsubmit = e => { e.preventDefault(); const q = $('#haskIn').value.trim(); if (!q) return; S.pendingQuestion = { q }; location.hash = '#/ai'; };
       if (!rbox) { rbox = document.createElement('div'); rbox.className = 'robotbox homebot'; rbox.innerHTML = `<img src="${IMG('ai')}" alt="">`; }
       robotClickable(rbox);
       $('#hrobot').appendChild(rbox);
