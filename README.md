@@ -95,7 +95,7 @@ public/alerts.js     glucose alerts: fast fall or rise, predicted low, low, high
 public/foods.js      food list: carbs per 100 g and portions
 public/sw.js         service worker: shows push alerts with the app closed
 lib/push.js          Web Push: VAPID keys, subscriptions, the once-a-minute check
-public/fonts/        Onest (UI font), SIL OFL 1.1
+public/fonts/        Inter (UI font), SIL OFL 1.1
 public/robot.js      the AI analyst's 3D robot (three.js 0.160.0, vendored in public/vendor/three, MIT)
 lib/ai.js            AI analyst: data summary, timeline and the Claude request
 public/school.js     Diabetes school lessons and quizzes
