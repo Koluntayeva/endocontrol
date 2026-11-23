@@ -684,6 +684,25 @@ body.has-galert .hypotimer{top:calc(190px + env(safe-area-inset-top))}
 .evempty svg{width:34px;height:34px;color:var(--in)}
 .evbadge{min-width:22px;height:22px;border-radius:999px;background:var(--warm);color:#fff;font-size:12px;font-weight:700;display:grid;place-items:center;padding:0 6px;margin-inline-end:6px}
 .seg small{opacity:.6;margin-inline-start:2px}
+
+/* ---------- meal timer: fixed 15-minute circle + duration wheel ---------- */
+.ft15wrap{display:flex;align-items:center;gap:16px;margin:14px 0 6px}
+.ft15wrap p{margin:0;color:var(--muted)}
+.ft15{position:relative;flex:none;width:118px;height:118px;border:0;padding:0;border-radius:50%;background:radial-gradient(circle at 35% 30%,var(--accent-soft),var(--card));cursor:pointer;box-shadow:0 10px 26px rgba(52,96,240,.18)}
+.ft15 svg{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg)}
+.ft15 .trk{fill:none;stroke:var(--line);stroke-width:8}
+.ft15 .prg{fill:none;stroke:var(--accent);stroke-width:8;stroke-linecap:round;transition:stroke-dashoffset 1s linear}
+.ft15.run .prg{stroke:var(--low)}
+.ft15 .in{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--text)}
+.ft15 .in b{font-size:30px;font-weight:300;line-height:1;font-variant-numeric:tabular-nums}
+.ft15 .in small{font-size:12px;color:var(--muted);margin-top:2px}
+.ft15:active{transform:scale(.97)}
+.fth{font-size:15px;margin:16px 0 8px}
+.dwheel{justify-content:center;height:144px}
+.dwheel .wsel{top:54px}
+.dwheel .wcol{padding:54px 0}
+.dwheel .wcol.narrow{flex:0 0 70px}
+.wlab{position:relative;z-index:1;align-self:center;font-size:14px;color:var(--muted);min-width:34px}
 </style>
 </head>
 <body>
@@ -775,6 +794,7 @@ body.has-galert .hypotimer{top:calc(190px + env(safe-area-inset-top))}
     hmDaily: "Daily data", hmAdd: "Add a record", hmTimes: "{n} times", hmNoLog: "No records today yet", hmReports: "Statistics and reports",
     stSub: "Summary, time in range, variability, night", stSummary: "Summary", stGmiHint: "estimated HbA1c (GMI)", stHighest: "Highest", stLowest: "Lowest", stCurve: "Glucose curve", stLowMoment: "Lowest at", stVar: "Glucose variability", stSdHint: "standard deviation", stMageHint: "average swing size", stModdHint: "day-to-day difference", stNeed2: "needs 2+ days", stNight: "Night analysis", stNightMean: "Night average", stNightLow: "Below range at night", day1: "1 day", yesterday: "Yesterday",
     tMed: "Medicine", tWeight: "Weight", tInsEntry: "Insulin", insType: "Insulin type", insRapid: "Rapid", insOther: "Other", dose: "Dose", insWhy: "What for", whyMeal: "Meal", insWhyOther: "Other", recentDoses: "Repeat a recent dose", bgValue: "Meter reading", bgWhen: "When measured", bgc_fasting: "Fasting", bgc_before: "Before a meal", bgc_after: "After a meal", bgc_bedtime: "At bedtime", bgc_night: "At night", bgc_random: "Any time", medList: "Medicines taken", medMore: "one more medicine", medRecent: "Taken recently", medName: "Name", medDose: "Dose, e.g. 1 tablet", eMedEmpty: "Enter at least one medicine.", weightKg: "Weight, kg", fatPct: "Body fat, % (optional)", weightLast: "Last time: {v} kg on {d}", fatShort: "fat", kgU: "kg", evTitle: "Notifications", evSub: "Lows, highs and fast changes, worked out from the sensor", evNewN: "{n} new", evNone: "No new events", evNewTag: "new", evAll: "All", evLows: "Lows", evHighs: "Highs", evEmpty: "Nothing happened in this period — glucose stayed calm.", evFoot: "The list is built from the sensor readings with the same rules as the alerts, so it is complete even when the app was closed.", ev_verylow: "Very low glucose", ev_low: "Low glucose", ev_fallsoon: "A low is coming", ev_fall: "Falling fast", ev_rise: "Rising fast", ev_high: "High glucose", evTip_fall: "Glucose is dropping. Check again soon; before sleep, sport or a long gap without food, have a small snack.", evTip_rise: "Glucose is rising quickly — usually a meal or a missed or late bolus. Check again in 30–60 minutes.", evTip_low: "Check with a meter; if low, 15 g of fast carbs and recheck in 15 minutes.", evTip_high: "Check for ketones if it stays high; look at the last dose and the meal.",
+    ft15Aria: "Start the 15-minute recheck timer", ft15Text: "After 15 g of fast carbs: tap, and in 15 minutes recheck with a meter.", ft15Run: "Recheck is running. Tap the circle to stop it.", ftOwn: "Your own timer", ftWhat: "What for", ftKPre: "Pause after the shot", ftKCheck: "Check glucose", ftKPlain: "Just a timer", ftStart: "Start", ftLeft: "left", ftZero: "Set at least 1 minute.", tmPlain: "⏱ {m} left", tmDonePlain: "⏱ Time is up ({n} min).",
     urSos: "🆘 Low glucose — help", urOr: " or ", urCall: "📞 Call {n}", urTimerBtn: "⏱ Restart 15 minutes",
     urCalm: "I'm here with you. Let's go step by step — a low can be treated quickly.",
     urLow: "Glucose {v} {u} is a low (hypoglycaemia) and needs treating right now.", urVeryLow: "Glucose {v} {u} is a dangerous low. Act now.",
@@ -923,6 +943,7 @@ body.has-galert .hypotimer{top:calc(190px + env(safe-area-inset-top))}
     hmDaily: "Ежедневные данные", hmAdd: "Добавить запись", hmTimes: "{n} раз", hmNoLog: "Сегодня записей пока нет", hmReports: "Статистика и отчёты",
     stSub: "Сводка, время в диапазоне, колебания, ночь", stSummary: "Сводка", stGmiHint: "расчётный гликированный (GMI)", stHighest: "Самое высокое", stLowest: "Самое низкое", stCurve: "Кривая глюкозы", stLowMoment: "Минимум в", stVar: "Колебания глюкозы", stSdHint: "стандартное отклонение", stMageHint: "средний размах скачков", stModdHint: "разница день ко дню", stNeed2: "нужно от 2 дней", stNight: "Анализ ночных данных", stNightMean: "Среднее ночью", stNightLow: "Ниже диапазона ночью", day1: "1 день", yesterday: "Вчера",
     tMed: "Лекарство", tWeight: "Вес", tInsEntry: "Инсулин", insType: "Вид инсулина", insRapid: "Быстрый", insOther: "Другой", dose: "Доза", insWhy: "Для чего", whyMeal: "Еда", insWhyOther: "Другое", recentDoses: "Повторить недавнюю дозу", bgValue: "Показание глюкометра", bgWhen: "Когда измерили", bgc_fasting: "Натощак", bgc_before: "До еды", bgc_after: "После еды", bgc_bedtime: "Перед сном", bgc_night: "Ночью", bgc_random: "В любое время", medList: "Какие лекарства приняли", medMore: "ещё лекарство", medRecent: "Принимали недавно", medName: "Название", medDose: "Доза, например 1 таблетка", eMedEmpty: "Впишите хотя бы одно лекарство.", weightKg: "Вес, кг", fatPct: "Жир, % (необязательно)", weightLast: "Прошлый раз: {v} кг, {d}", fatShort: "жир", kgU: "кг", evTitle: "Уведомления", evSub: "Низкие, высокие и резкие изменения — по данным датчика", evNewN: "Новых: {n}", evNone: "Новых событий нет", evNewTag: "новое", evAll: "Все", evLows: "Низкие", evHighs: "Высокие", evEmpty: "За этот период ничего не случилось — сахар был спокойным.", evFoot: "Список строится из показаний датчика по тем же правилам, что и тревоги, поэтому он полный, даже если приложение было закрыто.", ev_verylow: "Очень низкий сахар", ev_low: "Низкий сахар", ev_fallsoon: "Скоро будет низкий", ev_fall: "Быстро падает", ev_rise: "Быстро растёт", ev_high: "Высокий сахар", evTip_fall: "Сахар снижается. Проверьте ещё раз в ближайшее время; перед сном, спортом или долгим перерывом без еды — небольшой перекус.", evTip_rise: "Сахар быстро растёт — обычно это еда или пропущенный/поздний болюс. Проверьте снова через 30–60 минут.", evTip_low: "Проверьте глюкометром; если низкий — 15 г быстрых углеводов и повторный замер через 15 минут.", evTip_high: "Если долго держится высоким — проверьте кетоны; посмотрите на последнюю дозу и еду.",
+    ft15Aria: "Запустить 15-минутный таймер перепроверки", ft15Text: "После 15 г быстрых углеводов: нажмите — через 15 минут перепроверьте сахар глюкометром.", ft15Run: "Перепроверка идёт. Нажмите на круг, чтобы остановить.", ftOwn: "Свой таймер", ftWhat: "Для чего", ftKPre: "Пауза после укола", ftKCheck: "Проверить сахар", ftKPlain: "Просто таймер", ftStart: "Запустить", ftLeft: "осталось", ftZero: "Поставьте хотя бы 1 минуту.", tmPlain: "⏱ Осталось {m}", tmDonePlain: "⏱ Время вышло ({n} мин).",
     urSos: "🆘 Низкий сахар — помощь", urOr: " или ", urCall: "📞 Позвонить {n}", urTimerBtn: "⏱ Заново 15 минут",
     urCalm: "Я рядом. Давайте спокойно и по шагам — гипогликемия лечится быстро.",
     urLow: "Сахар {v} {u} — это гипогликемия, её нужно лечить прямо сейчас.", urVeryLow: "Сахар {v} {u} — это опасно низкий сахар. Действуем сразу.",
@@ -1071,6 +1092,7 @@ body.has-galert .hypotimer{top:calc(190px + env(safe-area-inset-top))}
     hmDaily: "Күнделікті деректер", hmAdd: "Жазба қосу", hmTimes: "{n} рет", hmNoLog: "Бүгін әзірге жазба жоқ", hmReports: "Статистика және есептер",
     stSub: "Жиынтық, аралықтағы уақыт, ауытқулар, түн", stSummary: "Жиынтық", stGmiHint: "есептелген HbA1c (GMI)", stHighest: "Ең жоғары", stLowest: "Ең төмен", stCurve: "Глюкоза қисығы", stLowMoment: "Ең төмені", stVar: "Глюкоза ауытқулары", stSdHint: "стандартты ауытқу", stMageHint: "секірулердің орташа ауқымы", stModdHint: "күннен күнге айырма", stNeed2: "кемінде 2 күн керек", stNight: "Түнгі деректер талдауы", stNightMean: "Түнгі орташа", stNightLow: "Түнде аралықтан төмен", day1: "1 күн", yesterday: "Кеше",
     tMed: "Дәрі", tWeight: "Салмақ", tInsEntry: "Инсулин", insType: "Инсулин түрі", insRapid: "Жылдам", insOther: "Басқа", dose: "Доза", insWhy: "Не үшін", whyMeal: "Тамақ", insWhyOther: "Басқа", recentDoses: "Жуырдағы дозаны қайталау", bgValue: "Глюкометр көрсеткіші", bgWhen: "Қашан өлшенді", bgc_fasting: "Аш қарынға", bgc_before: "Тамақтан бұрын", bgc_after: "Тамақтан кейін", bgc_bedtime: "Ұйқы алдында", bgc_night: "Түнде", bgc_random: "Кез келген уақытта", medList: "Қандай дәрі ішілді", medMore: "тағы бір дәрі", medRecent: "Жуырда ішілген", medName: "Атауы", medDose: "Доза, мысалы 1 таблетка", eMedEmpty: "Кемінде бір дәріні жазыңыз.", weightKg: "Салмақ, кг", fatPct: "Май, % (міндетті емес)", weightLast: "Соңғы рет: {v} кг, {d}", fatShort: "май", kgU: "кг", evTitle: "Хабарламалар", evSub: "Төмен, жоғары және күрт өзгерістер — датчик деректері бойынша", evNewN: "Жаңа: {n}", evNone: "Жаңа оқиға жоқ", evNewTag: "жаңа", evAll: "Барлығы", evLows: "Төмендер", evHighs: "Жоғарылар", evEmpty: "Бұл кезеңде ештеңе болған жоқ — қант тұрақты болды.", evFoot: "Тізім датчик көрсеткіштерінен дабылдармен бірдей ережелер бойынша құрылады, сондықтан қосымша жабық болса да толық.", ev_verylow: "Қант өте төмен", ev_low: "Қант төмен", ev_fallsoon: "Жақында төмен болады", ev_fall: "Тез төмендеп жатыр", ev_rise: "Тез көтеріліп жатыр", ev_high: "Қант жоғары", evTip_fall: "Қант төмендеп жатыр. Жақын арада қайта тексеріңіз; ұйқы, спорт немесе ұзақ тамақсыз үзіліс алдында — жеңіл тамақтаныңыз.", evTip_rise: "Қант тез көтеріліп жатыр — әдетте тамақ немесе өткізіп алған/кешіккен болюс. 30–60 минуттан соң қайта тексеріңіз.", evTip_low: "Глюкометрмен тексеріңіз; төмен болса — 15 г жылдам көмірсу және 15 минуттан соң қайта өлшеу.", evTip_high: "Ұзақ жоғары болса — кетондарды тексеріңіз; соңғы доза мен тамаққа қараңыз.",
+    ft15Aria: "15 минуттық қайта тексеру таймерін қосу", ft15Text: "15 г жылдам көмірсудан кейін: басыңыз — 15 минуттан соң глюкометрмен қайта тексеріңіз.", ft15Run: "Қайта тексеру жүріп жатыр. Тоқтату үшін шеңберді басыңыз.", ftOwn: "Өз таймеріңіз", ftWhat: "Не үшін", ftKPre: "Екпеден кейінгі үзіліс", ftKCheck: "Қантты тексеру", ftKPlain: "Жай таймер", ftStart: "Қосу", ftLeft: "қалды", ftZero: "Кемінде 1 минут қойыңыз.", tmPlain: "⏱ {m} қалды", tmDonePlain: "⏱ Уақыт бітті ({n} мин).",
     urSos: "🆘 Қант төмен — көмек", urOr: " немесе ", urCall: "📞 Қоңырау {n}", urTimerBtn: "⏱ Қайтадан 15 минут",
     urCalm: "Мен қасыңыздамын. Асықпай, қадамдап жасайық — гипогликемия тез емделеді.",
     urLow: "Қант {v} {u} — бұл гипогликемия, оны дәл қазір емдеу керек.", urVeryLow: "Қант {v} {u} — бұл қауіпті төмен қант. Бірден әрекет етеміз.",
@@ -3533,8 +3555,8 @@ window.ECCsv = { parseCsv, parseDateTime };
     } catch { /* no audio */ }
   }
   const tmText = (tm, done, m) => done
-    ? t(tm.kind === 'hypo' ? 'tmDone' : tm.kind === 'prebolus' ? 'tmDonePre' : 'tmDoneCheck', { n: tm.min })
-    : t(tm.kind === 'hypo' ? 'tmLeft' : tm.kind === 'prebolus' ? 'tmPre' : 'tmCheckIn', { m });
+    ? t({ hypo: 'tmDone', prebolus: 'tmDonePre', plain: 'tmDonePlain' }[tm.kind] || 'tmDoneCheck', { n: tm.min })
+    : t({ hypo: 'tmLeft', prebolus: 'tmPre', plain: 'tmPlain' }[tm.kind] || 'tmCheckIn', { m });
   function hypoTimerDraw() {
     let el = $('#hypotimer');
     let tm = htGet();
@@ -3544,8 +3566,8 @@ window.ECCsv = { parseCsv, parseDateTime };
     el.className = 'hypotimer no-print' + (tm.kind === 'hypo' ? '' : ' meal');
     const left = tm.end - Date.now();
     if (left > 0) {
-      const m = Math.floor(left / 60e3), sec = Math.floor((left % 60e3) / 1000);
-      el.innerHTML = `<span>${esc(tmText(tm, false, `${m}:${String(sec).padStart(2, '0')}`))}</span><button type="button" class="tmx">${esc(t('tmCancel'))}</button>`;
+      const h = Math.floor(left / 3600e3), m = Math.floor(left % 3600e3 / 60e3), sec = Math.floor((left % 60e3) / 1000), p2 = x => String(x).padStart(2, '0');
+      el.innerHTML = `<span>${esc(tmText(tm, false, h ? `${h}:${p2(m)}:${p2(sec)}` : `${m}:${p2(sec)}`))}</span><button type="button" class="tmx">${esc(t('tmCancel'))}</button>`;
     } else {
       el.classList.add('done');
       if (!HT.rang) {
@@ -3561,14 +3583,56 @@ window.ECCsv = { parseCsv, parseDateTime };
     el.querySelector('.tmx').onclick = () => { htSet(null); hypoTimerDraw(); };
     if (!HT.tick) HT.tick = setInterval(hypoTimerDraw, 1000);
   }
-  // A separate meal timer: the pause after the bolus, or when to check glucose after eating.
+  // The meal timer: one fixed 15-minute circle (recheck after fast carbs) and a wheel for any other time.
   function openFoodTimer() {
-    const opts = [['prebolus', 15, 'ftPre15'], ['prebolus', 20, 'ftPre20'], ['check', 60, 'ftCheck60'], ['check', 120, 'ftCheck120']];
+    const R = 52, C = 2 * Math.PI * R;
     modal(`<div class="row" style="align-items:center"><h2 style="margin:0" class="grow hic">${icon('clock')}${esc(t('fdTimer'))}</h2><button class="iconbtn" data-close aria-label="${esc(t('rdClose'))}">✕</button></div>
-      <p class="small muted">${esc(t('ftIntro'))}</p>
-      <div class="ftimers">${opts.map(([k, m, key]) => `<button type="button" class="ftbtn" data-k="${k}" data-m="${m}"><b>${m < 60 ? m + ' ' + esc(t('min')) : m / 60 + ' ' + esc(t('hShort'))}</b><span>${esc(t(key))}</span></button>`).join('')}</div>
+      <div class="ft15wrap"><button type="button" class="ft15" id="ft15" aria-label="${esc(t('ft15Aria'))}">
+        <svg viewBox="0 0 120 120" aria-hidden="true"><circle cx="60" cy="60" r="${R}" class="trk"/><circle cx="60" cy="60" r="${R}" class="prg" id="ft15p" stroke-dasharray="${C}" stroke-dashoffset="0"/></svg>
+        <span class="in"><b id="ft15v">15</b><small id="ft15s">${esc(t('min'))}</small></span></button>
+        <p class="small" id="ft15t">${esc(t('ft15Text'))}</p></div>
+      <h3 class="fth">${esc(t('ftOwn'))}</h3>
+      <div class="wheel dwheel" id="dwheel"><div class="wsel"></div><div class="wcol narrow" data-c="h"></div><div class="wlab">${esc(t('hShort'))}</div><div class="wcol narrow" data-c="m"></div><div class="wlab">${esc(t('min'))}</div></div>
+      <div class="wquick">${[15, 20, 60, 120].map(n => `<button type="button" data-q="${n}">${n < 60 ? n + ' ' + esc(t('min')) : n / 60 + ' ' + esc(t('hShort'))}</button>`).join('')}</div>
+      <div class="fld" style="margin-top:12px"><label>${esc(t('ftWhat'))}</label><div class="seg wide grid3" id="ftk">${[['prebolus', t('ftKPre')], ['check', t('ftKCheck')], ['plain', t('ftKPlain')]].map(([k, l], i) => `<button type="button" data-k="${k}" class="${i ? '' : 'on'}">${esc(l)}</button>`).join('')}</div></div>
+      <button type="button" class="btn" id="ftgo" style="width:100%;margin-top:6px">${esc(t('ftStart'))}</button>
       <p class="tiny muted" style="margin-bottom:0">${esc(t('ftNote'))}</p>`, () => {
-      document.querySelectorAll('.ftbtn').forEach(b => b.onclick = () => { startHypoTimer(+b.dataset.m, b.dataset.k); closeModal(); toast(t('ftStarted')); });
+      // the 15-minute circle shows the running recheck timer, if any
+      const paint = () => {
+        const tm = htGet(), p = $('#ft15p'); if (!p) { clearInterval(tk); return; }
+        const run = tm && tm.kind === 'hypo' && tm.end > Date.now();
+        const left = run ? tm.end - Date.now() : 15 * 60e3;
+        p.setAttribute('stroke-dashoffset', String(C * (1 - left / (tm && tm.kind === 'hypo' ? tm.min * 60e3 : 15 * 60e3))));
+        $('#ft15').classList.toggle('run', !!run);
+        $('#ft15v').textContent = run ? `${Math.floor(left / 60e3)}:${String(Math.floor(left % 60e3 / 1000)).padStart(2, '0')}` : '15';
+        $('#ft15s').textContent = run ? t('ftLeft') : t('min');
+        $('#ft15t').textContent = run ? t('ft15Run') : t('ft15Text');
+      };
+      const tk = setInterval(paint, 1000); paint();
+      $('#ft15').onclick = () => { const tm = htGet(); if (tm && tm.kind === 'hypo' && tm.end > Date.now()) { htSet(null); hypoTimerDraw(); } else { startHypoTimer(15, 'hypo'); toast(t('ftStarted')); } paint(); };
+      // hours 0–5 and minutes 0–59 on a wheel
+      const root = $('#dwheel'), col = c => root.querySelector(`[data-c="${c}"]`);
+      const vals = { h: Array.from({ length: 6 }, (_, i) => i), m: Array.from({ length: 60 }, (_, i) => i) };
+      for (const c of ['h', 'm']) col(c).innerHTML = vals[c].map((x, i) => `<div class="witem" data-i="${i}">${c === 'm' ? String(x).padStart(2, '0') : x}</div>`).join('');
+      const idx = c => Math.max(0, Math.min(vals[c].length - 1, Math.round(col(c).scrollTop / WH)));
+      const mark = () => { for (const c of ['h', 'm']) { const i = idx(c); col(c).querySelectorAll('.witem').forEach((x, k) => x.classList.toggle('on', k === i)); } };
+      for (const c of ['h', 'm']) {
+        col(c).addEventListener('scroll', mark, { passive: true });
+        col(c).addEventListener('click', e => { const it = e.target.closest('.witem'); if (it) col(c).scrollTo({ top: +it.dataset.i * WH, behavior: 'smooth' }); });
+      }
+      const setMin = n => { col('h').scrollTop = Math.floor(n / 60) * WH; col('m').scrollTop = (n % 60) * WH; mark(); };
+      document.querySelectorAll('[data-q]').forEach(b => b.onclick = () => {
+        const n = +b.dataset.q; setMin(n);
+        document.querySelectorAll('#ftk button').forEach(x => x.classList.toggle('on', x.dataset.k === (n <= 30 ? 'prebolus' : 'check')));
+      });
+      document.querySelectorAll('#ftk button').forEach(b => b.onclick = () => document.querySelectorAll('#ftk button').forEach(x => x.classList.toggle('on', x === b)));
+      let picked = false; document.querySelectorAll('[data-q]').forEach(b => b.addEventListener('click', () => { picked = true; }));
+      setMin(20); setTimeout(() => { if (!picked) setMin(20); }, 60); // again once the sheet has its size
+      $('#ftgo').onclick = () => {
+        const min = idx('h') * 60 + idx('m');
+        if (min < 1) return toast(t('ftZero'));
+        startHypoTimer(min, ($('#ftk .on') || {}).dataset.k || 'plain'); closeModal(); toast(t('ftStarted'));
+      };
     });
   }
 

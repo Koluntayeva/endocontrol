@@ -104,8 +104,8 @@
     } catch { /* no audio */ }
   }
   const tmText = (tm, done, m) => done
-    ? t(tm.kind === 'hypo' ? 'tmDone' : tm.kind === 'prebolus' ? 'tmDonePre' : 'tmDoneCheck', { n: tm.min })
-    : t(tm.kind === 'hypo' ? 'tmLeft' : tm.kind === 'prebolus' ? 'tmPre' : 'tmCheckIn', { m });
+    ? t({ hypo: 'tmDone', prebolus: 'tmDonePre', plain: 'tmDonePlain' }[tm.kind] || 'tmDoneCheck', { n: tm.min })
+    : t({ hypo: 'tmLeft', prebolus: 'tmPre', plain: 'tmPlain' }[tm.kind] || 'tmCheckIn', { m });
   function hypoTimerDraw() {
     let el = $('#hypotimer');
     let tm = htGet();
@@ -115,8 +115,8 @@
     el.className = 'hypotimer no-print' + (tm.kind === 'hypo' ? '' : ' meal');
     const left = tm.end - Date.now();
     if (left > 0) {
-      const m = Math.floor(left / 60e3), sec = Math.floor((left % 60e3) / 1000);
-      el.innerHTML = `<span>${esc(tmText(tm, false, `${m}:${String(sec).padStart(2, '0')}`))}</span><button type="button" class="tmx">${esc(t('tmCancel'))}</button>`;
+      const h = Math.floor(left / 3600e3), m = Math.floor(left % 3600e3 / 60e3), sec = Math.floor((left % 60e3) / 1000), p2 = x => String(x).padStart(2, '0');
+      el.innerHTML = `<span>${esc(tmText(tm, false, h ? `${h}:${p2(m)}:${p2(sec)}` : `${m}:${p2(sec)}`))}</span><button type="button" class="tmx">${esc(t('tmCancel'))}</button>`;
     } else {
       el.classList.add('done');
       if (!HT.rang) {
@@ -132,14 +132,56 @@
     el.querySelector('.tmx').onclick = () => { htSet(null); hypoTimerDraw(); };
     if (!HT.tick) HT.tick = setInterval(hypoTimerDraw, 1000);
   }
-  // A separate meal timer: the pause after the bolus, or when to check glucose after eating.
+  // The meal timer: one fixed 15-minute circle (recheck after fast carbs) and a wheel for any other time.
   function openFoodTimer() {
-    const opts = [['prebolus', 15, 'ftPre15'], ['prebolus', 20, 'ftPre20'], ['check', 60, 'ftCheck60'], ['check', 120, 'ftCheck120']];
+    const R = 52, C = 2 * Math.PI * R;
     modal(`<div class="row" style="align-items:center"><h2 style="margin:0" class="grow hic">${icon('clock')}${esc(t('fdTimer'))}</h2><button class="iconbtn" data-close aria-label="${esc(t('rdClose'))}">✕</button></div>
-      <p class="small muted">${esc(t('ftIntro'))}</p>
-      <div class="ftimers">${opts.map(([k, m, key]) => `<button type="button" class="ftbtn" data-k="${k}" data-m="${m}"><b>${m < 60 ? m + ' ' + esc(t('min')) : m / 60 + ' ' + esc(t('hShort'))}</b><span>${esc(t(key))}</span></button>`).join('')}</div>
+      <div class="ft15wrap"><button type="button" class="ft15" id="ft15" aria-label="${esc(t('ft15Aria'))}">
+        <svg viewBox="0 0 120 120" aria-hidden="true"><circle cx="60" cy="60" r="${R}" class="trk"/><circle cx="60" cy="60" r="${R}" class="prg" id="ft15p" stroke-dasharray="${C}" stroke-dashoffset="0"/></svg>
+        <span class="in"><b id="ft15v">15</b><small id="ft15s">${esc(t('min'))}</small></span></button>
+        <p class="small" id="ft15t">${esc(t('ft15Text'))}</p></div>
+      <h3 class="fth">${esc(t('ftOwn'))}</h3>
+      <div class="wheel dwheel" id="dwheel"><div class="wsel"></div><div class="wcol narrow" data-c="h"></div><div class="wlab">${esc(t('hShort'))}</div><div class="wcol narrow" data-c="m"></div><div class="wlab">${esc(t('min'))}</div></div>
+      <div class="wquick">${[15, 20, 60, 120].map(n => `<button type="button" data-q="${n}">${n < 60 ? n + ' ' + esc(t('min')) : n / 60 + ' ' + esc(t('hShort'))}</button>`).join('')}</div>
+      <div class="fld" style="margin-top:12px"><label>${esc(t('ftWhat'))}</label><div class="seg wide grid3" id="ftk">${[['prebolus', t('ftKPre')], ['check', t('ftKCheck')], ['plain', t('ftKPlain')]].map(([k, l], i) => `<button type="button" data-k="${k}" class="${i ? '' : 'on'}">${esc(l)}</button>`).join('')}</div></div>
+      <button type="button" class="btn" id="ftgo" style="width:100%;margin-top:6px">${esc(t('ftStart'))}</button>
       <p class="tiny muted" style="margin-bottom:0">${esc(t('ftNote'))}</p>`, () => {
-      document.querySelectorAll('.ftbtn').forEach(b => b.onclick = () => { startHypoTimer(+b.dataset.m, b.dataset.k); closeModal(); toast(t('ftStarted')); });
+      // the 15-minute circle shows the running recheck timer, if any
+      const paint = () => {
+        const tm = htGet(), p = $('#ft15p'); if (!p) { clearInterval(tk); return; }
+        const run = tm && tm.kind === 'hypo' && tm.end > Date.now();
+        const left = run ? tm.end - Date.now() : 15 * 60e3;
+        p.setAttribute('stroke-dashoffset', String(C * (1 - left / (tm && tm.kind === 'hypo' ? tm.min * 60e3 : 15 * 60e3))));
+        $('#ft15').classList.toggle('run', !!run);
+        $('#ft15v').textContent = run ? `${Math.floor(left / 60e3)}:${String(Math.floor(left % 60e3 / 1000)).padStart(2, '0')}` : '15';
+        $('#ft15s').textContent = run ? t('ftLeft') : t('min');
+        $('#ft15t').textContent = run ? t('ft15Run') : t('ft15Text');
+      };
+      const tk = setInterval(paint, 1000); paint();
+      $('#ft15').onclick = () => { const tm = htGet(); if (tm && tm.kind === 'hypo' && tm.end > Date.now()) { htSet(null); hypoTimerDraw(); } else { startHypoTimer(15, 'hypo'); toast(t('ftStarted')); } paint(); };
+      // hours 0–5 and minutes 0–59 on a wheel
+      const root = $('#dwheel'), col = c => root.querySelector(`[data-c="${c}"]`);
+      const vals = { h: Array.from({ length: 6 }, (_, i) => i), m: Array.from({ length: 60 }, (_, i) => i) };
+      for (const c of ['h', 'm']) col(c).innerHTML = vals[c].map((x, i) => `<div class="witem" data-i="${i}">${c === 'm' ? String(x).padStart(2, '0') : x}</div>`).join('');
+      const idx = c => Math.max(0, Math.min(vals[c].length - 1, Math.round(col(c).scrollTop / WH)));
+      const mark = () => { for (const c of ['h', 'm']) { const i = idx(c); col(c).querySelectorAll('.witem').forEach((x, k) => x.classList.toggle('on', k === i)); } };
+      for (const c of ['h', 'm']) {
+        col(c).addEventListener('scroll', mark, { passive: true });
+        col(c).addEventListener('click', e => { const it = e.target.closest('.witem'); if (it) col(c).scrollTo({ top: +it.dataset.i * WH, behavior: 'smooth' }); });
+      }
+      const setMin = n => { col('h').scrollTop = Math.floor(n / 60) * WH; col('m').scrollTop = (n % 60) * WH; mark(); };
+      document.querySelectorAll('[data-q]').forEach(b => b.onclick = () => {
+        const n = +b.dataset.q; setMin(n);
+        document.querySelectorAll('#ftk button').forEach(x => x.classList.toggle('on', x.dataset.k === (n <= 30 ? 'prebolus' : 'check')));
+      });
+      document.querySelectorAll('#ftk button').forEach(b => b.onclick = () => document.querySelectorAll('#ftk button').forEach(x => x.classList.toggle('on', x === b)));
+      let picked = false; document.querySelectorAll('[data-q]').forEach(b => b.addEventListener('click', () => { picked = true; }));
+      setMin(20); setTimeout(() => { if (!picked) setMin(20); }, 60); // again once the sheet has its size
+      $('#ftgo').onclick = () => {
+        const min = idx('h') * 60 + idx('m');
+        if (min < 1) return toast(t('ftZero'));
+        startHypoTimer(min, ($('#ftk .on') || {}).dataset.k || 'plain'); closeModal(); toast(t('ftStarted'));
+      };
     });
   }
 
