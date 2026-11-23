@@ -228,5 +228,51 @@
       <div class="tirleg">${rows.map(r => `<div><i style="background:${r[3]}"></i>${esc(r[0])} <span class="muted tiny">${r[1]}</span><b>${r[2] < 10 ? r[2].toFixed(1) : r[2].toFixed(0)}%</b><span class="muted tiny" style="width:38px;text-align:end">${r[4]}</span></div>`).join('')}</div></div>`;
   }
 
-  window.Charts = { MMOL, fmtG, unitLabel, color, stats, ARROWS, line, agp, dailyBars, tirBlock, esc };
+  // MAGE: mean amplitude of glucose excursions bigger than one SD. The series is reduced to
+  // alternating peaks and nadirs, a turn counting only once glucose moved back by more than 1 SD.
+  function mage(entries) {
+    const v = entries.map(e => e[1]).filter(x => x != null);
+    if (v.length < 12) return null;
+    const mean = v.reduce((a, x) => a + x, 0) / v.length, sd = Math.sqrt(v.reduce((a, x) => a + (x - mean) ** 2, 0) / v.length);
+    if (!sd) return 0;
+    const ext = []; let mx = v[0], mn = v[0], dir = 0;
+    for (const x of v) {
+      if (dir === 0) { mx = Math.max(mx, x); mn = Math.min(mn, x); if (mx - x > sd) { ext.push(mx); dir = -1; mn = x; } else if (x - mn > sd) { ext.push(mn); dir = 1; mx = x; } }
+      else if (dir > 0) { if (x > mx) mx = x; else if (mx - x > sd) { ext.push(mx); dir = -1; mn = x; } }
+      else { if (x < mn) mn = x; else if (x - mn > sd) { ext.push(mn); dir = 1; mx = x; } }
+    }
+    const tail = dir > 0 ? mx : mn;
+    if (dir && Math.abs(tail - ext[ext.length - 1]) > sd) ext.push(tail);
+    const amp = []; for (let i = 1; i < ext.length; i++) { const a = Math.abs(ext[i] - ext[i - 1]); if (a > sd) amp.push(a); }
+    return amp.length ? amp.reduce((a, x) => a + x, 0) / amp.length : 0;
+  }
+  // MODD: mean absolute difference between readings taken at the same time on consecutive days.
+  function modd(entries) {
+    const t = entries.map(e => e[0]), D = 864e5, tol = 5 * 60e3;
+    let s = 0, n = 0, j = 0;
+    for (let i = 0; i < entries.length; i++) {
+      const want = t[i] - D;
+      while (j < i && t[j] < want - tol) j++;
+      let best = -1, bd = tol; // strictly closer than 5 minutes
+      for (let k = j; k < i && t[k] <= want + tol; k++) { const d = Math.abs(t[k] - want); if (d < bd) { bd = d; best = k; } }
+      if (best >= 0) { s += Math.abs(entries[i][1] - entries[best][1]); n++; }
+    }
+    return n >= 12 ? s / n : null;
+  }
+  // Reading nearest to a moment (within tol), or null.
+  function valueAt(entries, ms, tol = 20 * 60e3) {
+    let best = null, bd = tol;
+    for (const e of entries) { const d = Math.abs(e[0] - ms); if (d <= bd) { bd = d; best = e; } }
+    return best;
+  }
+  // Ring of the five zones with time in range in the middle.
+  function donut(st, label) {
+    const z = [[st.vlow, 'var(--vlow)'], [st.low, 'var(--low)'], [st.tir, 'var(--in)'], [st.high, 'var(--high)'], [st.vhigh, 'var(--vhigh)']];
+    const r = 46, c = 2 * Math.PI * r; let off = 0;
+    const arcs = z.filter(x => x[0] > 0).map(([p, col]) => { const len = Math.max(p / 100 * c - (p < 100 ? 1.5 : 0), .8); const a = `<circle r="${r}" cx="60" cy="60" fill="none" stroke="${col}" stroke-width="16" stroke-dasharray="${len} ${c - len}" stroke-dashoffset="${-off}"/>`; off += p / 100 * c; return a; }).join('');
+    return `<svg class="donut" viewBox="0 0 120 120" role="img" aria-label="${esc(label)} ${st.tir.toFixed(0)}%"><g transform="rotate(-90 60 60)"><circle r="${r}" cx="60" cy="60" fill="none" stroke="var(--line)" stroke-width="16"/>${arcs}</g>
+      <text x="60" y="60" text-anchor="middle" class="dn-v">${st.tir.toFixed(0)}%</text><text x="60" y="76" text-anchor="middle" class="dn-l">${esc(label)}</text></svg>`;
+  }
+
+  window.Charts = { MMOL, fmtG, unitLabel, color, stats, ARROWS, line, agp, dailyBars, tirBlock, esc, mage, modd, valueAt, donut };
 })();

@@ -616,6 +616,39 @@ body.has-galert .hypotimer{top:calc(190px + env(safe-area-inset-top))}
 @media (prefers-color-scheme:dark){.dtile.yellow span svg,.lri.yellow,.addtile.yellow span{color:var(--sun)}}
 .daily h2{font-size:17px;white-space:nowrap}
 .daily .linkbtn{white-space:nowrap;font-size:14px}
+
+/* ---------- statistics screen (periods, summary tiles, TIR ring, night) ---------- */
+.stctl{margin-bottom:10px;flex-wrap:wrap;gap:8px}
+.daynav{display:flex;align-items:center;gap:8px;margin:0 0 12px}
+.daynav button{border:0;background:var(--card);box-shadow:var(--shadow-sm,0 2px 8px rgba(40,30,90,.08));width:36px;height:36px;border-radius:12px;font-size:20px;color:var(--text);cursor:pointer}
+.daynav button:disabled{opacity:.35;cursor:default}
+.daynav span{flex:1;font-weight:600;min-width:0;text-align:center;text-transform:capitalize}
+.daynav .dntoday{width:auto;padding:0 12px;font-size:13px;font-weight:600;color:var(--accent)}
+.sttiles{display:grid;gap:10px}
+.sttiles.g4{grid-template-columns:repeat(4,minmax(0,1fr))}
+.sttiles.g3{grid-template-columns:repeat(3,minmax(0,1fr));margin-top:12px}
+.sttile{background:var(--bg2);border-radius:16px;padding:12px 12px 10px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.sttile span{font-size:12px;color:var(--muted)}
+.sttile b{font-size:24px;font-weight:300;line-height:1.15;font-variant-numeric:tabular-nums}
+.sttile b small{font-size:11px;font-weight:500;margin-inline-start:3px;color:var(--muted)}
+.sttile em{font-style:normal;font-size:11px;line-height:1.3;color:var(--muted)}
+.card.indigo .sttile{background:rgba(255,255,255,.08)}
+.card.indigo .sttile span,.card.indigo .sttile em,.card.indigo .sttile b small{color:rgba(255,255,255,.65)}
+.tirwrap{display:flex;align-items:center;gap:18px}
+.tirwrap .tir{flex:1;min-width:0}
+.tirwrap .tirbar{display:none}
+.donut{width:132px;height:132px;flex:none}
+.donut .dn-v{font-size:24px;font-weight:300;fill:var(--text)}
+.donut .dn-l{font-size:9px;fill:var(--muted)}
+@media (max-width:640px){
+  .stctl #pdf{padding:8px 14px;font-size:13px;box-shadow:none}
+  .stctl .seg{overflow-x:auto;max-width:100%}
+  .sttiles.g4{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .tirwrap{flex-direction:column;align-items:stretch}
+  .donut{align-self:center}
+  .sttile b{font-size:21px}
+}
+@media print{.tirwrap .tirbar{display:none}.sttile{border:1px solid #ddd;background:#fff}}
 </style>
 </head>
 <body>
@@ -705,6 +738,7 @@ body.has-galert .hypotimer{top:calc(190px + env(safe-area-inset-top))}
     urTimerAuto: "⏱ I started a 15-minute timer. When it rings, measure glucose with a meter: during a fast change the sensor lags by 5–15 minutes.",
     hmTir: "Time in range today", hmTarget: "Target range: {r}", hmAsk: "Ask the AI analyst…", hmCurrent: "Current glucose", hmMax: "Highest", hmMin: "Lowest", hmMean: "Average",
     hmDaily: "Daily data", hmAdd: "Add a record", hmTimes: "{n} times", hmNoLog: "No records today yet", hmReports: "Statistics and reports",
+    stSub: "Summary, time in range, variability, night", stSummary: "Summary", stGmiHint: "estimated HbA1c (GMI)", stHighest: "Highest", stLowest: "Lowest", stCurve: "Glucose curve", stLowMoment: "Lowest at", stVar: "Glucose variability", stSdHint: "standard deviation", stMageHint: "average swing size", stModdHint: "day-to-day difference", stNeed2: "needs 2+ days", stNight: "Night analysis", stNightMean: "Night average", stNightLow: "Below range at night", day1: "1 day", yesterday: "Yesterday",
     urSos: "🆘 Low glucose — help", urOr: " or ", urCall: "📞 Call {n}", urTimerBtn: "⏱ Restart 15 minutes",
     urCalm: "I'm here with you. Let's go step by step — a low can be treated quickly.",
     urLow: "Glucose {v} {u} is a low (hypoglycaemia) and needs treating right now.", urVeryLow: "Glucose {v} {u} is a dangerous low. Act now.",
@@ -851,6 +885,7 @@ body.has-galert .hypotimer{top:calc(190px + env(safe-area-inset-top))}
     urTimerAuto: "⏱ Я сам засёк 15 минут. Когда таймер зазвонит, измерьте сахар глюкометром: при быстром изменении датчик отстаёт на 5–15 минут.",
     hmTir: "Время в диапазоне сегодня", hmTarget: "Целевой диапазон: {r}", hmAsk: "Спросите ИИ-аналитика…", hmCurrent: "Текущая глюкоза", hmMax: "Самое высокое", hmMin: "Самое низкое", hmMean: "Среднее",
     hmDaily: "Ежедневные данные", hmAdd: "Добавить запись", hmTimes: "{n} раз", hmNoLog: "Сегодня записей пока нет", hmReports: "Статистика и отчёты",
+    stSub: "Сводка, время в диапазоне, колебания, ночь", stSummary: "Сводка", stGmiHint: "расчётный гликированный (GMI)", stHighest: "Самое высокое", stLowest: "Самое низкое", stCurve: "Кривая глюкозы", stLowMoment: "Минимум в", stVar: "Колебания глюкозы", stSdHint: "стандартное отклонение", stMageHint: "средний размах скачков", stModdHint: "разница день ко дню", stNeed2: "нужно от 2 дней", stNight: "Анализ ночных данных", stNightMean: "Среднее ночью", stNightLow: "Ниже диапазона ночью", day1: "1 день", yesterday: "Вчера",
     urSos: "🆘 Низкий сахар — помощь", urOr: " или ", urCall: "📞 Позвонить {n}", urTimerBtn: "⏱ Заново 15 минут",
     urCalm: "Я рядом. Давайте спокойно и по шагам — гипогликемия лечится быстро.",
     urLow: "Сахар {v} {u} — это гипогликемия, её нужно лечить прямо сейчас.", urVeryLow: "Сахар {v} {u} — это опасно низкий сахар. Действуем сразу.",
@@ -997,6 +1032,7 @@ body.has-galert .hypotimer{top:calc(190px + env(safe-area-inset-top))}
     urTimerAuto: "⏱ 15 минутты өзім белгіледім. Таймер шырылдағанда қантты глюкометрмен өлшеңіз: қант тез өзгергенде датчик 5–15 минутқа кешігеді.",
     hmTir: "Бүгін диапазондағы уақыт", hmTarget: "Мақсатты диапазон: {r}", hmAsk: "ЖИ-талдаушыдан сұраңыз…", hmCurrent: "Ағымдағы глюкоза", hmMax: "Ең жоғары", hmMin: "Ең төмен", hmMean: "Орташа",
     hmDaily: "Күнделікті деректер", hmAdd: "Жазба қосу", hmTimes: "{n} рет", hmNoLog: "Бүгін әзірге жазба жоқ", hmReports: "Статистика және есептер",
+    stSub: "Жиынтық, аралықтағы уақыт, ауытқулар, түн", stSummary: "Жиынтық", stGmiHint: "есептелген HbA1c (GMI)", stHighest: "Ең жоғары", stLowest: "Ең төмен", stCurve: "Глюкоза қисығы", stLowMoment: "Ең төмені", stVar: "Глюкоза ауытқулары", stSdHint: "стандартты ауытқу", stMageHint: "секірулердің орташа ауқымы", stModdHint: "күннен күнге айырма", stNeed2: "кемінде 2 күн керек", stNight: "Түнгі деректер талдауы", stNightMean: "Түнгі орташа", stNightLow: "Түнде аралықтан төмен", day1: "1 күн", yesterday: "Кеше",
     urSos: "🆘 Қант төмен — көмек", urOr: " немесе ", urCall: "📞 Қоңырау {n}", urTimerBtn: "⏱ Қайтадан 15 минут",
     urCalm: "Мен қасыңыздамын. Асықпай, қадамдап жасайық — гипогликемия тез емделеді.",
     urLow: "Қант {v} {u} — бұл гипогликемия, оны дәл қазір емдеу керек.", urVeryLow: "Қант {v} {u} — бұл қауіпті төмен қант. Бірден әрекет етеміз.",
@@ -2057,7 +2093,53 @@ body.has-galert .hypotimer{top:calc(190px + env(safe-area-inset-top))}
       <div class="tirleg">${rows.map(r => `<div><i style="background:${r[3]}"></i>${esc(r[0])} <span class="muted tiny">${r[1]}</span><b>${r[2] < 10 ? r[2].toFixed(1) : r[2].toFixed(0)}%</b><span class="muted tiny" style="width:38px;text-align:end">${r[4]}</span></div>`).join('')}</div></div>`;
   }
 
-  window.Charts = { MMOL, fmtG, unitLabel, color, stats, ARROWS, line, agp, dailyBars, tirBlock, esc };
+  // MAGE: mean amplitude of glucose excursions bigger than one SD. The series is reduced to
+  // alternating peaks and nadirs, a turn counting only once glucose moved back by more than 1 SD.
+  function mage(entries) {
+    const v = entries.map(e => e[1]).filter(x => x != null);
+    if (v.length < 12) return null;
+    const mean = v.reduce((a, x) => a + x, 0) / v.length, sd = Math.sqrt(v.reduce((a, x) => a + (x - mean) ** 2, 0) / v.length);
+    if (!sd) return 0;
+    const ext = []; let mx = v[0], mn = v[0], dir = 0;
+    for (const x of v) {
+      if (dir === 0) { mx = Math.max(mx, x); mn = Math.min(mn, x); if (mx - x > sd) { ext.push(mx); dir = -1; mn = x; } else if (x - mn > sd) { ext.push(mn); dir = 1; mx = x; } }
+      else if (dir > 0) { if (x > mx) mx = x; else if (mx - x > sd) { ext.push(mx); dir = -1; mn = x; } }
+      else { if (x < mn) mn = x; else if (x - mn > sd) { ext.push(mn); dir = 1; mx = x; } }
+    }
+    const tail = dir > 0 ? mx : mn;
+    if (dir && Math.abs(tail - ext[ext.length - 1]) > sd) ext.push(tail);
+    const amp = []; for (let i = 1; i < ext.length; i++) { const a = Math.abs(ext[i] - ext[i - 1]); if (a > sd) amp.push(a); }
+    return amp.length ? amp.reduce((a, x) => a + x, 0) / amp.length : 0;
+  }
+  // MODD: mean absolute difference between readings taken at the same time on consecutive days.
+  function modd(entries) {
+    const t = entries.map(e => e[0]), D = 864e5, tol = 5 * 60e3;
+    let s = 0, n = 0, j = 0;
+    for (let i = 0; i < entries.length; i++) {
+      const want = t[i] - D;
+      while (j < i && t[j] < want - tol) j++;
+      let best = -1, bd = tol; // strictly closer than 5 minutes
+      for (let k = j; k < i && t[k] <= want + tol; k++) { const d = Math.abs(t[k] - want); if (d < bd) { bd = d; best = k; } }
+      if (best >= 0) { s += Math.abs(entries[i][1] - entries[best][1]); n++; }
+    }
+    return n >= 12 ? s / n : null;
+  }
+  // Reading nearest to a moment (within tol), or null.
+  function valueAt(entries, ms, tol = 20 * 60e3) {
+    let best = null, bd = tol;
+    for (const e of entries) { const d = Math.abs(e[0] - ms); if (d <= bd) { bd = d; best = e; } }
+    return best;
+  }
+  // Ring of the five zones with time in range in the middle.
+  function donut(st, label) {
+    const z = [[st.vlow, 'var(--vlow)'], [st.low, 'var(--low)'], [st.tir, 'var(--in)'], [st.high, 'var(--high)'], [st.vhigh, 'var(--vhigh)']];
+    const r = 46, c = 2 * Math.PI * r; let off = 0;
+    const arcs = z.filter(x => x[0] > 0).map(([p, col]) => { const len = Math.max(p / 100 * c - (p < 100 ? 1.5 : 0), .8); const a = `<circle r="${r}" cx="60" cy="60" fill="none" stroke="${col}" stroke-width="16" stroke-dasharray="${len} ${c - len}" stroke-dashoffset="${-off}"/>`; off += p / 100 * c; return a; }).join('');
+    return `<svg class="donut" viewBox="0 0 120 120" role="img" aria-label="${esc(label)} ${st.tir.toFixed(0)}%"><g transform="rotate(-90 60 60)"><circle r="${r}" cx="60" cy="60" fill="none" stroke="var(--line)" stroke-width="16"/>${arcs}</g>
+      <text x="60" y="60" text-anchor="middle" class="dn-v">${st.tir.toFixed(0)}%</text><text x="60" y="76" text-anchor="middle" class="dn-l">${esc(label)}</text></svg>`;
+  }
+
+  window.Charts = { MMOL, fmtG, unitLabel, color, stats, ARROWS, line, agp, dailyBars, tirBlock, esc, mage, modd, valueAt, donut };
 })();
 </script>
 <script>'use strict';
@@ -4204,8 +4286,9 @@ window.ECCsv = { parseCsv, parseDateTime };
   }
 
   // ------------------------------------------------------------ reports (also used for doctor & shared views)
-  async function reportHtml(share, days, patientTitle) {
-    const to = dayStart(Date.now(), 1), from = dayStart(Date.now(), -(days - 1));
+  async function reportHtml(share, days, patientTitle, off = 0) {
+    const one = days === 1;
+    const to = one ? dayStart(Date.now(), off + 1) : dayStart(Date.now(), 1), from = one ? dayStart(Date.now(), off) : dayStart(Date.now(), -(days - 1));
     const d = await getData(from, to, share);
     const p = d.patient; const { lo, hi } = targets(p);
     const units = S.units;
@@ -4217,17 +4300,59 @@ window.ECCsv = { parseCsv, parseDateTime };
       perDay.push({ a, b, es, ts, st: C.stats(es.map(e => e[1]), lo, hi), label: fmtDate(a), short: fmtDate(a, { day: '2-digit' }) });
     }
     const expected = days * 288, cover = st.n ? Math.min(100, st.n / expected * 100 * (d.entries.length > 1 ? Math.max(1, 5 * 60e3 / medianGap(d.entries)) : 1)) : 0;
-    return `<div class="print-only"><h1>${esc(t('reportTitle'))}</h1></div>
+    const at = (ms, h) => { const x = new Date(ms); x.setHours(h, 0, 0, 0); return x.getTime(); };
+    const gv = e => e ? `${G(e[1])}<small>${UL()}</small>` : '—';
+    const tile = (l, v, sub, col) => `<div class="sttile"><span>${esc(l)}</span><b ${col ? `style="color:${col}"` : ''}>${v}</b>${sub ? `<em>${esc(sub)}</em>` : ''}</div>`;
+    const minE = es => es.reduce((m, e) => (!m || e[1] < m[1] ? e : m), null);
+    const head = `<div class="print-only"><h1>${esc(t('reportTitle'))}</h1></div>
       <div class="card"><div class="row"><div class="grow"><h2 style="margin:0">${esc(patientTitle || p.patient_name || p.name)}</h2>
-        <div class="small muted">${esc(fmtDate(from))} – ${esc(fmtDate(to - 1))} · ${days} ${esc(t('days'))} · ${esc(t('readings', { n: st.n || 0 }))} · ${esc(t('sensorActive'))} ${cover.toFixed(0)}%${p.diabetes_type ? ' · ' + esc(t(p.diabetes_type === 'gestational' ? 'gest' : p.diabetes_type === 'other' ? 'otherType' : p.diabetes_type)) : ''}</div></div></div>
-      <div style="margin-top:12px">${metricsHtml(st, lo, hi)}</div></div>
-      ${st.n ? `<div class="grid g2"><div class="card"><h2>${esc(t('timeInRanges'))}</h2>${C.tirBlock(st, t, units, lo, hi)}</div>
-        <div class="card"><h2>${esc(t('patterns'))}</h2>${insights(d.entries, lo, hi).map(x => `<p class="small" style="margin:6px 0">• ${esc(x)}</p>`).join('')}</div></div>
-      <div class="card indigo"><h2>AGP · ${days} ${esc(t('days'))}</h2>${C.agp(d.entries, { lo, hi, units, empty: t('noData') })}<div class="legend">${esc(t('agpLegend'))}</div></div>
-      <div class="card indigo"><h2>${esc(t('tirByDay'))}</h2>${C.dailyBars(perDay)}</div>
+        <div class="small muted">${one ? esc(fmtDate(from, { weekday: 'long', day: 'numeric', month: 'long' })) : `${esc(fmtDate(from))} – ${esc(fmtDate(to - 1))} · ${days} ${esc(t('days'))}`} · ${esc(t('readings', { n: st.n || 0 }))} · ${esc(t('sensorActive'))} ${cover.toFixed(0)}%${p.diabetes_type ? ' · ' + esc(t(p.diabetes_type === 'gestational' ? 'gest' : p.diabetes_type === 'other' ? 'otherType' : p.diabetes_type)) : ''}</div></div></div></div>`;
+    if (!st.n) return head + `<div class="card muted">${esc(t('noData'))}</div>`;
+    const lowest = minE(d.entries), highest = d.entries.reduce((m, e) => (!m || e[1] > m[1] ? e : m), null);
+    const when = e => one ? fmtTime(e[0]) : fmtDate(e[0], { day: '2-digit', month: '2-digit' }) + ' ' + fmtTime(e[0]);
+    // Summary
+    const summary = `<div class="card"><h2>${esc(t('stSummary'))}</h2><div class="sttiles g4">
+      ${tile('eHbA1c', st.gmi.toFixed(1) + '<small>%</small>', t('stGmiHint'))}
+      ${tile(t('mean'), gv([0, st.mean]), '')}
+      ${tile(t('stHighest'), gv(highest), when(highest), 'var(--vhigh)')}
+      ${tile(t('stLowest'), gv(lowest), when(lowest), lowest[1] < lo ? 'var(--low)' : '')}</div></div>`;
+    // Time in range: ring + legend
+    const tir = `<div class="card"><h2>${esc(t('timeInRanges'))}</h2><div class="tirwrap">${C.donut(st, t('inRange'))}${C.tirBlock(st, t, units, lo, hi)}</div></div>`;
+    // Curve
+    let curve;
+    if (one) {
+      const x = perDay[0];
+      curve = `<div class="card indigo"><h2>${esc(t('stCurve'))}</h2>${C.line(x.es, x.a, x.b, { lo, hi, units, treatments: x.ts, locale: locale(), height: 220 })}
+        <div class="sttiles g3">${tile('0:00', gv(C.valueAt(x.es, x.a)), '')}${tile('6:00', gv(C.valueAt(x.es, at(x.a, 6))), '')}${tile(t('stLowMoment'), fmtTime(lowest[0]), G(lowest[1]) + ' ' + UL())}</div>
+        ${x.ts.length ? `<div class="tiny muted" style="margin-top:8px">${x.ts.map(tr => `${fmtTime(tr.mills)} ${esc(trTitle(tr))} ${esc(trValue(tr))}`).join(' · ')}</div>` : ''}</div>`;
+    } else curve = `<div class="card indigo"><h2>AGP · ${days} ${esc(t('days'))}</h2>${C.agp(d.entries, { lo, hi, units, empty: t('noData') })}<div class="legend">${esc(t('agpLegend'))}</div></div>`;
+    // Variability
+    const mage = C.mage(d.entries), modd = C.modd(d.entries);
+    const vari = `<div class="card"><h2>${esc(t('stVar'))}</h2><div class="sttiles g4">
+      ${tile('SDBG', `${G(st.sd)}<small>${UL()}</small>`, t('stSdHint'))}
+      ${tile('CV', st.cv.toFixed(0) + '<small>%</small>', t('goal') + ' ≤36%', st.cv <= 36 ? 'var(--in)' : 'var(--high)')}
+      ${tile('MAGE', mage == null ? '—' : `${G(mage)}<small>${UL()}</small>`, t('stMageHint'))}
+      ${tile('MODD', modd == null ? '—' : `${G(modd)}<small>${UL()}</small>`, modd == null ? t('stNeed2') : t('stModdHint'))}</div></div>`;
+    // Night 00:00–06:00
+    const nightEs = d.entries.filter(e => new Date(e[0]).getHours() < 6);
+    let night = '';
+    if (nightEs.length) {
+      const nl = minE(nightEs), ns = C.stats(nightEs.map(e => e[1]), lo, hi);
+      if (one) {
+        const a = perDay[0].a;
+        night = `<div class="card indigo"><h2>${esc(t('stNight'))} <span class="muted small">00:00–06:00</span></h2>${C.line(nightEs, a, at(a, 6), { lo, hi, units, locale: locale(), height: 180, thin: true })}
+          <div class="sttiles g3">${tile('0:00', gv(C.valueAt(nightEs, a)), '')}${tile('6:00', gv(C.valueAt(perDay[0].es, at(a, 6))), '')}${tile(t('stLowest'), gv(nl), fmtTime(nl[0]), nl[1] < lo ? 'var(--low)' : '')}</div></div>`;
+      } else {
+        night = `<div class="card"><h2>${esc(t('stNight'))} <span class="muted small">00:00–06:00</span></h2><div class="sttiles g3">
+          ${tile(t('stNightMean'), gv([0, ns.mean]), '')}${tile(t('stLowest'), gv(nl), when(nl), nl[1] < lo ? 'var(--low)' : '')}${tile(t('stNightLow'), ns.tbr.toFixed(1) + '<small>%</small>', t('goal') + ' <4%', ns.tbr < 4 ? 'var(--in)' : 'var(--low)')}</div></div>`;
+      }
+    }
+    const pats = `<div class="card"><h2>${esc(t('patterns'))}</h2>${insights(d.entries, lo, hi).map(x => `<p class="small" style="margin:6px 0">• ${esc(x)}</p>`).join('')}</div>`;
+    const multi = one ? '' : `<div class="card indigo"><h2>${esc(t('tirByDay'))}</h2>${C.dailyBars(perDay)}</div>
       <div class="card indigo allowbreak"><h2>${esc(t('dailyCharts'))}</h2><div class="days">${[...perDay].reverse().map(x => `<div class="daycard"><div class="row small"><b>${esc(fmtDate(x.a, { weekday: 'short', day: '2-digit', month: '2-digit' }))}</b><span class="muted" style="margin-inline-start:auto">${esc(t('tir'))} ${x.st.n ? x.st.tir.toFixed(0) + '%' : '—'} · ${esc(t('mean'))} ${G(x.st.mean)}</span></div>
         ${C.line(x.es, x.a, x.b, { lo, hi, units, treatments: x.ts, locale: locale(), height: 170, thin: true })}
-        ${x.ts.length ? `<div class="tiny muted">${x.ts.map(tr => `${fmtTime(tr.mills)} ${esc(trTitle(tr))} ${esc(trValue(tr))}`).join(' · ')}</div>` : ''}</div>`).join('')}</div></div>` : ''}
+        ${x.ts.length ? `<div class="tiny muted">${x.ts.map(tr => `${fmtTime(tr.mills)} ${esc(trTitle(tr))} ${esc(trValue(tr))}`).join(' · ')}</div>` : ''}</div>`).join('')}</div></div>`;
+    return `${head}${summary}<div class="grid g2">${tir}${vari}</div>${curve}${night}${pats}${multi}
       <p class="tiny muted">${esc(t('reportFooter', { date: fmtDT(Date.now()) }))}</p>`;
   }
   function medianGap(es) { const g = []; for (let i = 1; i < Math.min(es.length, 500); i++) g.push(es[i][0] - es[i - 1][0]); g.sort((a, b) => a - b); return g[Math.floor(g.length / 2)] || 5 * 60e3; }
@@ -4244,20 +4369,24 @@ window.ECCsv = { parseCsv, parseDateTime };
     if (!out.length) out.push(t('insGood'));
     return out;
   }
-  function reportControls(cb, days) {
-    return `<div class="row no-print" style="margin-bottom:12px"><div class="seg" id="per">${[7, 14, 30, 90].map(n => `<button data-n="${n}" class="${n === days ? 'on' : ''}">${n} ${esc(t('daysShort'))}</button>`).join('')}</div>
-      <button class="btn" id="pdf" style="margin-inline-start:auto">📄 ${esc(t('downloadPdf'))}</button></div>`;
+  function reportControls(cb, days, off = 0) {
+    const dn = days === 1 ? `<div class="daynav no-print" id="dnav" data-off="${off}"><button data-o="-1" aria-label="‹">‹</button><span>${esc(off === 0 ? t('today') : off === -1 ? t('yesterday') : fmtDate(dayStart(Date.now(), off), { weekday: 'short', day: 'numeric', month: 'short' }))}</span><button data-o="1" aria-label="›" ${off >= 0 ? 'disabled' : ''}>›</button>${off < 0 ? `<button data-o="0" class="dntoday">${esc(t('today'))}</button>` : ''}</div>` : '';
+    return `<div class="row no-print stctl"><div class="seg" id="per">${[1, 7, 14, 30, 90].map(n => `<button data-n="${n}" class="${n === days ? 'on' : ''}">${n === 1 ? esc(t('day1')) : n + ' ' + esc(t('daysShort'))}</button>`).join('')}</div>
+      <button class="btn" id="pdf" style="margin-inline-start:auto">📄 ${esc(t('downloadPdf'))}</button></div>${dn}`;
   }
+  // redraw(days, dayOffset): dayOffset 0 = today, -1 = yesterday… (used when days = 1)
   function wireReport(redraw) {
-    document.querySelectorAll('#per button').forEach(b => b.onclick = () => redraw(+b.dataset.n));
+    let off = 0; const sp = $('#dnav'); if (sp) off = +(sp.dataset.off || 0);
+    document.querySelectorAll('#per button').forEach(b => b.onclick = () => redraw(+b.dataset.n, 0));
+    document.querySelectorAll('#dnav button').forEach(b => b.onclick = () => redraw(1, b.dataset.o === '0' ? 0 : Math.min(0, off + +b.dataset.o)));
     const p = $('#pdf'); if (p) p.onclick = () => { if (window.EC_DEMO) return toast(t('demoNoPdf')); toast(t('pdfHint')); setTimeout(() => window.print(), 400); };
   }
   async function reports() {
-    let days = 14;
+    let days = 14, off = 0;
     const draw = async () => {
-      $('#view').innerHTML = `<div class="no-print">${pageHead('reports', esc(t('navReports')), t('timeInRanges'), 'peach')}</div>${reportControls(null, days)}<div id="rep" class="loading">${esc(t('loading'))}</div>`;
-      wireReport(n => { days = n; draw(); });
-      $('#rep').outerHTML = `<div id="rep">${await reportHtml(null, days)}</div>`;
+      $('#view').innerHTML = `<div class="no-print">${pageHead('reports', esc(t('navReports')), t('stSub'), 'peach')}</div>${reportControls(null, days, off)}<div id="rep" class="loading">${esc(t('loading'))}</div>`;
+      wireReport((n, o) => { days = n; off = o; draw(); });
+      $('#rep').outerHTML = `<div id="rep">${await reportHtml(null, days, undefined, off)}</div>`;
     };
     await draw();
   }
@@ -4539,7 +4668,7 @@ window.ECCsv = { parseCsv, parseDateTime };
   }
 
   async function doctorPatient(args) {
-    const token = args[0]; let tab = args[1] || 'overview', days = 14;
+    const token = args[0]; let tab = args[1] || 'overview', days = 14, off = 0;
     const info = await api('GET', '/app/share/' + encodeURIComponent(token));
     const name = info.patient.patient_name || info.patient.name;
     const draw = async () => {
@@ -4548,8 +4677,8 @@ window.ECCsv = { parseCsv, parseDateTime };
       document.querySelectorAll('#tabs button').forEach(b => b.onclick = () => { tab = b.dataset.t; draw(); });
       if (tab === 'overview') $('#tb').outerHTML = `<div id="tb">${await overviewHtml(token, name)}</div>`;
       if (tab === 'report') {
-        $('#tb').outerHTML = `<div id="tb">${reportControls(null, days)}<div id="rep">${await reportHtml(token, days, name)}</div></div>`;
-        wireReport(n => { days = n; draw(); });
+        $('#tb').outerHTML = `<div id="tb">${reportControls(null, days, off)}<div id="rep">${await reportHtml(token, days, name, off)}</div></div>`;
+        wireReport((n, o) => { days = n; off = o; draw(); });
       }
       if (tab === 'notes') {
         const notes = await api('GET', '/app/notes?share=' + encodeURIComponent(token));
@@ -4582,14 +4711,14 @@ window.ECCsv = { parseCsv, parseDateTime };
     catch (e) { $('#view').innerHTML = `<div class="card err">${esc(errText(e))}</div>`; return; }
     S.units = (S.me && S.me.user.units) || info.patient.units;
     const name = info.patient.patient_name || info.patient.name;
-    let tab = 'overview', days = 14;
+    let tab = 'overview', days = 14, off = 0;
     const draw = async () => {
       $('#view').innerHTML = `<div class="card no-print small">${esc(t('sharedBanner'))}${S.me && S.me.user.role === 'doctor' ? ` <button class="btn sm" id="addme">${esc(t('addToPatients'))}</button>` : ''}</div>
         <div class="seg no-print" id="tabs" style="margin-bottom:12px">${[['overview', 'overview'], ['report', 'navReports']].map(([id, k]) => `<button data-t="${id}" class="${tab === id ? 'on' : ''}">${esc(t(k))}</button>`).join('')}</div><div id="tb" class="loading">${esc(t('loading'))}</div>`;
       document.querySelectorAll('#tabs button').forEach(b => b.onclick = () => { tab = b.dataset.t; draw(); });
       const am = $('#addme'); if (am) am.onclick = async () => { await api('POST', '/app/patients', { token }); location.hash = '#/p/' + token; };
       if (tab === 'overview') $('#tb').outerHTML = `<div id="tb">${await overviewHtml(token, name)}</div>`;
-      else { $('#tb').outerHTML = `<div id="tb">${reportControls(null, days)}<div id="rep">${await reportHtml(token, days, name)}</div></div>`; wireReport(n => { days = n; draw(); }); }
+      else { $('#tb').outerHTML = `<div id="tb">${reportControls(null, days, off)}<div id="rep">${await reportHtml(token, days, name, off)}</div></div>`; wireReport((n, o) => { days = n; off = o; draw(); }); }
     };
     await draw();
   }

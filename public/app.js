@@ -911,8 +911,9 @@
   }
 
   // ------------------------------------------------------------ reports (also used for doctor & shared views)
-  async function reportHtml(share, days, patientTitle) {
-    const to = dayStart(Date.now(), 1), from = dayStart(Date.now(), -(days - 1));
+  async function reportHtml(share, days, patientTitle, off = 0) {
+    const one = days === 1;
+    const to = one ? dayStart(Date.now(), off + 1) : dayStart(Date.now(), 1), from = one ? dayStart(Date.now(), off) : dayStart(Date.now(), -(days - 1));
     const d = await getData(from, to, share);
     const p = d.patient; const { lo, hi } = targets(p);
     const units = S.units;
@@ -924,17 +925,59 @@
       perDay.push({ a, b, es, ts, st: C.stats(es.map(e => e[1]), lo, hi), label: fmtDate(a), short: fmtDate(a, { day: '2-digit' }) });
     }
     const expected = days * 288, cover = st.n ? Math.min(100, st.n / expected * 100 * (d.entries.length > 1 ? Math.max(1, 5 * 60e3 / medianGap(d.entries)) : 1)) : 0;
-    return `<div class="print-only"><h1>${esc(t('reportTitle'))}</h1></div>
+    const at = (ms, h) => { const x = new Date(ms); x.setHours(h, 0, 0, 0); return x.getTime(); };
+    const gv = e => e ? `${G(e[1])}<small>${UL()}</small>` : '—';
+    const tile = (l, v, sub, col) => `<div class="sttile"><span>${esc(l)}</span><b ${col ? `style="color:${col}"` : ''}>${v}</b>${sub ? `<em>${esc(sub)}</em>` : ''}</div>`;
+    const minE = es => es.reduce((m, e) => (!m || e[1] < m[1] ? e : m), null);
+    const head = `<div class="print-only"><h1>${esc(t('reportTitle'))}</h1></div>
       <div class="card"><div class="row"><div class="grow"><h2 style="margin:0">${esc(patientTitle || p.patient_name || p.name)}</h2>
-        <div class="small muted">${esc(fmtDate(from))} – ${esc(fmtDate(to - 1))} · ${days} ${esc(t('days'))} · ${esc(t('readings', { n: st.n || 0 }))} · ${esc(t('sensorActive'))} ${cover.toFixed(0)}%${p.diabetes_type ? ' · ' + esc(t(p.diabetes_type === 'gestational' ? 'gest' : p.diabetes_type === 'other' ? 'otherType' : p.diabetes_type)) : ''}</div></div></div>
-      <div style="margin-top:12px">${metricsHtml(st, lo, hi)}</div></div>
-      ${st.n ? `<div class="grid g2"><div class="card"><h2>${esc(t('timeInRanges'))}</h2>${C.tirBlock(st, t, units, lo, hi)}</div>
-        <div class="card"><h2>${esc(t('patterns'))}</h2>${insights(d.entries, lo, hi).map(x => `<p class="small" style="margin:6px 0">• ${esc(x)}</p>`).join('')}</div></div>
-      <div class="card indigo"><h2>AGP · ${days} ${esc(t('days'))}</h2>${C.agp(d.entries, { lo, hi, units, empty: t('noData') })}<div class="legend">${esc(t('agpLegend'))}</div></div>
-      <div class="card indigo"><h2>${esc(t('tirByDay'))}</h2>${C.dailyBars(perDay)}</div>
+        <div class="small muted">${one ? esc(fmtDate(from, { weekday: 'long', day: 'numeric', month: 'long' })) : `${esc(fmtDate(from))} – ${esc(fmtDate(to - 1))} · ${days} ${esc(t('days'))}`} · ${esc(t('readings', { n: st.n || 0 }))} · ${esc(t('sensorActive'))} ${cover.toFixed(0)}%${p.diabetes_type ? ' · ' + esc(t(p.diabetes_type === 'gestational' ? 'gest' : p.diabetes_type === 'other' ? 'otherType' : p.diabetes_type)) : ''}</div></div></div></div>`;
+    if (!st.n) return head + `<div class="card muted">${esc(t('noData'))}</div>`;
+    const lowest = minE(d.entries), highest = d.entries.reduce((m, e) => (!m || e[1] > m[1] ? e : m), null);
+    const when = e => one ? fmtTime(e[0]) : fmtDate(e[0], { day: '2-digit', month: '2-digit' }) + ' ' + fmtTime(e[0]);
+    // Summary
+    const summary = `<div class="card"><h2>${esc(t('stSummary'))}</h2><div class="sttiles g4">
+      ${tile('eHbA1c', st.gmi.toFixed(1) + '<small>%</small>', t('stGmiHint'))}
+      ${tile(t('mean'), gv([0, st.mean]), '')}
+      ${tile(t('stHighest'), gv(highest), when(highest), 'var(--vhigh)')}
+      ${tile(t('stLowest'), gv(lowest), when(lowest), lowest[1] < lo ? 'var(--low)' : '')}</div></div>`;
+    // Time in range: ring + legend
+    const tir = `<div class="card"><h2>${esc(t('timeInRanges'))}</h2><div class="tirwrap">${C.donut(st, t('inRange'))}${C.tirBlock(st, t, units, lo, hi)}</div></div>`;
+    // Curve
+    let curve;
+    if (one) {
+      const x = perDay[0];
+      curve = `<div class="card indigo"><h2>${esc(t('stCurve'))}</h2>${C.line(x.es, x.a, x.b, { lo, hi, units, treatments: x.ts, locale: locale(), height: 220 })}
+        <div class="sttiles g3">${tile('0:00', gv(C.valueAt(x.es, x.a)), '')}${tile('6:00', gv(C.valueAt(x.es, at(x.a, 6))), '')}${tile(t('stLowMoment'), fmtTime(lowest[0]), G(lowest[1]) + ' ' + UL())}</div>
+        ${x.ts.length ? `<div class="tiny muted" style="margin-top:8px">${x.ts.map(tr => `${fmtTime(tr.mills)} ${esc(trTitle(tr))} ${esc(trValue(tr))}`).join(' · ')}</div>` : ''}</div>`;
+    } else curve = `<div class="card indigo"><h2>AGP · ${days} ${esc(t('days'))}</h2>${C.agp(d.entries, { lo, hi, units, empty: t('noData') })}<div class="legend">${esc(t('agpLegend'))}</div></div>`;
+    // Variability
+    const mage = C.mage(d.entries), modd = C.modd(d.entries);
+    const vari = `<div class="card"><h2>${esc(t('stVar'))}</h2><div class="sttiles g4">
+      ${tile('SDBG', `${G(st.sd)}<small>${UL()}</small>`, t('stSdHint'))}
+      ${tile('CV', st.cv.toFixed(0) + '<small>%</small>', t('goal') + ' ≤36%', st.cv <= 36 ? 'var(--in)' : 'var(--high)')}
+      ${tile('MAGE', mage == null ? '—' : `${G(mage)}<small>${UL()}</small>`, t('stMageHint'))}
+      ${tile('MODD', modd == null ? '—' : `${G(modd)}<small>${UL()}</small>`, modd == null ? t('stNeed2') : t('stModdHint'))}</div></div>`;
+    // Night 00:00–06:00
+    const nightEs = d.entries.filter(e => new Date(e[0]).getHours() < 6);
+    let night = '';
+    if (nightEs.length) {
+      const nl = minE(nightEs), ns = C.stats(nightEs.map(e => e[1]), lo, hi);
+      if (one) {
+        const a = perDay[0].a;
+        night = `<div class="card indigo"><h2>${esc(t('stNight'))} <span class="muted small">00:00–06:00</span></h2>${C.line(nightEs, a, at(a, 6), { lo, hi, units, locale: locale(), height: 180, thin: true })}
+          <div class="sttiles g3">${tile('0:00', gv(C.valueAt(nightEs, a)), '')}${tile('6:00', gv(C.valueAt(perDay[0].es, at(a, 6))), '')}${tile(t('stLowest'), gv(nl), fmtTime(nl[0]), nl[1] < lo ? 'var(--low)' : '')}</div></div>`;
+      } else {
+        night = `<div class="card"><h2>${esc(t('stNight'))} <span class="muted small">00:00–06:00</span></h2><div class="sttiles g3">
+          ${tile(t('stNightMean'), gv([0, ns.mean]), '')}${tile(t('stLowest'), gv(nl), when(nl), nl[1] < lo ? 'var(--low)' : '')}${tile(t('stNightLow'), ns.tbr.toFixed(1) + '<small>%</small>', t('goal') + ' <4%', ns.tbr < 4 ? 'var(--in)' : 'var(--low)')}</div></div>`;
+      }
+    }
+    const pats = `<div class="card"><h2>${esc(t('patterns'))}</h2>${insights(d.entries, lo, hi).map(x => `<p class="small" style="margin:6px 0">• ${esc(x)}</p>`).join('')}</div>`;
+    const multi = one ? '' : `<div class="card indigo"><h2>${esc(t('tirByDay'))}</h2>${C.dailyBars(perDay)}</div>
       <div class="card indigo allowbreak"><h2>${esc(t('dailyCharts'))}</h2><div class="days">${[...perDay].reverse().map(x => `<div class="daycard"><div class="row small"><b>${esc(fmtDate(x.a, { weekday: 'short', day: '2-digit', month: '2-digit' }))}</b><span class="muted" style="margin-inline-start:auto">${esc(t('tir'))} ${x.st.n ? x.st.tir.toFixed(0) + '%' : '—'} · ${esc(t('mean'))} ${G(x.st.mean)}</span></div>
         ${C.line(x.es, x.a, x.b, { lo, hi, units, treatments: x.ts, locale: locale(), height: 170, thin: true })}
-        ${x.ts.length ? `<div class="tiny muted">${x.ts.map(tr => `${fmtTime(tr.mills)} ${esc(trTitle(tr))} ${esc(trValue(tr))}`).join(' · ')}</div>` : ''}</div>`).join('')}</div></div>` : ''}
+        ${x.ts.length ? `<div class="tiny muted">${x.ts.map(tr => `${fmtTime(tr.mills)} ${esc(trTitle(tr))} ${esc(trValue(tr))}`).join(' · ')}</div>` : ''}</div>`).join('')}</div></div>`;
+    return `${head}${summary}<div class="grid g2">${tir}${vari}</div>${curve}${night}${pats}${multi}
       <p class="tiny muted">${esc(t('reportFooter', { date: fmtDT(Date.now()) }))}</p>`;
   }
   function medianGap(es) { const g = []; for (let i = 1; i < Math.min(es.length, 500); i++) g.push(es[i][0] - es[i - 1][0]); g.sort((a, b) => a - b); return g[Math.floor(g.length / 2)] || 5 * 60e3; }
@@ -951,20 +994,24 @@
     if (!out.length) out.push(t('insGood'));
     return out;
   }
-  function reportControls(cb, days) {
-    return `<div class="row no-print" style="margin-bottom:12px"><div class="seg" id="per">${[7, 14, 30, 90].map(n => `<button data-n="${n}" class="${n === days ? 'on' : ''}">${n} ${esc(t('daysShort'))}</button>`).join('')}</div>
-      <button class="btn" id="pdf" style="margin-inline-start:auto">📄 ${esc(t('downloadPdf'))}</button></div>`;
+  function reportControls(cb, days, off = 0) {
+    const dn = days === 1 ? `<div class="daynav no-print" id="dnav" data-off="${off}"><button data-o="-1" aria-label="‹">‹</button><span>${esc(off === 0 ? t('today') : off === -1 ? t('yesterday') : fmtDate(dayStart(Date.now(), off), { weekday: 'short', day: 'numeric', month: 'short' }))}</span><button data-o="1" aria-label="›" ${off >= 0 ? 'disabled' : ''}>›</button>${off < 0 ? `<button data-o="0" class="dntoday">${esc(t('today'))}</button>` : ''}</div>` : '';
+    return `<div class="row no-print stctl"><div class="seg" id="per">${[1, 7, 14, 30, 90].map(n => `<button data-n="${n}" class="${n === days ? 'on' : ''}">${n === 1 ? esc(t('day1')) : n + ' ' + esc(t('daysShort'))}</button>`).join('')}</div>
+      <button class="btn" id="pdf" style="margin-inline-start:auto">📄 ${esc(t('downloadPdf'))}</button></div>${dn}`;
   }
+  // redraw(days, dayOffset): dayOffset 0 = today, -1 = yesterday… (used when days = 1)
   function wireReport(redraw) {
-    document.querySelectorAll('#per button').forEach(b => b.onclick = () => redraw(+b.dataset.n));
+    let off = 0; const sp = $('#dnav'); if (sp) off = +(sp.dataset.off || 0);
+    document.querySelectorAll('#per button').forEach(b => b.onclick = () => redraw(+b.dataset.n, 0));
+    document.querySelectorAll('#dnav button').forEach(b => b.onclick = () => redraw(1, b.dataset.o === '0' ? 0 : Math.min(0, off + +b.dataset.o)));
     const p = $('#pdf'); if (p) p.onclick = () => { if (window.EC_DEMO) return toast(t('demoNoPdf')); toast(t('pdfHint')); setTimeout(() => window.print(), 400); };
   }
   async function reports() {
-    let days = 14;
+    let days = 14, off = 0;
     const draw = async () => {
-      $('#view').innerHTML = `<div class="no-print">${pageHead('reports', esc(t('navReports')), t('timeInRanges'), 'peach')}</div>${reportControls(null, days)}<div id="rep" class="loading">${esc(t('loading'))}</div>`;
-      wireReport(n => { days = n; draw(); });
-      $('#rep').outerHTML = `<div id="rep">${await reportHtml(null, days)}</div>`;
+      $('#view').innerHTML = `<div class="no-print">${pageHead('reports', esc(t('navReports')), t('stSub'), 'peach')}</div>${reportControls(null, days, off)}<div id="rep" class="loading">${esc(t('loading'))}</div>`;
+      wireReport((n, o) => { days = n; off = o; draw(); });
+      $('#rep').outerHTML = `<div id="rep">${await reportHtml(null, days, undefined, off)}</div>`;
     };
     await draw();
   }
@@ -1246,7 +1293,7 @@
   }
 
   async function doctorPatient(args) {
-    const token = args[0]; let tab = args[1] || 'overview', days = 14;
+    const token = args[0]; let tab = args[1] || 'overview', days = 14, off = 0;
     const info = await api('GET', '/app/share/' + encodeURIComponent(token));
     const name = info.patient.patient_name || info.patient.name;
     const draw = async () => {
@@ -1255,8 +1302,8 @@
       document.querySelectorAll('#tabs button').forEach(b => b.onclick = () => { tab = b.dataset.t; draw(); });
       if (tab === 'overview') $('#tb').outerHTML = `<div id="tb">${await overviewHtml(token, name)}</div>`;
       if (tab === 'report') {
-        $('#tb').outerHTML = `<div id="tb">${reportControls(null, days)}<div id="rep">${await reportHtml(token, days, name)}</div></div>`;
-        wireReport(n => { days = n; draw(); });
+        $('#tb').outerHTML = `<div id="tb">${reportControls(null, days, off)}<div id="rep">${await reportHtml(token, days, name, off)}</div></div>`;
+        wireReport((n, o) => { days = n; off = o; draw(); });
       }
       if (tab === 'notes') {
         const notes = await api('GET', '/app/notes?share=' + encodeURIComponent(token));
@@ -1289,14 +1336,14 @@
     catch (e) { $('#view').innerHTML = `<div class="card err">${esc(errText(e))}</div>`; return; }
     S.units = (S.me && S.me.user.units) || info.patient.units;
     const name = info.patient.patient_name || info.patient.name;
-    let tab = 'overview', days = 14;
+    let tab = 'overview', days = 14, off = 0;
     const draw = async () => {
       $('#view').innerHTML = `<div class="card no-print small">${esc(t('sharedBanner'))}${S.me && S.me.user.role === 'doctor' ? ` <button class="btn sm" id="addme">${esc(t('addToPatients'))}</button>` : ''}</div>
         <div class="seg no-print" id="tabs" style="margin-bottom:12px">${[['overview', 'overview'], ['report', 'navReports']].map(([id, k]) => `<button data-t="${id}" class="${tab === id ? 'on' : ''}">${esc(t(k))}</button>`).join('')}</div><div id="tb" class="loading">${esc(t('loading'))}</div>`;
       document.querySelectorAll('#tabs button').forEach(b => b.onclick = () => { tab = b.dataset.t; draw(); });
       const am = $('#addme'); if (am) am.onclick = async () => { await api('POST', '/app/patients', { token }); location.hash = '#/p/' + token; };
       if (tab === 'overview') $('#tb').outerHTML = `<div id="tb">${await overviewHtml(token, name)}</div>`;
-      else { $('#tb').outerHTML = `<div id="tb">${reportControls(null, days)}<div id="rep">${await reportHtml(token, days, name)}</div></div>`; wireReport(n => { days = n; draw(); }); }
+      else { $('#tb').outerHTML = `<div id="tb">${reportControls(null, days, off)}<div id="rep">${await reportHtml(token, days, name, off)}</div></div>`; wireReport((n, o) => { days = n; off = o; draw(); }); }
     };
     await draw();
   }
