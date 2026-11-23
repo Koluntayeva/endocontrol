@@ -694,3 +694,10 @@ body.has-galert .hypotimer{top:calc(190px + env(safe-area-inset-top))}
 .dwheel .wcol{padding:54px 0}
 .dwheel .wcol.narrow{flex:0 0 70px}
 .wlab{position:relative;z-index:1;align-self:center;font-size:14px;color:var(--muted);min-width:34px}
+
+/* ---------- packaged foods from Open Food Facts ---------- */
+.fshop{margin-top:6px;border-top:1px dashed var(--line);padding-top:8px}
+.fshophead{display:flex;align-items:baseline;gap:8px;margin:2px 4px 6px}
+.fshophead b{font-size:13px}
+.fshophead a{margin-inline-start:auto;color:var(--muted)}
+.fitem small{font-weight:400}

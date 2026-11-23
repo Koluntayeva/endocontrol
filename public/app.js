@@ -550,7 +550,7 @@
       <div class="addgrid">${items.map(([k, ic, key, tone]) => `<button type="button" class="addtile ${tone}" data-k="${k}"><span>${icon(ic)}</span>${esc(t(key))}</button>`).join('')}</div>`, () => {
       document.querySelectorAll('.addtile').forEach(b => b.onclick = () => {
         const k = b.dataset.k; closeModal();
-        if (k === 'meal') addFood((h => h >= 5 && h < 11 ? 'breakfast' : h >= 11 && h < 16 ? 'lunch' : h >= 16 && h < 22 ? 'dinner' : 'snack')(new Date().getHours()), done);
+        if (k === 'meal') addFood((h => h >= 5 && h < 12 ? 'breakfast' : h >= 12 && h < 16 ? 'lunch' : h >= 16 && h < 22 ? 'dinner' : 'snack')(new Date().getHours()), done);
         else if (k === 'timer') openFoodTimer();
         else addEntry(k, done);
       });
@@ -722,7 +722,7 @@
 
   function addEntry(kind, done) {
     const titles = { meal: 'tMealEntry', carbs: 'tCarbs', insulin: 'tInsEntry', bg: 'tBg', exercise: 'tExercise', note: 'tNote', med: 'tMed', weight: 'tWeight' };
-    const mealByHour = h => h >= 5 && h < 11 ? 'breakfast' : h >= 11 && h < 16 ? 'lunch' : h >= 16 && h < 22 ? 'dinner' : 'snack';
+    const mealByHour = h => h >= 5 && h < 12 ? 'breakfast' : h >= 12 && h < 16 ? 'lunch' : h >= 16 && h < 22 ? 'dinner' : 'snack';
     const seg = (name, opts, on, cls = 'wide') => `<div class="seg ${cls}" data-seg="${name}">${opts.map(([v, l]) => `<button type="button" data-v="${v}" class="${v === on ? 'on' : ''}">${esc(l)}</button>`).join('')}</div>`;
     let body = '';
     if (kind === 'meal') {
@@ -911,7 +911,7 @@
   // ------------------------------------------------------------ diary
   // ------------------------------------------------------------ diary: meals like a food diary
   const MEALS = ['breakfast', 'lunch', 'dinner', 'snack'];
-  const mealOf = x => x.mealType || (x.carbs > 0 || /meal/i.test(x.eventType) ? (h => h >= 5 && h < 11 ? 'breakfast' : h >= 11 && h < 16 ? 'lunch' : h >= 16 && h < 22 ? 'dinner' : 'snack')(new Date(x.mills).getHours()) : null);
+  const mealOf = x => x.mealType || (x.carbs > 0 || /meal/i.test(x.eventType) ? (h => h >= 5 && h < 12 ? 'breakfast' : h >= 12 && h < 16 ? 'lunch' : h >= 16 && h < 22 ? 'dinner' : 'snack')(new Date(x.mills).getHours()) : null);
   const xe = g => (Math.round(g / 12 * 10) / 10).toString().replace('.', S.lang === 'en' ? '.' : ',');
   const fmtG1 = g => (Math.round(g * 10) / 10).toString().replace('.', S.lang === 'en' ? '.' : ',');
   async function diary(args) {
@@ -958,7 +958,7 @@
   // ---- adding food to a meal: search, portions, automatic carbs, or a photo of the plate
   const RECENT = 'ec_recent_foods';
   const recentFoods = () => { try { return JSON.parse(localStorage.getItem(RECENT) || '[]').map(id => window.Foods.BY_ID[id]).filter(Boolean); } catch { return []; } };
-  const rememberFood = id => { try { const r = JSON.parse(localStorage.getItem(RECENT) || '[]').filter(x => x !== id); r.unshift(id); localStorage.setItem(RECENT, JSON.stringify(r.slice(0, 12))); } catch { /* not kept */ } };
+  const rememberFood = id => { if (!id) return; try { const r = JSON.parse(localStorage.getItem(RECENT) || '[]').filter(x => x !== id); r.unshift(id); localStorage.setItem(RECENT, JSON.stringify(r.slice(0, 12))); } catch { /* not kept */ } };
   async function shrinkPhoto(file) {
     const url = URL.createObjectURL(file);
     try {
@@ -1028,6 +1028,7 @@
           $('#fpick').innerHTML = ''; $('#fq').value = ''; showResults(''); drawCart();
         };
       };
+      let shopT = null;
       const showResults = q => {
         const POPULAR = ['bread_white', 'rice', 'buckwheat', 'potato', 'pasta', 'apple', 'banana', 'milk', 'plov', 'manty'];
         const list = q ? F.search(q, S.lang, 20) : recentFoods().length ? recentFoods() : POPULAR.map(id => F.BY_ID[id]);
@@ -1036,6 +1037,23 @@
           + (q ? `<button type="button" class="fitem custom" id="fcustom">+ ${esc(t('fdCustom'))}: «${esc(q)}»</button>` : '');
         document.querySelectorAll('#fres [data-id]').forEach(b => b.onclick = () => pick(F.BY_ID[b.dataset.id]));
         const cb = $('#fcustom'); if (cb) cb.onclick = () => custom(q);
+        clearTimeout(shopT); if (q.trim().length >= 3) shopT = setTimeout(() => shopSearch(q.trim()), 450); // wait until typing pauses
+      };
+      // Packaged foods: Open Food Facts (labels of real products), shown under our own list.
+      let shopSeq = 0;
+      const shopSearch = async q => {
+        const my = ++shopSeq;
+        const box = document.createElement('div'); box.className = 'fshop'; box.innerHTML = `<div class="tiny muted">${esc(t('fdShopLoading'))}</div>`;
+        const custom = $('#fcustom'); if (custom) custom.before(box); else $('#fres').appendChild(box);
+        let r; try { r = await api('GET', `/app/food/search?q=${encodeURIComponent(q)}&lang=${encodeURIComponent(S.lang)}`); } catch { r = { items: [] }; }
+        if (my !== shopSeq || !document.body.contains(box)) return;
+        if (!r.items || !r.items.length) { box.remove(); return; }
+        box.innerHTML = `<div class="fshophead"><b>${esc(t('fdShop'))}</b><a href="https://openfoodfacts.org" target="_blank" rel="noopener" class="tiny">${esc(t('fdShopSrc'))}</a></div>`
+          + r.items.map((f, i) => `<button type="button" class="fitem" data-off="${i}"><span class="grow">${esc(f.name)}${f.brand ? ` <small class="muted">${esc(f.brand)}</small>` : ''}</span><span class="small muted">${esc(fmtG1(f.c))} ${esc(t('gCarbs'))}/100 г</span></button>`).join('');
+        box.querySelectorAll('[data-off]').forEach(b => b.onclick = () => {
+          const f = r.items[+b.dataset.off], label = f.brand && !f.name.toLowerCase().includes(f.brand.toLowerCase()) ? `${f.name} (${f.brand})` : f.name;
+          pick({ id: null, ru: label, en: label, kk: label, c: f.c, cat: 'shop', p: f.serving ? [{ g: f.serving, ru: t('fdServing'), en: t('fdServing') }] : [] });
+        });
       };
       let tq; $('#fq').oninput = e => { clearTimeout(tq); tq = setTimeout(() => showResults(e.target.value), 120); };
       showResults('');
@@ -1231,7 +1249,7 @@
     // Without the AI: a curve analysis for questions about a meal or a moment, a school lesson
     // for general questions, and the pattern review for everything else.
     const ruleAnswer = q => {
-      const ex = window.Explain.answer(q, { entries: d.entries, treatments: d.treatments, now: Date.now(), lo, hi, t, g: G, unit: UL(), time: fmtTime, dayStart });
+      const ex = window.Explain.answer(q, { entries: d.entries, treatments: d.treatments, now: Date.now(), lo, hi, t, g: G, unit: UL(), time: fmtTime, dayStart, foodSpeed: window.Foods.speedOf, hasProteinFat: window.Foods.hasProteinFat });
       if (ex) return { text: ex };
       const review = /\b(7|14)\b|недел|дн[еяи]|week|days|разбер|review|тренд|pattern|апта|күн/i.test(q);
       if (!review) { const sa = schoolAnswer(q); if (sa.lesson) return sa; }

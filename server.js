@@ -23,6 +23,7 @@ const bridges = require('./lib/bridges');
 const { parseCsv } = require('./lib/csvimport');
 const ai = require('./lib/ai');
 const push = require('./lib/push');
+const openfood = require('./lib/openfood');
 
 const PORT = Number(process.env.PORT || 1337);
 const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, 'data');
@@ -320,6 +321,13 @@ route('POST', '/app/push/test', async ctx => {
 route('POST', '/app/push/snooze', async ctx => { const u = requireUser(ctx); push.snooze(db, u.id, 30); return { ok: true }; });
 
 // ---- food photo recognition (needs the AI): items with estimated grams and carbs
+// Packaged foods from Open Food Facts when our own list has nothing (the label's carbs per 100 g).
+route('GET', '/app/food/search', async ctx => {
+  requireUser(ctx);
+  const q = ctx.url.searchParams.get('q') || '', lang = (ctx.url.searchParams.get('lang') || 'ru').slice(0, 5);
+  try { return { source: 'Open Food Facts', license: 'ODbL', items: await openfood.search(q, lang) }; }
+  catch (e) { return { source: 'Open Food Facts', items: [], error: 'unavailable' }; }
+});
 route('POST', '/app/food/photo', async ctx => {
   const u = requireUser(ctx);
   const b = await jsonBody(ctx.req, 8e6);
