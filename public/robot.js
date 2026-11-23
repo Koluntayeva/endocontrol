@@ -200,6 +200,10 @@ export function mount(el) {
     cancelAnimationFrame(raf);
     raf = requestAnimationFrame(frame);
   }
+  // Idle life: the head glances around (the eyes lead), an occasional nod, a wave now and then.
+  const ease = (a, b, k) => a + (b - a) * k;
+  const gaze = { yaw: 0, pitch: 0, ty: 0.35, tp: 0.05, next: 0 };
+  let nodStart = -1e9, nextNod = performance.now() + 5000, waveStart = -1e9, nextWave = performance.now() + 3500, quoteStart = -1e9;
   function frame(now) {
     if (!visible || document.hidden) { raf = 0; return; }
     const dt = Math.min(0.05, (now - last) / 1000); last = now; t += reduce ? 0 : dt;
@@ -210,22 +214,37 @@ export function mount(el) {
     if (!reduce && mode !== 'quote' && now > nextBlink) { blinkStart = now; nextBlink = now + 2500 + Math.random() * 3000; }
     const bp = (now - blinkStart) / 180;
     blink = bp >= 0 && bp <= 1 ? 1 - 0.9 * Math.sin(bp * Math.PI) : 1;
-    look = mode === 'thinking' ? Math.sin(now / 420) * 0.9 : look * 0.9;
+    if (!reduce && now > gaze.next) {
+      gaze.ty = (Math.random() * 2 - 1) * 0.75; gaze.tp = -0.12 + Math.random() * 0.32;
+      gaze.next = now + 1800 + Math.random() * 2700;
+    }
+    gaze.yaw = ease(gaze.yaw, gaze.ty, 0.045); gaze.pitch = ease(gaze.pitch, gaze.tp, 0.045);
+    look = mode === 'thinking' ? Math.sin(now / 420) * 0.9 : ease(look, Math.max(-1, Math.min(1, gaze.ty / 0.6)), 0.12);
+    if (!reduce && mode === 'idle' && now > nextNod) { nodStart = now; nextNod = now + 6000 + Math.random() * 5000; }
+    if (!reduce && mode === 'idle' && now > nextWave) { waveStart = now; nextWave = now + 9000 + Math.random() * 6000; }
     if (faceAlpha < 1) faceAlpha = Math.min(1, faceAlpha + 0.05);
     drawFace();
 
     // camera and pose: the intro framing, head tilted, looking at the user
     camera.position.x = ptr.sx * 0.25; camera.position.y = 0.9 - ptr.sy * 0.1;
     camera.lookAt(0, 0.35, 0);
-    robot.rotation.y = -0.42 + ptr.sx * 0.12;
-    body.position.y = Math.sin(t * 1.4) * 0.02;
     const thinking = mode === 'thinking';
-    head.rotation.y = (thinking ? -0.25 : -0.6) * 0.6 + ptr.sx * 0.45;
-    head.rotation.x = (thinking ? -0.08 : 0.16) + ptr.sy * 0.18 + Math.sin(t * 0.9) * 0.02;
-    head.rotation.z = (thinking ? 0.08 : 0.22) + Math.sin(t * 0.7) * 0.02;
+    // a happy hop when an answer arrives
+    const qp = (now - quoteStart) / 900, hop = qp >= 0 && qp <= 1 ? Math.abs(Math.sin(qp * Math.PI * 2)) * 0.12 * (1 - qp) : 0;
+    robot.rotation.y = -0.42 + ptr.sx * 0.12 + Math.sin(t * 0.35) * 0.14;
+    body.position.y = Math.sin(t * 1.6) * 0.035 + hop;
+    const np = (now - nodStart) / 700, nod = np >= 0 && np <= 1 ? Math.sin(np * Math.PI * 2) * 0.16 : 0;
+    const gy = reduce ? 0 : gaze.yaw, gp = reduce ? 0 : gaze.pitch;
+    head.rotation.y = (thinking ? -0.15 : -0.3) + gy + ptr.sx * 0.45;
+    head.rotation.x = (thinking ? -0.12 : 0.06) + gp + nod + ptr.sy * 0.18 + Math.sin(t * 0.9) * 0.03;
+    head.rotation.z = (thinking ? 0.12 : 0.1) - gy * 0.18 + Math.sin(t * 0.7) * 0.05 + (hop ? 0.12 : 0);
+    // wave with the right arm for ~1.8 s; the left arm swings
+    const wp = (now - waveStart) / 1800, waving = wp >= 0 && wp <= 1, lift = waving ? Math.sin(Math.min(1, wp * 3) * Math.PI / 2) * (wp > 0.8 ? (1 - wp) / 0.2 : 1) : 0;
     for (const a of arms) {
-      a.shoulder.rotation.x = Math.sin(t * 1.4 + a.side) * 0.05;
-      a.fore.rotation.x = -0.35 + Math.sin(t * 1.4 + a.side) * 0.06;
+      a.shoulder.rotation.x = Math.sin(t * 1.4 + a.side) * 0.08;
+      a.shoulder.rotation.z = a.side * 0.16 + (a.side > 0 ? lift * 2.3 : 0);
+      a.fore.rotation.x = -0.35 + Math.sin(t * 1.4 + a.side) * 0.08 + (a.side > 0 ? lift * 0.35 : 0);
+      a.fore.rotation.z = a.side > 0 && waving ? Math.sin((now - waveStart) / 1000 * 14) * 0.45 * lift : 0;
     }
     renderer.render(scene, camera);
     raf = requestAnimationFrame(frame);
@@ -236,7 +255,7 @@ export function mount(el) {
   function setMode(m) {
     if (m === mode) { if (m === 'quote') quoteUntil = performance.now() + 2600; return; }
     mode = m; faceAlpha = 0;
-    if (m === 'quote') quoteUntil = performance.now() + 2600;
+    if (m === 'quote') { quoteUntil = performance.now() + 2600; quoteStart = performance.now(); }
     loop();
   }
   drawFace(); loop();
