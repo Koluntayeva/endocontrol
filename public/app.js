@@ -478,7 +478,7 @@
     if (x.bgContext) p.push(t('bgc_' + x.bgContext));
     if (x.insulin && !x.carbs && x.reason && x.reason !== 'correction') p.push(t(x.reason === 'snack' ? 'mSnack' : x.reason === 'meal' ? 'whyMeal' : 'insWhyOther'));
     if (x.insKind === 'other') p.push(t('insOther'));
-    if (x.insulin && Number.isFinite(+x.preBolus) && x.carbs) p.push(+x.preBolus > 0 ? t('bwBefore') : +x.preBolus < 0 ? t('bwAfter') : t('bwWith'));
+    if (x.insulin && Number.isFinite(+x.preBolus) && x.carbs) p.push(preText(x.preBolus));
     return p.join(' · ');
   }
   // "glucose 6.2 → 9.8 after 2 h", coloured by range; filled in automatically from the sensor.
@@ -640,6 +640,24 @@
 
   // ---- number fields accept "6,5" as well as "6.5"
   const parseNum = v => { const x = parseFloat(String(v == null ? '' : v).trim().replace(',', '.')); return Number.isFinite(x) ? x : NaN; };
+  // "When was the bolus given": before / with / after the meal, and the minutes of the pause, typed or picked
+  function preHtml(id, v = 15) {
+    const dir = v > 0 ? 'before' : v < 0 ? 'after' : 'with', m = Math.abs(v) || 15;
+    return `<div class="prebox" id="${id}"><div class="seg wide" data-pdir>${[['before', t('bwBeforeS')], ['with', t('bwWith')], ['after', t('bwAfterS')]].map(([k, l]) => `<button type="button" data-v="${k}" class="${k === dir ? 'on' : ''}">${esc(l)}</button>`).join('')}</div>
+      <div class="premin" ${dir === 'with' ? 'hidden' : ''}><input type="text" inputmode="numeric" maxlength="3" value="${m}" aria-label="${esc(t('min'))}"><span>${esc(t('min'))}</span>${[5, 10, 15, 20, 30].map(n => `<button type="button" class="chip" data-m="${n}">${n}</button>`).join('')}</div></div>`;
+  }
+  function preMount(id) {
+    const box = $('#' + id); if (!box) return;
+    box.querySelectorAll('[data-pdir] button').forEach(b => b.onclick = () => { box.querySelectorAll('[data-pdir] button').forEach(x => x.classList.toggle('on', x === b)); box.querySelector('.premin').hidden = b.dataset.v === 'with'; });
+    box.querySelectorAll('[data-m]').forEach(b => b.onclick = () => { box.querySelector('.premin input').value = b.dataset.m; });
+  }
+  function preVal(id) {
+    const box = $('#' + id); if (!box) return 15;
+    const d = box.querySelector('[data-pdir] .on').dataset.v; if (d === 'with') return 0;
+    const m = Math.max(0, Math.min(180, Math.round(parseNum(box.querySelector('.premin input').value) || 0)));
+    return d === 'before' ? m : -m;
+  }
+  const preText = v => (+v > 0 ? t('bwBeforeN', { n: +v }) : +v < 0 ? t('bwAfterN', { n: -v }) : t('bwWith'));
   const numField = (id, label, req) => `<div class="fld"><label for="${id}">${esc(label)}</label><input id="${id}" type="text" inputmode="decimal" autocomplete="off" pattern="[0-9]*[.,]?[0-9]*" ${req ? 'required' : ''}></div>`;
 
   // ---- time "wheel": day · hour · minute columns that snap, plus quick buttons
@@ -733,7 +751,7 @@
           <div class="fld"><label for="ec">${esc(t('carbsLabel'))}</label><div class="inunit"><input id="ec" type="text" inputmode="decimal" autocomplete="off">${seg('cu', [['g', t('gCarbs')], ['xe', t('unitXE')]], 'g')}</div><div class="tiny muted" id="ecx"></div></div>
           ${numField('ei', t('bolusLabel'))}
         </div>
-        <div class="fld"><label>${esc(t('bolusWhen'))}</label>${seg('pre', [['15', t('bwBefore')], ['0', t('bwWith')], ['-15', t('bwAfter')]], '15')}</div>
+        <div class="fld"><label>${esc(t('bolusWhen'))}</label>${preHtml('mpre')}</div>
         <div class="fld"><label for="eg">${esc(t('bgAtMeal'))}, ${esc(UL())}</label><input id="eg" type="text" inputmode="decimal" autocomplete="off"><div class="tiny muted" id="egs"></div></div>`;
     } else if (kind === 'insulin') {
       body = `<div class="fld"><label>${esc(t('insType'))}</label>${seg('ikind', [['rapid', t('insRapid')], ['basal', t('insBasal')], ['other', t('insOther')]], 'rapid')}</div>
@@ -770,7 +788,7 @@
         x.textContent = segVal('cu') === 'xe' && v > 0 ? `= ${Math.round(v * 12)} ${t('gCarbs')} · ${t('xeNote')}` : '';
       };
       if ($('#ec')) $('#ec').addEventListener('input', refresh);
-      entryExtras(kind, segVal);
+      entryExtras(kind, segVal); preMount('mpre');
       // The sensor value at the chosen time is filled in for a meal unless typed by hand.
       let bgTyped = false, sensorMg = null;
       if ($('#eg')) $('#eg').addEventListener('input', () => { bgTyped = true; });
@@ -802,7 +820,7 @@
           if (!carbs && !ins) return err(t('eMealEmpty'));
           if (segVal('cu') === 'xe') carbs = carbs * 12;
           const typedBg = bgTyped && $('#eg').value.trim() ? parseNum($('#eg').value) : NaN;
-          payload = { ...payload, carbs, insulin: ins, mealType: segVal('meal'), preBolus: ins ? Number(segVal('pre')) : undefined, glucose: Number.isFinite(typedBg) ? toMg(typedBg) : undefined };
+          payload = { ...payload, carbs, insulin: ins, mealType: segVal('meal'), preBolus: ins ? preVal('mpre') : undefined, glucose: Number.isFinite(typedBg) ? toMg(typedBg) : undefined };
         } else if (kind === 'med') {
           payload.meds = [...document.querySelectorAll('#medrows .medrow')].map(r => ({ name: r.querySelector('.mn').value.trim(), dose: r.querySelector('.md').value.trim() })).filter(m => m.name);
           if (!payload.meds.length) return err(t('eMedEmpty'));
@@ -969,7 +987,7 @@
             <a class="addbtn plbtn" href="/plate.html?meal=${m}" title="${esc(t('plOpen'))}" aria-label="${esc(t('plOpen'))}">🍽</a><button class="addbtn" data-add="${m}" aria-label="${esc(t('fdAdd'))}">+</button></div>
           ${list.map(x => `<div class="mrec"><div class="row small muted" style="gap:8px;align-items:center"><span>${fmtTime(x.mills)}</span><span class="grow"></span>${x._id && (x.carbs > 0 || /meal/i.test(x.eventType)) ? mealSel(x, m) : ''}${del(x)}</div>
             ${(x.foods && x.foods.length ? x.foods : [{ name: t('carbsLabel'), c: +x.carbs || 0 }]).filter(f => f.c || f.g || !x.insulin).map(f => `<div class="fline"><span class="grow">${esc(f.name)}${f.g ? ` <span class="muted">${esc(fmtG1(f.g))} г</span>` : ''}</span><b>${esc(fmtG1(f.c))} ${esc(t('gCarbs'))}</b></div>`).join('')}
-            ${x.insulin ? `<div class="fline ins"><span class="grow">💉 ${esc(t('bolusLabel').replace(/,.*/, ''))}${Number.isFinite(+x.preBolus) && x.carbs ? ` <span class="muted">${esc(+x.preBolus > 0 ? t('bwBefore') : +x.preBolus < 0 ? t('bwAfter') : t('bwWith'))}</span>` : ''}</span><b>${esc(fmtG1(+x.insulin))} ${esc(t('uIns'))}</b></div>` : ''}
+            ${x.insulin ? `<div class="fline ins"><span class="grow">💉 ${esc(t('bolusLabel').replace(/,.*/, ''))}${Number.isFinite(+x.preBolus) && x.carbs ? ` <span class="muted">${esc(preText(x.preBolus))}</span>` : ''}</span><b>${esc(fmtG1(+x.insulin))} ${esc(t('uIns'))}</b></div>` : ''}
             ${trBg(x, lo, hi)}${x.notes ? `<div class="small muted">${esc(x.notes)}</div>` : ''}</div>`).join('')}</div>`;
       };
       $('#view').innerHTML = `${pageHead('calendar', esc(fmtDate(day, { weekday: 'long', day: 'numeric', month: 'long' })), t('navDiary'), 'sky',
@@ -1010,7 +1028,7 @@
       body += `<div class="fld"><label>${esc(t('fdWhichMeal'))}</label>${seg('emeal', MEALS.map(m => [m, mealName(m)]), mealOf(x))}</div>`;
       body += foods.length ? `<div class="fld"><label>${esc(t('edFoods'))}</label><div id="efoods"></div><div class="small" id="esum"></div></div>`
         : `<div class="fld"><label for="ecarbs">${esc(t('carbsLabel'))}</label><input id="ecarbs" type="text" inputmode="decimal" value="${x.carbs ? esc(fmtG1(+x.carbs)) : ''}"></div>`;
-      body += `<div class="grid g2" style="gap:10px">${numField('eins', t('bolusLabel'))}<div class="fld"><label>${esc(t('bolusWhen'))}</label>${seg('epre', [[15, t('bwBefore')], [0, t('bwWith')], [-15, t('bwAfter')]], preOn)}</div></div>`;
+      body += `<div class="grid g2" style="gap:10px">${numField('eins', t('bolusLabel'))}<div class="fld"><label>${esc(t('bolusWhen'))}</label>${preHtml('epre', Number.isFinite(+x.preBolus) ? +x.preBolus : 15)}</div></div>`;
     } else if (isBg) body += numField('ebg', `${t('bgValue')}, ${UL()}`, true);
     else if (isAct) body += numField('edur', `${t('tExercise')}, ${t('min')}`, true);
     else if (x.insulin > 0) body += numField('eins', `${t('dose')}, ${t('uIns')}`, true);
@@ -1018,7 +1036,7 @@
       <div class="fld"><label for="enote">${esc(t('comment'))}</label><input id="enote" maxlength="1000" value="${esc(x.notes || '')}"></div>
       <div class="err" id="eerr"></div>
       <div class="row"><button class="btn grow">${esc(t('save'))}</button><button type="button" class="btn ghost" data-close>${esc(t('cancel'))}</button></div></form>`, () => {
-      const wheel = wheelMount(() => { }, x.mills);
+      const wheel = wheelMount(() => { }, x.mills); preMount('epre');
       document.querySelectorAll('#edf [data-seg] button').forEach(b => b.onclick = () => b.parentElement.querySelectorAll('button').forEach(y => y.classList.toggle('on', y === b)));
       const segVal = n => { const b = document.querySelector(`#edf [data-seg="${n}"] .on`); return b && b.dataset.v; };
       if ($('#eins') && x.insulin) $('#eins').value = fmtG1(+x.insulin);
@@ -1048,7 +1066,7 @@
           if (Array.isArray(x.foods)) { body.foods = foods.map(({ c100, k100, p100, f100, ...f }) => f); body.carbs = Math.round(foods.reduce((a, f) => a + f.c, 0) * 10) / 10; }
           else { const c = num('#ecarbs'); if (!Number.isFinite(c) || c < 0) return err(t('eNum')); body.carbs = c; }
           const ins = num('#eins'); if (!Number.isFinite(ins) || ins < 0) return err(t('eNum'));
-          body.insulin = ins; body.preBolus = ins ? Number(segVal('epre')) : null;
+          body.insulin = ins; body.preBolus = ins ? preVal('epre') : null;
           if (!body.carbs && !ins) return err(t('eMealEmpty'));
         } else if (isBg) { const v = num('#ebg'); if (!(v > 0)) return err(t('eNum')); body.glucose = toMg(v); }
         else if (isAct) { const v = num('#edur'); if (!(v > 0)) return err(t('eNum')); body.duration = v; }
@@ -1087,7 +1105,7 @@
       <div id="fpick"></div>
       <div class="fcart" id="fcart"></div>
       <form id="fform" novalidate>
-        <div class="grid g2" style="gap:10px">${numField('fins', t('bolusLabel'))}<div class="fld"><label>${esc(t('bolusWhen'))}</label><div class="seg wide" data-seg="pre"><button type="button" data-v="15" class="on">${esc(t('bwBefore'))}</button><button type="button" data-v="0">${esc(t('bwWith'))}</button><button type="button" data-v="-15">${esc(t('bwAfter'))}</button></div></div></div>
+        <div class="grid g2" style="gap:10px">${numField('fins', t('bolusLabel'))}<div class="fld"><label>${esc(t('bolusWhen'))}</label>${preHtml('fpre')}</div></div>
         ${wheelHtml()}
         <div class="fld"><label for="fnote">${esc(t('comment'))}</label><input id="fnote" maxlength="1000"></div>
         <div class="err" id="ferr"></div>
@@ -1096,7 +1114,7 @@
       let mealTouched = !guessed;
       const setMeal = m => document.querySelectorAll('[data-seg="fmeal"] button').forEach(x => { x.classList.toggle('on', x.dataset.v === m); x.setAttribute('aria-checked', String(x.dataset.v === m)); });
       document.querySelectorAll('[data-seg="fmeal"] button').forEach(b => b.onclick = () => { mealTouched = true; setMeal(b.dataset.v); });
-      const wheel = wheelMount(ms => { if (!mealTouched) setMeal(mealByClock(new Date(ms).getHours())); });
+      const wheel = wheelMount(ms => { if (!mealTouched) setMeal(mealByClock(new Date(ms).getHours())); }); preMount('fpre');
       const total = () => cart.reduce((a, x) => a + x.c, 0);
       const drawCart = () => {
         $('#fcart').innerHTML = cart.length ? `<div class="ftitle"><b>${esc(t('fdOnPlate'))}</b><span class="grow"></span><b class="ftotal">${esc(fmtG1(total()))} ${esc(t('gCarbs'))} · ${esc(xe(total()))} ${esc(t('unitXE'))}</b></div>
@@ -1187,7 +1205,7 @@
         const ins = $('#fins').value.trim() ? parseNum($('#fins').value) : 0;
         if (Number.isNaN(ins) || ins < 0) return ($('#ferr').textContent = t('eNum'));
         if (!cart.length && !ins) return ($('#ferr').textContent = t('fdNeedFood'));
-        const pre = document.querySelector('#fform [data-seg="pre"] .on').dataset.v;
+        const pre = preVal('fpre');
         try {
           await api('POST', '/app/treatments', { kind: 'meal', mealType: (document.querySelector('[data-seg="fmeal"] .on') || {}).dataset.v || meal, carbs: Math.round(total() * 10) / 10, insulin: ins, preBolus: ins ? Number(pre) : undefined,
             foods: cart.map(x => ({ id: x.id, name: x.name, g: x.g, c: x.c })), at: new Date(wheel.value()).toISOString(), notes: $('#fnote').value });
