@@ -113,6 +113,7 @@
     const x = { _id: 'u' + seq++, ...k, mills: at, created_at: new Date(at).toISOString(), notes: b.notes || undefined, enteredBy: 'EndoControl' };
     u.diary.push(x); return x;
   });
+  on('PATCH', /^\/app\/treatments\/(.+)$/, (b, q, m) => { const x = me().diary.find(y => y._id === m[1]); if (x) x.mealType = b.mealType; return { ok: true }; });
   on('DELETE', /^\/app\/treatments\/(.+)$/, (b, q, m) => { const u = me(); u.diary = u.diary.filter(x => x._id !== m[1]); return { ok: true }; });
   on('POST', /^\/app\/bridges$/, b => {
     const u = me(); const c = b.config || {};

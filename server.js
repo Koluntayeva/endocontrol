@@ -380,6 +380,17 @@ route('POST', '/app/treatments', async ctx => {
   const doc = { ...k, created_at: new Date(at).toISOString(), notes: str(b.notes, 1000) || undefined, enteredBy: APP_NAME };
   return ns.insertTreatments(db, u.id, [doc])[0];
 });
+// Move a saved meal to another meal of the day (entered later and filed under the wrong one).
+route('PATCH', '/app/treatments/:id', async ctx => {
+  const u = requireUser(ctx); const b = await jsonBody(ctx.req);
+  if (!['breakfast', 'lunch', 'dinner', 'snack'].includes(b.mealType)) throw bad('bad_meal');
+  const row = db.prepare('SELECT id, extra FROM treatments WHERE id=? AND user_id=?').get(Number(ctx.params.id), u.id);
+  if (!row) throw new HttpError(404, 'not_found');
+  let extra = {}; try { extra = JSON.parse(row.extra || '{}') || {}; } catch { extra = {}; }
+  extra.mealType = b.mealType;
+  db.prepare('UPDATE treatments SET extra=? WHERE id=?').run(JSON.stringify(extra), row.id);
+  return { ok: true, mealType: b.mealType };
+});
 route('DELETE', '/app/treatments/:id', async ctx => {
   const u = requireUser(ctx);
   db.prepare('DELETE FROM treatments WHERE id=? AND user_id=?').run(Number(ctx.params.id), u.id);
@@ -603,7 +614,7 @@ const server = http.createServer(async (req, res) => {
     if (pathname.startsWith('/api/v1/') || pathname === '/api/v1') {
       res.setHeader('Access-Control-Allow-Origin', '*');
       res.setHeader('Access-Control-Allow-Headers', 'Content-Type, api-secret, Authorization');
-      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
       if (req.method === 'OPTIONS') return send(res, 204, '');
       const body = ['POST', 'PUT'].includes(req.method) ? await jsonBody(req, 20e6) : null;
       const ctx = { req, res, url, body, ns: nsAuth(req, url, body), params: {} };

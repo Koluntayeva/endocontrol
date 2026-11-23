@@ -701,3 +701,9 @@ body.has-galert .hypotimer{top:calc(190px + env(safe-area-inset-top))}
 .fshophead b{font-size:13px}
 .fshophead a{margin-inline-start:auto;color:var(--muted)}
 .fitem small{font-weight:400}
+
+/* ---------- meal picker in the food form, move a saved meal ---------- */
+.fmeal{margin:12px 0 10px}
+.mealsel{font:inherit;font-size:12px;color:var(--accent);background:var(--accent-soft);border:0;border-radius:999px;padding:4px 26px 4px 10px;width:auto;min-height:0;cursor:pointer;
+  appearance:none;-webkit-appearance:none;background-image:linear-gradient(45deg,transparent 50%,currentColor 50%),linear-gradient(135deg,currentColor 50%,transparent 50%);
+  background-position:right 12px center,right 8px center;background-size:4px 4px,4px 4px;background-repeat:no-repeat}

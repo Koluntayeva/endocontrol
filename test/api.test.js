@@ -195,3 +195,21 @@ test('notifications log: alerts worked out from the readings, without repeats', 
   assert.equal(kinds.filter(k => k === 'verylow').length, 2, 'a low still there after 45 minutes is logged again, not every reading');
   assert.ok(kinds.filter(k => k === 'high').length <= 2, 'a long high is not logged every reading');
 });
+
+test('diary: a meal saved under the wrong meal can be moved to another one', async () => {
+  await new Promise(r => server.listen(0, r));
+  const base = `http://127.0.0.1:${server.address().port}`;
+  const j = { 'Content-Type': 'application/json', 'X-EC': '1' };
+  let r = await fetch(base + '/app/register', { method: 'POST', headers: j, body: JSON.stringify({ email: 'move@e.st', password: 'abcd1234', name: 'M', consent: true }) });
+  const cookie = r.headers.get('set-cookie').split(';')[0];
+  r = await fetch(base + '/app/treatments', { method: 'POST', headers: { ...j, cookie }, body: JSON.stringify({ kind: 'meal', mealType: 'lunch', carbs: 45, insulin: 4, foods: [{ name: 'Манная каша', g: 150, c: 23 }], at: new Date().toISOString() }) });
+  const saved = await r.json();
+  r = await fetch(base + '/app/treatments/' + saved._id, { method: 'PATCH', headers: { ...j, cookie }, body: JSON.stringify({ mealType: 'breakfast' }) });
+  assert.equal(r.status, 200);
+  assert.equal((await fetch(base + '/app/treatments/' + saved._id, { method: 'PATCH', headers: { ...j, cookie }, body: JSON.stringify({ mealType: 'brunch' }) })).status, 400);
+  assert.equal((await fetch(base + '/app/treatments/999999', { method: 'PATCH', headers: { ...j, cookie }, body: JSON.stringify({ mealType: 'dinner' }) })).status, 404);
+  const d = await (await fetch(`${base}/app/data?from=${Date.now() - 3600e3}&to=${Date.now() + 60e3}`, { headers: { cookie } })).json();
+  const m = d.treatments.find(x => x._id === saved._id);
+  assert.equal(m.mealType, 'breakfast'); assert.equal(m.foods[0].name, 'Манная каша'); assert.equal(m.carbs, 45);
+  server.close();
+});

@@ -550,7 +550,7 @@
       <div class="addgrid">${items.map(([k, ic, key, tone]) => `<button type="button" class="addtile ${tone}" data-k="${k}"><span>${icon(ic)}</span>${esc(t(key))}</button>`).join('')}</div>`, () => {
       document.querySelectorAll('.addtile').forEach(b => b.onclick = () => {
         const k = b.dataset.k; closeModal();
-        if (k === 'meal') addFood((h => h >= 5 && h < 12 ? 'breakfast' : h >= 12 && h < 16 ? 'lunch' : h >= 16 && h < 22 ? 'dinner' : 'snack')(new Date().getHours()), done);
+        if (k === 'meal') addFood(mealByClock(new Date().getHours()), done, true);
         else if (k === 'timer') openFoodTimer();
         else addEntry(k, done);
       });
@@ -911,6 +911,7 @@
   // ------------------------------------------------------------ diary
   // ------------------------------------------------------------ diary: meals like a food diary
   const MEALS = ['breakfast', 'lunch', 'dinner', 'snack'];
+  const mealByClock = h => (h >= 5 && h < 12 ? 'breakfast' : h >= 12 && h < 16 ? 'lunch' : h >= 16 && h < 22 ? 'dinner' : 'snack');
   const mealOf = x => x.mealType || (x.carbs > 0 || /meal/i.test(x.eventType) ? (h => h >= 5 && h < 12 ? 'breakfast' : h >= 12 && h < 16 ? 'lunch' : h >= 16 && h < 22 ? 'dinner' : 'snack')(new Date(x.mills).getHours()) : null);
   const xe = g => (Math.round(g / 12 * 10) / 10).toString().replace('.', S.lang === 'en' ? '.' : ',');
   const fmtG1 = g => (Math.round(g * 10) / 10).toString().replace('.', S.lang === 'en' ? '.' : ',');
@@ -925,13 +926,14 @@
       const basal = tr.filter(x => /basal/i.test(x.eventType)).reduce((a, x) => a + (+x.insulin || 0), 0);
       const byMeal = Object.fromEntries(MEALS.map(m => [m, tr.filter(x => mealOf(x) === m && !/basal|temp/i.test(x.eventType))]));
       const others = tr.filter(x => !MEALS.some(m => byMeal[m].includes(x)) && x.eventType !== 'Temp Basal');
+      const mealSel = (x, cur) => `<select class="mealsel" data-move="${esc(x._id)}" aria-label="${esc(t('fdMoveTo'))}" title="${esc(t('fdMoveTo'))}">${MEALS.map(k => `<option value="${k}" ${k === cur ? 'selected' : ''}>${esc(t(k === 'snack' ? 'mSnack' : 'ex_' + k))}</option>`).join('')}</select>`;
       const del = x => `<button class="xdel" data-del="${esc(x._id)}" aria-label="${esc(t('delete'))}">✕</button>`;
       const mealCard = (m, i) => {
         const list = byMeal[m], sum = list.reduce((a, x) => a + (+x.carbs || 0), 0), ins = list.reduce((a, x) => a + (+x.insulin || 0), 0);
         return `<div class="card mealcard tone${i}"><div class="mhead"><span class="mico">${icon('meal')}</span><div class="grow"><h2>${esc(t(m === 'snack' ? 'mSnacks' : 'ex_' + m))}</h2>
             <div class="small muted">${sum ? `${esc(fmtG1(sum))} ${esc(t('gCarbs'))} · ${esc(xe(sum))} ${esc(t('unitXE'))}` : esc(t('fdEmpty'))}${ins ? ` · ${esc(fmtG1(ins))} ${esc(t('uIns'))}` : ''}</div></div>
             <button class="addbtn" data-add="${m}" aria-label="${esc(t('fdAdd'))}">+</button></div>
-          ${list.map(x => `<div class="mrec"><div class="row small muted" style="gap:8px"><span>${fmtTime(x.mills)}</span><span class="grow"></span>${del(x)}</div>
+          ${list.map(x => `<div class="mrec"><div class="row small muted" style="gap:8px;align-items:center"><span>${fmtTime(x.mills)}</span><span class="grow"></span>${x._id && (x.carbs > 0 || /meal/i.test(x.eventType)) ? mealSel(x, m) : ''}${del(x)}</div>
             ${(x.foods && x.foods.length ? x.foods : [{ name: t('carbsLabel'), c: +x.carbs || 0 }]).filter(f => f.c || f.g || !x.insulin).map(f => `<div class="fline"><span class="grow">${esc(f.name)}${f.g ? ` <span class="muted">${esc(fmtG1(f.g))} г</span>` : ''}</span><b>${esc(fmtG1(f.c))} ${esc(t('gCarbs'))}</b></div>`).join('')}
             ${x.insulin ? `<div class="fline ins"><span class="grow">💉 ${esc(t('bolusLabel').replace(/,.*/, ''))}${Number.isFinite(+x.preBolus) && x.carbs ? ` <span class="muted">${esc(+x.preBolus > 0 ? t('bwBefore') : +x.preBolus < 0 ? t('bwAfter') : t('bwWith'))}</span>` : ''}</span><b>${esc(fmtG1(+x.insulin))} ${esc(t('uIns'))}</b></div>` : ''}
             ${trBg(x, lo, hi)}${x.notes ? `<div class="small muted">${esc(x.notes)}</div>` : ''}</div>`).join('')}</div>`;
@@ -950,6 +952,10 @@
       $('#next').onclick = () => { day = dayStart(day, 1); history.replaceState(null, '', '#/diary/' + day); draw(); };
       document.querySelectorAll('[data-q]').forEach(b => b.onclick = () => b.dataset.q === 'timer' ? openFoodTimer() : addEntry(b.dataset.q, draw));
       document.querySelectorAll('[data-add]').forEach(b => b.onclick = () => addFood(b.dataset.add, draw));
+      document.querySelectorAll('[data-move]').forEach(sel => sel.onchange = async () => {
+        try { await api('PATCH', '/app/treatments/' + sel.dataset.move, { mealType: sel.value }); toast(t('fdMoved', { meal: t(sel.value === 'snack' ? 'mSnack' : 'ex_' + sel.value) })); draw(); }
+        catch (e) { toast(errText(e)); draw(); }
+      });
       document.querySelectorAll('[data-del]').forEach(b => b.onclick = async () => { await api('DELETE', '/app/treatments/' + b.dataset.del); toast(t('deleted')); draw(); });
     };
     await draw();
@@ -969,10 +975,12 @@
       return c.toDataURL('image/jpeg', 0.85);
     } finally { URL.revokeObjectURL(url); }
   }
-  function addFood(meal, done) {
+  // meal: preselected meal; guessed = true when it was only guessed from the clock (then it follows the chosen time until tapped)
+  function addFood(meal, done, guessed = false) {
     const F = window.Foods, cart = [];
     const nm = f => F.name(f, S.lang);
-    modal(`<div class="fsheet"><div class="row" style="align-items:center;gap:10px"><h2 style="margin:0" class="grow">${esc(t(meal === 'snack' ? 'mSnacks' : 'ex_' + meal))} — ${esc(t('fdAdd').toLowerCase())}</h2><button class="iconbtn" data-close aria-label="${esc(t('rdClose'))}">✕</button></div>
+    modal(`<div class="fsheet"><div class="row" style="align-items:center;gap:10px"><h2 style="margin:0" class="grow">${esc(t('fdAddFood'))}</h2><button class="iconbtn" data-close aria-label="${esc(t('rdClose'))}">✕</button></div>
+      <div class="seg wide grid4 fmeal" data-seg="fmeal" role="radiogroup" aria-label="${esc(t('fdWhichMeal'))}">${MEALS.map(m => `<button type="button" role="radio" data-v="${m}" class="${m === meal ? 'on' : ''}" aria-checked="${m === meal}">${esc(t(m === 'snack' ? 'mSnack' : 'ex_' + m))}</button>`).join('')}</div>
       <div class="fsearch"><input id="fq" autocomplete="off" placeholder="${esc(t('fdSearch'))}" aria-label="${esc(t('fdSearch'))}">
         <button type="button" class="btn ghost sm" id="fphoto">${icon('camera')}<span>${esc(t('fdPhoto'))}</span></button><input type="file" id="ffile" accept="image/*" capture="environment" hidden></div>
       <div class="tiny muted" id="fhint">${esc(t('fdRecent'))}</div>
@@ -986,7 +994,10 @@
         <div class="err" id="ferr"></div>
         <div class="row"><button class="btn grow" id="fsave">${esc(t('save'))}</button><button type="button" class="btn ghost" data-close>${esc(t('cancel'))}</button></div>
         <p class="tiny muted" style="margin-bottom:0">${esc(t('fdDisclaimer'))}</p></form></div>`, () => {
-      const wheel = wheelMount(() => { });
+      let mealTouched = !guessed;
+      const setMeal = m => document.querySelectorAll('[data-seg="fmeal"] button').forEach(x => { x.classList.toggle('on', x.dataset.v === m); x.setAttribute('aria-checked', String(x.dataset.v === m)); });
+      document.querySelectorAll('[data-seg="fmeal"] button').forEach(b => b.onclick = () => { mealTouched = true; setMeal(b.dataset.v); });
+      const wheel = wheelMount(ms => { if (!mealTouched) setMeal(mealByClock(new Date(ms).getHours())); });
       const total = () => cart.reduce((a, x) => a + x.c, 0);
       const drawCart = () => {
         $('#fcart').innerHTML = cart.length ? `<div class="ftitle"><b>${esc(t('fdOnPlate'))}</b><span class="grow"></span><b class="ftotal">${esc(fmtG1(total()))} ${esc(t('gCarbs'))} · ${esc(xe(total()))} ${esc(t('unitXE'))}</b></div>
@@ -1079,7 +1090,7 @@
         if (!cart.length && !ins) return ($('#ferr').textContent = t('fdNeedFood'));
         const pre = document.querySelector('#fform [data-seg="pre"] .on').dataset.v;
         try {
-          await api('POST', '/app/treatments', { kind: 'meal', mealType: meal, carbs: Math.round(total() * 10) / 10, insulin: ins, preBolus: ins ? Number(pre) : undefined,
+          await api('POST', '/app/treatments', { kind: 'meal', mealType: (document.querySelector('[data-seg="fmeal"] .on') || {}).dataset.v || meal, carbs: Math.round(total() * 10) / 10, insulin: ins, preBolus: ins ? Number(pre) : undefined,
             foods: cart.map(x => ({ id: x.id, name: x.name, g: x.g, c: x.c })), at: new Date(wheel.value()).toISOString(), notes: $('#fnote').value });
           closeModal(); toast(t('saved')); done && done();
         } catch (er) { $('#ferr').textContent = errText(er); }
