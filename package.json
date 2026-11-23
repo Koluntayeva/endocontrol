@@ -10,7 +10,7 @@
   },
   "scripts": {
     "start": "node server.js",
-    "test": "node --test test/api.test.js test/stats.test.js test/meal.test.js"
+    "test": "node --test test/api.test.js test/stats.test.js test/meal.test.js test/ratios.test.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.10.0",

@@ -609,12 +609,15 @@
       </div>
       <div class="linkrows">
         <a class="linkrow" href="#/events"><span class="lri peach">${icon('bell')}</span><span class="grow">${esc(t('evTitle'))}<small>${evNew ? esc(t('evNewN', { n: evNew })) : esc(t('evNone'))}</small></span>${evNew ? `<span class="evbadge">${evNew}</span>` : ''}${icon('right')}</a>
+        <a class="linkrow" href="#/reports" id="rtlink"><span class="lri violet">${icon('insulin')}</span><span class="grow">${esc(t('rtShort'))}<small id="rtline">${esc(t('loading'))}</small></span>${icon('right')}</a>
         <a class="linkrow" href="#/reports"><span class="lri sky">${icon('reports')}</span><span class="grow">${esc(t('hmReports'))}</span>${icon('right')}</a>
         <a class="linkrow" href="#/school"><span class="lri yellow">${icon('school')}</span><span class="grow">${esc(t('navSchool'))}<small>${esc(t('schProgress', { n: schoolDone().length, total: SCH.lessons(S.lang).length }))}</small></span>${icon('right')}</a>
         <a class="linkrow" href="#/connect"><span class="lri violet">${icon('sensor')}</span><span class="grow">${esc(t('dataSources'))}<small>${me.bridges.length ? esc(me.bridges.map(b => ({ librelinkup: 'LibreLinkUp', dexcom: 'Dexcom Share', nightscout: 'Nightscout' }[b.kind] || b.kind) + (b.status === 'ok' ? ' ✓' : '')).join(', ')) : esc(t('noSources'))}</small></span>${icon('right')}</a>
       </div>`;
       document.querySelectorAll('#rng button').forEach(b => b.onclick = () => { range = +b.dataset.h; sessionStorage.setItem('range', range); draw(); });
       $('#addrec').onclick = () => openAddSheet(draw);
+      $('#rtlink').onclick = () => { S.scrollRatios = true; };
+      ratiosFor(null).then(r => { const el = $('#rtline'); if (el) el.textContent = ratiosLine(r); }).catch(() => { const el = $('#rtline'); if (el) el.textContent = t('rtFew'); });
       // A question asked here opens the analyst with the answer.
       $('#hask').onsubmit = e => { e.preventDefault(); const q = $('#haskIn').value.trim(); if (!q) return; S.pendingQuestion = { q }; location.hash = '#/ai'; };
       if (!rbox) { rbox = document.createElement('div'); rbox.className = 'robotbox homebot'; rbox.innerHTML = `<img src="${IMG('ai')}" alt="">`; }
@@ -1099,6 +1102,43 @@
   }
 
   // ------------------------------------------------------------ reports (also used for doctor & shared views)
+  // ---- approximate carb ratios and sensitivity (public/ratios.js); a guide, never turned into a dose
+  async function ratiosFor(share, now = Date.now()) {
+    const d = await getData(now - 30 * 864e5, now + 60e3, share);
+    const { lo } = targets(d.patient);
+    return window.Ratios.compute({ entries: d.entries, treatments: d.treatments, mealOf, now, lo, days: 30 });
+  }
+  const fmtR = v => fmtG1(Math.round(v));
+  const ratioText = b => { const a = Math.round(b.min), z = Math.round(b.max); return a === z ? t('rtOne', { g: a }) : t('rtRange', { a, b: z }); };
+  const mealName = m => t(m === 'snack' ? 'mSnack' : 'ex_' + m);
+  function ratiosCard(r) {
+    const badge = (c, n) => ({ prelim: ['bad', t('rtPrelim', { n })], low: ['warn', t('rtLow', { n })], medium: ['mid', t('rtMid', { n })], good: ['ok', t('rtGood', { n })] })[c];
+    const meal = k => {
+      const b = r.byMeal[k];
+      if (!b) return `<div class="rtmeal empty"><b>${esc(mealName(k))}</b><span class="tiny muted">${esc(t('rtNoData'))}</span></div>`;
+      const [cls, txt] = badge(b.conf, b.days);
+      return `<div class="rtmeal"><div class="rth"><b>${esc(mealName(k))}</b><span class="rtv">${esc(ratioText(b))}</span></div>
+        <div class="tiny muted">${esc(t('rtXe', { u: fmtG1(Math.round(12 / b.ratio * 10) / 10) }))}</div>
+        <ul class="rtitems">${b.items.map(m => `<li>${esc(fmtDate(m.at, { day: '2-digit', month: '2-digit' }))} ${esc(fmtTime(m.at))}: ${esc(fmtG1(m.ownCarbs))} ${esc(t('gCarbs'))}${m.snacks.length ? ' + ' + m.snacks.map(x => esc(t('rtSnack', { g: fmtG1(x.carbs), t: fmtTime(x.at) }))).join(' + ') : ''} / ${esc(fmtG1(m.insulin))} ${esc(t('uIns'))} → ${esc(fmtG1(Math.round(m.raw * 10) / 10))} ${esc(t('gCarbs'))}${m.b0 != null && m.b1 != null ? `, ${esc(t('rtBg', { a: G(m.b0), b: G(m.b1) }))}` : ''}${m.low ? ` · <span class="rtlow">${esc(t('rtWasLow'))}</span>` : ''}</li>`).join('')}</ul>
+        <span class="rtbadge ${cls}">${esc(txt)}</span></div>`;
+    };
+    const isf = r.isf;
+    return `<div class="card ratios" id="ratios"><h2 class="hic">${icon('insulin')}${esc(t('rtTitle'))}</h2>
+      <div class="rtwarn">⚠️ ${esc(t('rtWarn'))}</div>
+      <div class="small muted" style="margin:10px 0 6px">${esc(t('rtIcr'))}</div>
+      ${window.Ratios.MEALS.map(meal).join('')}
+      <div class="rtisf"><div class="small muted">${esc(t('rtIsf'))}</div>
+        ${isf ? `<div class="rth"><span class="rtv">${esc(t('rtIsfVal', { v: G(isf.value), u: UL() }))}</span><span class="rtbadge ${isf.method === 'measured' ? badge(isf.conf, isf.n)[0] : 'bad'}">${esc(isf.method === 'measured' ? t('rtIsfMeasured', { n: isf.n }) : t('rtIsfRule'))}</span></div>
+        <div class="tiny muted">${esc(t(isf.method === 'measured' ? 'rtIsfHowM' : 'rtIsfHowR'))}</div>` : `<div class="tiny muted">${esc(t('rtNoData'))}</div>`}</div>
+      <p class="tiny muted" style="margin:10px 0 0">${esc(t('rtSnackRule'))} ${esc(t('rtMore'))}</p></div>`;
+  }
+  // one line for the home screen: the ratio for the meal of this hour, or the first one known
+  function ratiosLine(r) {
+    const cur = mealByClock(new Date().getHours());
+    const k = r.byMeal[cur] ? cur : window.Ratios.MEALS.find(m => r.byMeal[m]);
+    return k ? `${mealName(k)} ${ratioText(r.byMeal[k])} · ${t('rtApprox')}` : t('rtFew');
+  }
+
   async function reportHtml(share, days, patientTitle, off = 0) {
     const one = days === 1;
     const to = one ? dayStart(Date.now(), off + 1) : dayStart(Date.now(), 1), from = one ? dayStart(Date.now(), off) : dayStart(Date.now(), -(days - 1));
@@ -1165,7 +1205,8 @@
       <div class="card indigo allowbreak"><h2>${esc(t('dailyCharts'))}</h2><div class="days">${[...perDay].reverse().map(x => `<div class="daycard"><div class="row small"><b>${esc(fmtDate(x.a, { weekday: 'short', day: '2-digit', month: '2-digit' }))}</b><span class="muted" style="margin-inline-start:auto">${esc(t('tir'))} ${x.st.n ? x.st.tir.toFixed(0) + '%' : '—'} · ${esc(t('mean'))} ${G(x.st.mean)}</span></div>
         ${C.line(x.es, x.a, x.b, { lo, hi, units, treatments: x.ts, locale: locale(), height: 170, thin: true })}
         ${x.ts.length ? `<div class="tiny muted">${x.ts.map(tr => `${fmtTime(tr.mills)} ${esc(trTitle(tr))} ${esc(trValue(tr))}`).join(' · ')}</div>` : ''}</div>`).join('')}</div></div>`;
-    return `${head}${summary}<div class="grid g2">${tir}${vari}</div>${curve}${night}${pats}${multi}
+    let ratios = ''; try { ratios = ratiosCard(await ratiosFor(share)); } catch { ratios = ''; }
+    return `${head}${summary}<div class="grid g2">${tir}${vari}</div>${ratios}${curve}${night}${pats}${multi}
       <p class="tiny muted">${esc(t('reportFooter', { date: fmtDT(Date.now()) }))}</p>`;
   }
   function medianGap(es) { const g = []; for (let i = 1; i < Math.min(es.length, 500); i++) g.push(es[i][0] - es[i - 1][0]); g.sort((a, b) => a - b); return g[Math.floor(g.length / 2)] || 5 * 60e3; }
@@ -1200,6 +1241,7 @@
       $('#view').innerHTML = `<div class="no-print">${pageHead('reports', esc(t('navReports')), t('stSub'), 'peach')}</div>${reportControls(null, days, off)}<div id="rep" class="loading">${esc(t('loading'))}</div>`;
       wireReport((n, o) => { days = n; off = o; draw(); });
       $('#rep').outerHTML = `<div id="rep">${await reportHtml(null, days, undefined, off)}</div>`;
+      if (S.scrollRatios) { S.scrollRatios = false; const c = $('#ratios'); if (c) c.scrollIntoView({ block: 'start', behavior: 'smooth' }); }
     };
     await draw();
   }

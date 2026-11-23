@@ -707,3 +707,17 @@ body.has-galert .hypotimer{top:calc(190px + env(safe-area-inset-top))}
 .mealsel{font:inherit;font-size:12px;color:var(--accent);background:var(--accent-soft);border:0;border-radius:999px;padding:4px 26px 4px 10px;width:auto;min-height:0;cursor:pointer;
   appearance:none;-webkit-appearance:none;background-image:linear-gradient(45deg,transparent 50%,currentColor 50%),linear-gradient(135deg,currentColor 50%,transparent 50%);
   background-position:right 12px center,right 8px center;background-size:4px 4px,4px 4px;background-repeat:no-repeat}
+
+/* ---------- approximate ratios (reports, doctor report, home line) ---------- */
+.ratios .rtwarn{background:#fff4dc;color:#7a4a00;border-radius:12px;padding:9px 12px;font-size:13px;line-height:1.45}
+.rtmeal{border:1px solid var(--line);border-radius:14px;padding:10px 12px;margin-bottom:8px}
+.rtmeal.empty{display:flex;justify-content:space-between;align-items:center;padding:8px 12px}
+.rth{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}
+.rtv{font-size:18px;font-weight:600;font-variant-numeric:tabular-nums}
+.rtitems{margin:6px 0 6px;padding-inline-start:18px;font-size:12px;color:var(--muted);line-height:1.55}
+.rtlow{color:var(--low);font-weight:600}
+.rtbadge{display:inline-block;font-size:11.5px;font-weight:600;border-radius:999px;padding:2px 9px}
+.rtbadge.bad{background:#fde7ee;color:#9b1f4f}.rtbadge.warn{background:#fff1d6;color:#7a4a00}.rtbadge.mid{background:var(--accent-soft);color:var(--accent)}.rtbadge.ok{background:var(--in-soft);color:#1e6b43}
+.rtisf{border-top:1px solid var(--line);margin-top:6px;padding-top:10px}
+@media (prefers-color-scheme:dark){.ratios .rtwarn{background:#3a2c10;color:#ffd58a}.rtbadge.bad{background:#4a1d2c;color:#ffb3c9}.rtbadge.warn{background:#3a2c10;color:#ffd58a}.rtbadge.ok{color:#9be3bb}}
+@media print{.ratios{break-inside:avoid}}
