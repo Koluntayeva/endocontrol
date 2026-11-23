@@ -89,3 +89,21 @@ test('emergency helper reads only real glucose values from a message', () => {
     ['glucose 54 mg/dl', 54], ['уже 30 минут не поднимается', null], ['ребёнку 9 лет, сахар 2.8', 50], ['TIR 70% это хорошо?', null]];
   for (const [q, want] of cases) assert.equal(U.parseValue(q, true), want, q);
 });
+
+test('glucose alerts: fast fall, predicted low, fast rise, quiet repeats', () => {
+  const A = require('../public/alerts.js');
+  const now = Date.UTC(2026, 0, 1, 12);
+  const series = (start, step, dir) => Array.from({ length: 4 }, (_, i) => [now - (3 - i) * 5 * 60e3, start + step * i, dir]);
+  assert.equal(A.check(series(230, -15, 'SingleDown'), now).kind, 'fall');            // -3/min, still above 70 in 20 min
+  assert.equal(A.check(series(120, -15, 'SingleDown'), now).kind, 'fallsoon');        // would reach < 70 in 20 min
+  assert.equal(A.check(series(150, 15, 'SingleUp'), now).kind, 'rise');
+  assert.equal(A.check(series(110, 1, 'Flat'), now), null);
+  assert.equal(A.check(series(60, 0, 'Flat'), now).kind, 'low');
+  assert.equal(A.check(series(50, 0, 'Flat'), now).level, 'critical');
+  assert.equal(A.check(series(230, -15, 'SingleDown'), now + 30 * 60e3), null);       // stale reading
+  const a = A.check(series(230, -15, 'SingleDown'), now);
+  assert.equal(A.shouldFire(a, {}, now), true);
+  assert.equal(A.shouldFire(a, { last: { kind: 'fall', at: now - 5 * 60e3 } }, now), false);
+  assert.equal(A.shouldFire(A.check(series(60, 0, 'Flat'), now), { last: { kind: 'fall', at: now - 5 * 60e3 } }, now), true); // got worse
+  assert.equal(A.shouldFire(a, { snoozeUntil: now + 60e3 }, now), false);
+});

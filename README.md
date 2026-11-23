@@ -17,6 +17,7 @@ doctor access, messages and printable reports.
 | Reports | Time in ranges (international consensus), GMI, CV, AGP, TIR by day, a full chart for every day; 7/14/30/90 days; **PDF** via the browser's print dialog |
 | AI analyst | Ask any question — about a moment ("why did glucose fall 2 h after breakfast today?"), patterns over days, or diabetes in general. Claude (Anthropic) gets a 15-minute glucose timeline for today and yesterday, every diary entry, meal rises found on the curve and 14-day statistics, plus clinical background after Ragnar Hanas' "Type 1 Diabetes in Children, Adolescents and Young Adults" and ISPAD 2022. Needs `ANTHROPIC_API_KEY`; without it, questions about a meal or time of day get a curve analysis and other questions a Diabetes school lesson. Never suggests doses |
 | Diabetes school | 10 short lessons with mini quizzes and progress: basics, targets, CGM, insulin, carbs, hypo, high glucose and ketones, sport, sick days, school and travel (Russian and English; other languages fall back to them) |
+| Alerts | While the app is open: a fast fall or rise, a predicted low within 20 min, low, very low and high glucose — sound, vibration, a notification, a banner and a spoken message in the user's language; snooze for 30 min; switches and a test button in Settings |
 | Doctors | Patient sends a read-only link → doctor adds it → patient list sorted with TIR/hypo flags, full history, reports, messages and written conclusions |
 | Languages | English, 简体中文, Español, العربية (RTL), Português, Bahasa Indonesia, Français, 日本語, Русский, Deutsch, Қазақша, Türkçe, हिन्दी, 한국어 · units mg/dL or mmol/L per user |
 
@@ -87,6 +88,7 @@ lib/nsdata.js        Nightscout data model: entries, treatments, devicestatus
 lib/bridges.js       LibreLinkUp, Dexcom Share, Nightscout pull of glucose and treatments (every 5 min)
 lib/csvimport.js     CSV import with automatic column/unit detection
 public/explain.js    curve analysis shared by server and browser: meal rises, peaks, falls
+public/alerts.js     glucose alerts: fast fall or rise, predicted low, low, high
 public/fonts/        Onest (UI font), SIL OFL 1.1
 public/robot.js      the AI analyst's 3D robot (three.js 0.160.0, vendored in public/vendor/three, MIT)
 lib/ai.js            AI analyst: data summary, timeline and the Claude request

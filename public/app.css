@@ -488,3 +488,19 @@ h2.hic svg{width:20px;height:20px;color:var(--accent)}
 #rdpanel .chat{max-height:min(46vh,420px)}
 .rdfoot{gap:10px;margin-top:10px}
 @media (max-width:480px){.rdtabs{grid-template-columns:1fr}}
+
+/* ---------- glucose alert banner ---------- */
+.galert{position:fixed;left:50%;transform:translateX(-50%);top:calc(64px + env(safe-area-inset-top));z-index:35;width:min(560px,calc(100vw - 24px));
+  display:flex;flex-direction:column;gap:10px;padding:14px 16px;border-radius:22px;color:#fff;box-shadow:0 16px 40px rgba(20,20,40,.3);animation:galin .35s ease-out}
+.galert.lv-critical{background:linear-gradient(135deg,#d4205f,#a3164a);animation:galin .35s ease-out,galpulse 1.2s ease-in-out infinite}
+.galert.lv-urgent{background:linear-gradient(135deg,#e8467f,#c42d6a)}
+.galert.lv-warn{background:linear-gradient(135deg,#ff8a1a,#e0640a)}
+.galert .gtxt{font-weight:650;font-size:15px;line-height:1.4}
+.galert .gbtns{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.galert .btn{background:#fff;color:#2b1a3a;box-shadow:none}
+.galert .btn.ghost{background:rgba(255,255,255,.2);color:#fff}
+.galert .tmx{margin-inline-start:auto;border:0;background:rgba(255,255,255,.2);color:#fff;border-radius:999px;width:32px;height:32px;cursor:pointer;font:inherit}
+@keyframes galin{from{opacity:0;transform:translate(-50%,-10px)}}
+@keyframes galpulse{50%{box-shadow:0 0 0 10px rgba(212,32,95,.25),0 16px 40px rgba(20,20,40,.3)}}
+@media (prefers-reduced-motion:reduce){.galert,.galert.lv-critical{animation:none}}
+body.has-galert .hypotimer{top:calc(190px + env(safe-area-inset-top))}

@@ -26,6 +26,7 @@
     chat: '<path d="M4.5 5.5h15a1.5 1.5 0 0 1 1.5 1.5v9a1.5 1.5 0 0 1-1.5 1.5H10l-4.5 3.5V17.5h-1A1.5 1.5 0 0 1 3 16V7a1.5 1.5 0 0 1 1.5-1.5z"/>',
     lock: '<rect x="5" y="10.5" width="14" height="10" rx="2.5"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5"/>',
     calendar: '<rect x="3.5" y="5" width="17" height="15.5" rx="3"/><path d="M3.5 9.5h17M8 3v4M16 3v4"/>',
+    bell: '<path d="M6 16.5V11a6 6 0 0 1 12 0v5.5l1.5 2h-15z"/><path d="M10 20.5a2 2 0 0 0 4 0"/>',
     left: '<path d="m14.5 6-6 6 6 6"/>', right: '<path d="m9.5 6 6 6-6 6"/>',
   };
   // One page header for every screen: a line icon in a tinted circle, the title and a short line.
@@ -115,6 +116,93 @@
     if (!HT.tick) HT.tick = setInterval(hypoTimerDraw, 1000);
   }
 
+  // ------------------------------------------------------------ glucose alerts (while the app is open)
+  const AL_KEY = 'ec_alerts', AL_MEM = 'ec_alert_mem';
+  const alPrefs = () => { try { return Object.assign({ on: true, voice: true, sound: true }, JSON.parse(localStorage.getItem(AL_KEY) || '{}')); } catch { return { on: true, voice: true, sound: true }; } };
+  const alSave = p => { try { localStorage.setItem(AL_KEY, JSON.stringify(p)); } catch { /* not kept */ } };
+  const alMem = () => { try { return JSON.parse(localStorage.getItem(AL_MEM) || '{}'); } catch { return {}; } };
+  const alMemSave = m => { try { localStorage.setItem(AL_MEM, JSON.stringify(m)); } catch { /* not kept */ } };
+  const SPEECH = { ru: 'ru-RU', kk: 'kk-KZ', en: 'en-US', de: 'de-DE', es: 'es-ES', fr: 'fr-FR', tr: 'tr-TR', pt: 'pt-BR', zh: 'zh-CN', ja: 'ja-JP', ko: 'ko-KR', ar: 'ar-SA', hi: 'hi-IN', id: 'id-ID' };
+  function say(text) {
+    try {
+      if (!window.speechSynthesis) return;
+      speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = SPEECH[S.lang] || 'en-US'; u.rate = 0.95;
+      const v = speechSynthesis.getVoices().find(x => x.lang && x.lang.toLowerCase().startsWith(S.lang));
+      if (v) u.voice = v;
+      speechSynthesis.speak(u);
+    } catch { /* no speech */ }
+  }
+  function tone(kind) {
+    try {
+      const A = new (window.AudioContext || window.webkitAudioContext)();
+      // falling: three descending tones; rising: two ascending; critical: fast repeated high tone
+      const seq = kind === 'verylow' ? [[1047, 0], [1047, .22], [1047, .44], [1047, .66], [1047, .88]]
+        : /low|fall/.test(kind) ? [[880, 0], [740, .3], [587, .6]] : [[523, 0], [784, .3]];
+      for (const [f, d] of seq) {
+        const o = A.createOscillator(), g = A.createGain(); o.frequency.value = f; o.connect(g); g.connect(A.destination);
+        g.gain.setValueAtTime(0.0001, A.currentTime + d); g.gain.exponentialRampToValueAtTime(0.35, A.currentTime + d + 0.02);
+        g.gain.exponentialRampToValueAtTime(0.0001, A.currentTime + d + 0.22); o.start(A.currentTime + d); o.stop(A.currentTime + d + 0.25);
+      }
+    } catch { /* no audio */ }
+  }
+  const spokenNum = mg => { const x = G(mg); return ['ru', 'kk', 'de', 'es', 'fr', 'tr', 'pt', 'id'].includes(S.lang) ? x.replace('.', ',') : x; };
+  function alertText(a, spoken) {
+    const { lo } = targets(S.me && S.me.user);
+    const u = spoken ? t(S.units === 'mmol' ? 'alUnitMmol' : 'alUnitMg') : UL();
+    return t({ verylow: 'alVeryLow', low: 'alLow', fallsoon: 'alFallSoon', fall: 'alFall', rise: 'alRise', high: 'alHigh' }[a.kind], { v: spoken ? spokenNum(a.v) : G(a.v), u, lo: spoken ? spokenNum(lo) : G(lo) });
+  }
+  function showAlert(a, opts = {}) {
+    const prefs = alPrefs();
+    let el = $('#galert');
+    if (!el) { el = document.createElement('div'); el.id = 'galert'; el.setAttribute('role', 'alert'); document.body.appendChild(el); }
+    el.className = 'galert no-print lv-' + a.level;
+    el.innerHTML = `<div class="gtxt">${esc(alertText(a))}</div><div class="gbtns"><button type="button" class="btn sm" data-al="help">${esc(t('alWhat'))}</button>
+      <button type="button" class="btn ghost sm" data-al="snooze">${esc(t('alSnooze'))}</button><button type="button" class="tmx" data-al="ok" aria-label="${esc(t('alOk'))}">✕</button></div>`;
+    document.body.classList.add('has-galert');
+    const close = () => { el.remove(); document.body.classList.remove('has-galert'); try { speechSynthesis.cancel(); } catch { /* none */ } };
+    el.querySelector('[data-al=ok]').onclick = close;
+    el.querySelector('[data-al=snooze]').onclick = () => { const m = alMem(); m.snoozeUntil = Date.now() + 30 * 60e3; alMemSave(m); close(); };
+    el.querySelector('[data-al=help]').onclick = () => {
+      close();
+      S.pendingQuestion = /low|fall/.test(a.kind) ? { q: t('urSos'), force: true } : { q: t('alAskRise') };
+      if (location.hash.startsWith('#/ai')) route(); else location.hash = '#/ai';
+    };
+    if (prefs.sound || opts.test) { tone(a.kind); try { if (navigator.vibrate) navigator.vibrate(a.level === 'critical' ? [500, 200, 500, 200, 500] : [300, 150, 300]); } catch { /* none */ } }
+    if (prefs.voice || opts.test) setTimeout(() => say(opts.test ? t('alTestText') : alertText(a, true)), 700);
+    try { if (!opts.test && document.hidden && window.Notification && Notification.permission === 'granted') new Notification('EndoControl', { body: alertText(a), requireInteraction: a.level !== 'warn' }); } catch { /* none */ }
+  }
+  async function alertCheck() {
+    if (!S.me || S.me.user.role === 'doctor' || !alPrefs().on) return;
+    let d; try { d = await getData(Date.now() - 40 * 60e3, Date.now() + 60e3); } catch { return; }
+    const { lo, hi } = targets(S.me.user);
+    const a = window.Alerts.check(d.entries, Date.now(), { lo, hi });
+    const mem = alMem();
+    if (!window.Alerts.shouldFire(a, mem, Date.now())) return;
+    mem.last = { kind: a.kind, at: Date.now() }; alMemSave(mem);
+    showAlert(a);
+  }
+  let alTimer = null;
+  function alertWatch() { if (alTimer) return; alertCheck(); alTimer = setInterval(alertCheck, 60e3); }
+  function alertSettings() {
+    if (!S.me || S.me.user.role === 'doctor') return;
+    const p = alPrefs();
+    const box = document.createElement('div'); box.className = 'card'; box.id = 'alcard';
+    box.innerHTML = `<h2 class="hic">${icon('bell')}${esc(t('alTitle'))}</h2>
+      <label class="check"><input type="checkbox" data-p="on" ${p.on ? 'checked' : ''}> ${esc(t('alOn'))}</label>
+      <label class="check"><input type="checkbox" data-p="voice" ${p.voice ? 'checked' : ''}> ${esc(t('alVoice'))}</label>
+      <label class="check"><input type="checkbox" data-p="sound" ${p.sound ? 'checked' : ''}> ${esc(t('alSound'))}</label>
+      <div class="row" style="gap:10px;margin-top:10px;flex-wrap:wrap"><button type="button" class="btn sm" id="altest">${esc(t('alTest'))}</button></div>
+      <p class="tiny muted" style="margin-bottom:0">${esc(t('alNote'))}</p>`;
+    const head = $('#view .phead'); if (head) head.after(box); else $('#view').prepend(box);
+    box.querySelectorAll('[data-p]').forEach(c => c.onchange = () => { const q = alPrefs(); q[c.dataset.p] = c.checked; alSave(q); });
+    box.querySelector('#altest').onclick = () => {
+      try { if (window.Notification && Notification.permission === 'default') Notification.requestPermission(); } catch { /* none */ }
+      showAlert({ kind: 'fall', level: 'urgent', v: 92 }, { test: true });
+    };
+  }
+
   function toast(msg) { const el = $('#toast'); el.textContent = msg; el.classList.add('show'); clearTimeout(toast.t); toast.t = setTimeout(() => el.classList.remove('show'), 2800); }
   async function copy(text) { try { await navigator.clipboard.writeText(text); toast(t('copied')); } catch { toast(text); } }
   function modal(html, onMount) {
@@ -167,7 +255,8 @@
     nav();
     if (!S.me) { if (page === 'register') return register(); return login(); }
     const doc = S.me.user.role === 'doctor';
-    const pages = doc ? { patients, p: doctorPatient, settings } : { home, connect, diary, reports, ai, school, share, settings };
+    const settingsPage = async a => { await settings(a); alertSettings(); };
+    const pages = doc ? { patients, p: doctorPatient, settings } : { home, connect, diary, reports, ai, school, share, settings: settingsPage };
     const fn = pages[page] || (doc ? patients : home);
     if (!pages[page]) history.replaceState(null, '', doc ? '#/patients' : '#/home');
     view.innerHTML = `<div class="loading">${esc(t('loading'))}</div>`;
@@ -1015,4 +1104,5 @@
   window.addEventListener('hashchange', route);
   route();
   hypoTimerDraw();
+  setTimeout(alertWatch, 3000);
 })();
