@@ -741,3 +741,30 @@ body.has-galert .hypotimer{top:calc(190px + env(safe-area-inset-top))}
 .prebox .pseg input{width:44px;padding:4px 2px;text-align:center;font:inherit;font-size:15px;font-weight:700;border:1.5px solid var(--line);border-radius:9px;background:var(--card);color:var(--text)}
 .prebox .pseg.on input{border-color:var(--accent)}
 @media (max-width:440px){.prebox{grid-template-columns:1fr}}
+
+/* Doctor: patient list by urgency */
+.dpstats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:0 0 12px}
+.dpstat{background:var(--card,#fff);border-radius:16px;padding:10px 8px;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,.05)}
+.dpstat b{display:block;font-size:22px}.dpstat span{font-size:11px;color:var(--muted)}
+.psearch{width:100%;margin:0 0 12px}
+.dphead{font-size:14px;margin:14px 4px 6px}.dphead.red{color:#be123c}.dpsub{margin:-4px 4px 6px}
+.pitem.attn{box-shadow:inset 3px 0 0 #f43f5e}
+.pitem[hidden],.dphead[hidden],.dpsub[hidden]{display:none}
+.dpyr{color:var(--accent);font-weight:600}
+
+/* Reports in the app's style: summary inside the indigo glucose card, tinted tiles, icon headings */
+.rphero{padding:20px}
+.rphero h2{color:#fff;font-size:20px;position:relative;z-index:1}
+.rphero .small.muted{color:rgba(255,255,255,.78)!important;position:relative;z-index:1}
+.rphero .rpsum{margin-top:14px;position:relative;z-index:1}
+.sttile{background:linear-gradient(160deg,var(--tint,var(--bg2)),var(--card) 85%)}
+.sttiles>.sttile:nth-child(4n+1){--tint:var(--t-violet)}.sttiles>.sttile:nth-child(4n+2){--tint:var(--t-sky)}
+.sttiles>.sttile:nth-child(4n+3){--tint:var(--t-peach)}.sttiles>.sttile:nth-child(4n+4){--tint:var(--t-yellow)}
+.sttile b{font-weight:650}
+.rphero .sttile,.card.indigo .sttile{background:rgba(255,255,255,.12)}
+.rphero .sttile span,.rphero .sttile em,.rphero .sttile b small{color:rgba(255,255,255,.72)}
+.rphero .sttile b{color:#fff}
+.rphero .sttile b[style*="--vhigh"]{color:#ffd29a!important}.rphero .sttile b[style*="--low"]{color:#ffb3d1!important}
+.card.indigo h2.hic svg{color:rgba(255,255,255,.85)}
+@media print{.rphero h2,.rphero .sttile b{color:#000!important}.rphero .small.muted,.rphero .sttile span,.rphero .sttile em{color:#555!important}.rphero .sttile{background:#fff;border:1px solid #ddd}}
+.tirwrap .dn-v{font-weight:700}

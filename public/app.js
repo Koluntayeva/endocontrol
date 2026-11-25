@@ -406,7 +406,7 @@
         <div class="roles"><button type="button" data-r="patient" class="${role === 'patient' ? 'on' : ''}"><span>👨‍👩‍👧</span>${esc(t('rolePatient'))}</button>
           <button type="button" data-r="doctor" class="${role === 'doctor' ? 'on' : ''}"><span>🩺</span>${esc(t('roleDoctor'))}</button></div>
         <div class="fld"><label for="nm">${esc(t(role === 'doctor' ? 'yourNameDoctor' : 'yourName'))}</label><input id="nm" autocomplete="name" required></div>
-        ${role === 'patient' ? `<div class="fld"><label for="pn">${esc(t('patientName'))}</label><input id="pn" placeholder="${esc(t('patientNameHint'))}"></div>
+        ${role === 'patient' ? `<div class="fld"><label for="pn">${esc(t('patientName'))}</label><input id="pn" placeholder="${esc(t('patientNameHint'))}"></div><div class="fld"><label for="by">${esc(t('birthYear'))}</label><input id="by" type="number" inputmode="numeric" min="1920" max="${new Date().getFullYear()}"></div>
         <div class="grid g2"><div class="fld"><label for="dt">${esc(t('diabetesType'))}</label><select id="dt"><option value="t1">${esc(t('t1'))}</option><option value="t2">${esc(t('t2'))}</option><option value="gestational">${esc(t('gest'))}</option><option value="other">${esc(t('otherType'))}</option></select></div>
         <div class="fld"><label for="un">${esc(t('units'))}</label><select id="un"><option value="mmol" ${mmolDefault ? 'selected' : ''}>mmol/L</option><option value="mg/dl" ${mmolDefault ? '' : 'selected'}>mg/dL</option></select></div></div>` : ''}
         <div class="fld"><label for="em">${esc(t('email'))}</label><input id="em" type="email" autocomplete="email" required></div>
@@ -426,7 +426,7 @@
         if (pw.length < 8 || !/\d/.test(pw) || !/\p{L}/u.test(pw)) return err.textContent = t('e_weak_password');
         if (!$('#cs').checked) return err.textContent = t('e_consent_required');
         const body = { role, name: $('#nm').value, email: $('#em').value, password: pw, consent: true, lang: S.lang, timezone: Intl.DateTimeFormat().resolvedOptions().timeZone };
-        if (role === 'patient') Object.assign(body, { patient_name: $('#pn').value, diabetes_type: $('#dt').value, units: $('#un').value });
+        if (role === 'patient') Object.assign(body, { patient_name: $('#pn').value, diabetes_type: $('#dt').value, units: $('#un').value }); if ($('#by').value) body.birth_year = parseInt($('#by').value, 10);
         else body.units = mmolDefault ? 'mmol' : 'mg/dl';
         try { await api('POST', '/app/register', body); await loadMe(); location.hash = role === 'doctor' ? '#/patients' : '#/connect'; route(); }
         catch (er) { err.textContent = errText(er); }
@@ -1280,30 +1280,30 @@
     const tile = (l, v, sub, col) => `<div class="sttile"><span>${esc(l)}</span><b ${col ? `style="color:${col}"` : ''}>${v}</b>${sub ? `<em>${esc(sub)}</em>` : ''}</div>`;
     const minE = es => es.reduce((m, e) => (!m || e[1] < m[1] ? e : m), null);
     const head = `<div class="print-only"><h1>${esc(t('reportTitle'))}</h1></div>
-      <div class="card"><div class="row"><div class="grow"><h2 style="margin:0">${esc(patientTitle || p.patient_name || p.name)}</h2>
-        <div class="small muted">${one ? esc(fmtDate(from, { weekday: 'long', day: 'numeric', month: 'long' })) : `${esc(fmtDate(from))} – ${esc(fmtDate(to - 1))} · ${days} ${esc(t('days'))}`} · ${esc(t('readings', { n: st.n || 0 }))} · ${esc(t('sensorActive'))} ${cover.toFixed(0)}%${p.diabetes_type ? ' · ' + esc(t(p.diabetes_type === 'gestational' ? 'gest' : p.diabetes_type === 'other' ? 'otherType' : p.diabetes_type)) : ''}</div></div></div></div>`;
-    if (!st.n) return head + `<div class="card muted">${esc(t('noData'))}</div>`;
+      <div class="hero-card rphero"><div class="row"><div class="grow"><h2 style="margin:0">${esc(patientTitle || p.patient_name || p.name)}</h2>
+        <div class="small muted">${one ? esc(fmtDate(from, { weekday: 'long', day: 'numeric', month: 'long' })) : `${esc(fmtDate(from))} – ${esc(fmtDate(to - 1))} · ${days} ${esc(t('days'))}`} · ${esc(t('readings', { n: st.n || 0 }))} · ${esc(t('sensorActive'))} ${cover.toFixed(0)}%${p.diabetes_type ? ' · ' + esc(t(p.diabetes_type === 'gestational' ? 'gest' : p.diabetes_type === 'other' ? 'otherType' : p.diabetes_type)) : ''}</div></div></div>`;
+    if (!st.n) return head + `</div>` + `<div class="card muted">${esc(t('noData'))}</div>`;
     const lowest = minE(d.entries), highest = d.entries.reduce((m, e) => (!m || e[1] > m[1] ? e : m), null);
     const when = e => one ? fmtTime(e[0]) : fmtDate(e[0], { day: '2-digit', month: '2-digit' }) + ' ' + fmtTime(e[0]);
     // Summary
-    const summary = `<div class="card"><h2>${esc(t('stSummary'))}</h2><div class="sttiles g4">
+    const summary = `<div class="sttiles g4 rpsum">
       ${tile('eHbA1c', st.gmi.toFixed(1) + '<small>%</small>', t('stGmiHint'))}
       ${tile(t('mean'), gv([0, st.mean]), '')}
       ${tile(t('stHighest'), gv(highest), when(highest), 'var(--vhigh)')}
-      ${tile(t('stLowest'), gv(lowest), when(lowest), lowest[1] < lo ? 'var(--low)' : '')}</div></div>`;
+      ${tile(t('stLowest'), gv(lowest), when(lowest), lowest[1] < lo ? 'var(--low)' : '')}</div></div>`;   // closes the hero card
     // Time in range: ring + legend
-    const tir = `<div class="card"><h2>${esc(t('timeInRanges'))}</h2><div class="tirwrap">${C.donut(st, t('inRange'))}${C.tirBlock(st, t, units, lo, hi)}</div></div>`;
+    const tir = `<div class="card"><h2 class="hic">${icon('reports')}${esc(t('timeInRanges'))}</h2><div class="tirwrap">${C.donut(st, t('inRange'))}${C.tirBlock(st, t, units, lo, hi)}</div></div>`;
     // Curve
     let curve;
     if (one) {
       const x = perDay[0];
-      curve = `<div class="card indigo"><h2>${esc(t('stCurve'))}</h2>${C.line(x.es, x.a, x.b, { lo, hi, units, treatments: x.ts, locale: locale(), height: 220 })}
+      curve = `<div class="card indigo"><h2 class="hic">${icon('clock')}${esc(t('stCurve'))}</h2>${C.line(x.es, x.a, x.b, { lo, hi, units, treatments: x.ts, locale: locale(), height: 220 })}
         <div class="sttiles g3">${tile('0:00', gv(C.valueAt(x.es, x.a)), '')}${tile('6:00', gv(C.valueAt(x.es, at(x.a, 6))), '')}${tile(t('stLowMoment'), fmtTime(lowest[0]), G(lowest[1]) + ' ' + UL())}</div>
         ${x.ts.length ? `<div class="tiny muted" style="margin-top:8px">${x.ts.map(tr => `${fmtTime(tr.mills)} ${esc(trTitle(tr))} ${esc(trValue(tr))}`).join(' · ')}</div>` : ''}</div>`;
-    } else curve = `<div class="card indigo"><h2>AGP · ${days} ${esc(t('days'))}</h2>${C.agp(d.entries, { lo, hi, units, empty: t('noData') })}<div class="legend">${esc(t('agpLegend'))}</div></div>`;
+    } else curve = `<div class="card indigo"><h2 class="hic">${icon('clock')}AGP · ${days} ${esc(t('days'))}</h2>${C.agp(d.entries, { lo, hi, units, empty: t('noData') })}<div class="legend">${esc(t('agpLegend'))}</div></div>`;
     // Variability
     const mage = C.mage(d.entries), modd = C.modd(d.entries);
-    const vari = `<div class="card"><h2>${esc(t('stVar'))}</h2><div class="sttiles g4">
+    const vari = `<div class="card"><h2 class="hic">${icon('bg')}${esc(t('stVar'))}</h2><div class="sttiles g4">
       ${tile('SDBG', `${G(st.sd)}<small>${UL()}</small>`, t('stSdHint'))}
       ${tile('CV', st.cv.toFixed(0) + '<small>%</small>', t('goal') + ' ≤36%', st.cv <= 36 ? 'var(--in)' : 'var(--high)')}
       ${tile('MAGE', mage == null ? '—' : `${G(mage)}<small>${UL()}</small>`, t('stMageHint'))}
@@ -1315,16 +1315,16 @@
       const nl = minE(nightEs), ns = C.stats(nightEs.map(e => e[1]), lo, hi);
       if (one) {
         const a = perDay[0].a;
-        night = `<div class="card indigo"><h2>${esc(t('stNight'))} <span class="muted small">00:00–06:00</span></h2>${C.line(nightEs, a, at(a, 6), { lo, hi, units, locale: locale(), height: 180, thin: true })}
+        night = `<div class="card indigo"><h2 class="hic">${icon('moon')}${esc(t('stNight'))} <span class="muted small">00:00–06:00</span></h2>${C.line(nightEs, a, at(a, 6), { lo, hi, units, locale: locale(), height: 180, thin: true })}
           <div class="sttiles g3">${tile('0:00', gv(C.valueAt(nightEs, a)), '')}${tile('6:00', gv(C.valueAt(perDay[0].es, at(a, 6))), '')}${tile(t('stLowest'), gv(nl), fmtTime(nl[0]), nl[1] < lo ? 'var(--low)' : '')}</div></div>`;
       } else {
-        night = `<div class="card"><h2>${esc(t('stNight'))} <span class="muted small">00:00–06:00</span></h2><div class="sttiles g3">
+        night = `<div class="card"><h2 class="hic">${icon('moon')}${esc(t('stNight'))} <span class="muted small">00:00–06:00</span></h2><div class="sttiles g3">
           ${tile(t('stNightMean'), gv([0, ns.mean]), '')}${tile(t('stLowest'), gv(nl), when(nl), nl[1] < lo ? 'var(--low)' : '')}${tile(t('stNightLow'), ns.tbr.toFixed(1) + '<small>%</small>', t('goal') + ' <4%', ns.tbr < 4 ? 'var(--in)' : 'var(--low)')}</div></div>`;
       }
     }
-    const pats = `<div class="card"><h2>${esc(t('patterns'))}</h2>${insights(d.entries, lo, hi).map(x => `<p class="small" style="margin:6px 0">• ${esc(x)}</p>`).join('')}</div>`;
-    const multi = one ? '' : `<div class="card indigo"><h2>${esc(t('tirByDay'))}</h2>${C.dailyBars(perDay)}</div>
-      <div class="card indigo allowbreak"><h2>${esc(t('dailyCharts'))}</h2><div class="days">${[...perDay].reverse().map(x => `<div class="daycard"><div class="row small"><b>${esc(fmtDate(x.a, { weekday: 'short', day: '2-digit', month: '2-digit' }))}</b><span class="muted" style="margin-inline-start:auto">${esc(t('tir'))} ${x.st.n ? x.st.tir.toFixed(0) + '%' : '—'} · ${esc(t('mean'))} ${G(x.st.mean)}</span></div>
+    const pats = `<div class="card"><h2 class="hic">${icon('ai')}${esc(t('patterns'))}</h2>${insights(d.entries, lo, hi).map(x => `<p class="small" style="margin:6px 0">• ${esc(x)}</p>`).join('')}</div>`;
+    const multi = one ? '' : `<div class="card indigo"><h2 class="hic">${icon('calendar')}${esc(t('tirByDay'))}</h2>${C.dailyBars(perDay)}</div>
+      <div class="card indigo allowbreak"><h2 class="hic">${icon('calendar')}${esc(t('dailyCharts'))}</h2><div class="days">${[...perDay].reverse().map(x => `<div class="daycard"><div class="row small"><b>${esc(fmtDate(x.a, { weekday: 'short', day: '2-digit', month: '2-digit' }))}</b><span class="muted" style="margin-inline-start:auto">${esc(t('tir'))} ${x.st.n ? x.st.tir.toFixed(0) + '%' : '—'} · ${esc(t('mean'))} ${G(x.st.mean)}</span></div>
         ${C.line(x.es, x.a, x.b, { lo, hi, units, treatments: x.ts, locale: locale(), height: 170, thin: true })}
         ${x.ts.length ? `<div class="tiny muted">${x.ts.map(tr => `${fmtTime(tr.mills)} ${esc(trTitle(tr))} ${esc(trValue(tr))}`).join(' · ')}</div>` : ''}</div>`).join('')}</div></div>`;
     let ratios = ''; try { ratios = ratiosCard(await ratiosFor(share)); } catch { ratios = ''; }
@@ -1627,20 +1627,50 @@
   }
 
   // ------------------------------------------------------------ doctor
+  // Why a patient needs the doctor's attention now, most urgent first.
+  function patientAlerts(p, now = Date.now()) {
+    const lo = p.target_low || 70, out = [];
+    const age = p.last ? now - p.last.date : Infinity;
+    if (p.last && age < 30 * 60e3 && p.last.sgv < lo) out.push({ w: 100, c: 'red', txt: t('dpLowNow', { v: G(p.last.sgv) }) });
+    if (p.min24 != null && p.min24 < 54) out.push({ w: 80, c: 'red', txt: t('dpVeryLow24', { v: G(p.min24) }) });
+    if (p.messages) out.push({ w: 60, c: 'blue', txt: t('dpUnread', { n: p.messages }) });
+    if (age > 3 * 3600e3) out.push({ w: 50, c: 'amb', txt: p.last ? t('dpNoData', { h: Math.floor(age / 3600e3) }) : t('noData') });
+    if (p.tbr != null && p.tbr > 4) out.push({ w: 40, c: 'red', txt: `${t('tbr')} ${p.tbr.toFixed(0)}%` });
+    return out.sort((a, b) => b.w - a.w);
+  }
+
   async function patients() {
     const list = await api('GET', '/app/patients');
-    $('#view').innerHTML = `${pageHead('patients', esc(t('navPatients')), '', 'violet')}
-      <form class="card row" id="af"><div class="grow"><label for="tk">${esc(t('addPatient'))}</label><input id="tk" placeholder="${esc(t('addPatientHint'))}" required></div><button class="btn" style="align-self:end">${esc(t('add'))}</button><div class="err" id="aerr" style="flex-basis:100%"></div></form>
-      ${list.map(p => {
-        const flags = [];
-        if (p.tbr != null && p.tbr > 4) flags.push(['red', `${t('tbr')} ${p.tbr.toFixed(0)}%`]);
-        if (p.tir != null) flags.push([p.tir >= 70 ? 'ok' : p.tir >= 50 ? 'amb' : 'red', `${t('tir')} ${p.tir.toFixed(0)}%`]);
-        if (p.messages) flags.push(['blue', t('messages') + ' ' + p.messages]);
-        S.units = S.me.user.units;
-        return `<a class="pitem" href="#/p/${esc(p.token)}"><div class="avatar">${esc((p.patient_name || p.name || '?')[0])}</div>
-          <div class="grow"><b>${esc(p.patient_name || p.name)}</b>${p.patient_name ? ` <span class="muted small">(${esc(p.name)})</span>` : ''}<div>${flags.map(f => `<span class="flag ${f[0]}">${esc(f[1])}</span>`).join('')}</div></div>
+    S.units = S.me.user.units;
+    const now = Date.now();
+    list.forEach(p => { p.al = patientAlerts(p, now); p.score = p.al.reduce((s, a) => s + a.w, 0); });
+    const need = list.filter(p => p.al.length).sort((a, b) => b.score - a.score || (a.tir ?? 101) - (b.tir ?? 101));
+    const rest = list.filter(p => !p.al.length).sort((a, b) => (a.tir ?? 101) - (b.tir ?? 101));
+    const item = p => {
+      const flags = p.al.map(a => [a.c, a.txt]);
+      if (p.tir != null) flags.push([p.tir >= 70 ? 'ok' : p.tir >= 50 ? 'amb' : 'red', `${t('tir')} ${p.tir.toFixed(0)}%`]);
+      const yr = p.birth_year ? t('dpBorn', { y: p.birth_year }) : '';
+      const q = `${p.patient_name || ''} ${p.name || ''} ${p.birth_year || ''}`.toLowerCase().replace(/ё/g, 'е');
+      return `<a class="pitem${p.al.length ? ' attn' : ''}" href="#/p/${esc(p.token)}" data-q="${esc(q)}"><div class="avatar">${esc((p.patient_name || p.name || '?')[0])}</div>
+          <div class="grow"><b>${esc(p.patient_name || p.name)}</b>${yr ? ` <span class="small dpyr">${esc(yr)}</span>` : ''}${p.patient_name ? ` <span class="muted small">· ${esc(p.name)}</span>` : ''}<div>${flags.map(f => `<span class="flag ${f[0]}">${esc(f[1])}</span>`).join('')}</div></div>
           <div style="text-align:end"><b style="color:${p.last ? C.color(p.last.sgv, p.target_low, p.target_high) : 'var(--muted)'}">${p.last ? G(p.last.sgv) + ' ' + (C.ARROWS[p.last.direction] || '') : '—'}</b><div class="tiny muted">${p.last ? esc(ago(p.last.date)) : ''}</div></div></a>`;
-      }).join('') || `<div class="card muted">${esc(t('noPatients'))}</div>`}`;
+    };
+    const cnt = (k, n) => `<div class="dpstat"><b>${n}</b><span>${esc(t(k))}</span></div>`;
+    $('#view').innerHTML = `${pageHead('patients', esc(t('navPatients')), '', 'violet')}
+      ${list.length ? `<div class="dpstats">${cnt('dpTotal', list.length)}${cnt('dpNeed', need.length)}${cnt('dpMsgs', list.reduce((s, p) => s + (p.messages || 0), 0))}${cnt('dpStale', list.filter(p => !p.last || now - p.last.date > 3 * 3600e3).length)}</div>
+      ${list.length > 5 ? `<input id="psearch" class="psearch" type="search" placeholder="${esc(t('dpSearch'))}" autocomplete="off">` : ''}` : ''}
+      ${need.length ? `<h3 class="dphead red">⚠️ ${esc(t('dpNeedTitle'))} · ${need.length}</h3>${need.map(item).join('')}` : ''}
+      ${rest.length ? `${need.length ? `<h3 class="dphead">${esc(t('dpOthers'))} · ${rest.length}</h3><p class="tiny muted dpsub">${esc(t('dpSortTir'))}</p>` : ''}${rest.map(item).join('')}` : ''}
+      ${list.length ? '' : `<div class="card muted">${esc(t('noPatients'))}</div>`}
+      <div class="tiny muted" id="pnone" hidden>${esc(t('dpNotFound'))}</div>
+      <form class="card row" id="af"><div class="grow"><label for="tk">${esc(t('addPatient'))}</label><input id="tk" placeholder="${esc(t('addPatientHint'))}" required></div><button class="btn" style="align-self:end">${esc(t('add'))}</button><div class="err" id="aerr" style="flex-basis:100%"></div></form>`;
+    const ps = $('#psearch');
+    if (ps) ps.oninput = () => {
+      const v = ps.value.trim().toLowerCase().replace(/ё/g, 'е'), words = v.split(/\s+/).filter(Boolean); let shown = 0;
+      document.querySelectorAll('.pitem').forEach(a => { const on = words.every(w => a.dataset.q.includes(w)); a.hidden = !on; if (on) shown++; });
+      document.querySelectorAll('.dphead,.dpsub').forEach(h => { h.hidden = !!v; });
+      $('#pnone').hidden = shown > 0;
+    };
     $('#af').onsubmit = async e => { e.preventDefault(); try { await api('POST', '/app/patients', { token: $('#tk').value }); toast(t('saved')); patients(); } catch (er) { $('#aerr').textContent = errText(er); } };
   }
 
@@ -1659,6 +1689,7 @@
       }
       if (tab === 'notes') {
         const notes = await api('GET', '/app/notes?share=' + encodeURIComponent(token));
+        api('POST', '/app/patients/' + encodeURIComponent(token) + '/read').catch(() => {});
         $('#tb').outerHTML = `<div id="tb"><div class="card"><h2>${esc(name)}</h2>
           ${notes.map(n => `<div class="note ${n.author_role === 'doctor' ? 'doc' : ''}"><div class="meta">${n.kind === 'conclusion' ? '📋 ' + esc(t('conclusion')) + ' · ' : ''}${esc(n.author)} · ${esc(fmtDT(n.created_at))}</div>${esc(n.text)}</div>`).join('') || `<div class="muted small">${esc(t('noMessages'))}</div>`}
           <form id="mf"><textarea id="mt" style="min-height:120px" placeholder="${esc(t('msgHintDoctor'))}"></textarea>
@@ -1708,7 +1739,8 @@
     $('#view').innerHTML = `${pageHead('settings', esc(t('navSettings')), '', 'yellow')}
       <form class="card" id="pf"><h2>${esc(t('profile'))}</h2>
         <div class="grid g2"><div class="fld"><label>${esc(t(doc ? 'yourNameDoctor' : 'yourName'))}</label><input name="name" value="${esc(u.name)}"></div>
-        ${doc ? '' : `<div class="fld"><label>${esc(t('patientName'))}</label><input name="patient_name" value="${esc(u.patient_name || '')}"></div>`}
+        ${doc ? '' : `<div class="fld"><label>${esc(t('patientName'))}</label><input name="patient_name" value="${esc(u.patient_name || '')}" placeholder="${esc(t('patientNameHint'))}"></div>
+        <div class="fld"><label>${esc(t('birthYear'))}</label><input name="birth_year" type="number" inputmode="numeric" min="1920" max="${new Date().getFullYear()}" value="${esc(u.birth_year || '')}" placeholder="${new Date().getFullYear() - 8}"></div>`}
         <div class="fld"><label>${esc(t('units'))}</label><select name="units"><option value="mmol" ${u.units === 'mmol' ? 'selected' : ''}>mmol/L</option><option value="mg/dl" ${u.units === 'mg/dl' ? 'selected' : ''}>mg/dL</option></select></div>
         ${doc ? '' : `<div class="fld"><label>${esc(t('targetRange'))} (${UL()})</label><div class="row" style="flex-wrap:nowrap"><input name="lo" type="number" step="any" value="${v(u.target_low)}"><span>–</span><input name="hi" type="number" step="any" value="${v(u.target_high)}"></div></div>`}</div>
         <div class="tiny muted">${esc(t('email'))}: ${esc(u.email)}</div>
@@ -1732,6 +1764,7 @@
       e.preventDefault(); const f = Object.fromEntries(new FormData(e.target));
       const conv = x => (S.units === 'mmol' ? Math.round(parseFloat(String(x).replace(',', '.')) * C.MMOL) : Math.round(+x));
       const body = { name: f.name, patient_name: f.patient_name, units: f.units, lang: S.lang };
+      if (f.birth_year) body.birth_year = parseInt(f.birth_year, 10);
       if (f.lo) { body.target_low = conv(f.lo); body.target_high = conv(f.hi); }
       await api('PUT', '/app/me', body); S.units = f.units; toast(t('saved')); settings();
     };

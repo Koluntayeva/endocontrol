@@ -265,3 +265,32 @@ test('diary: a saved entry can be edited — time, meal, grams of each food, car
   assert.equal((await fetch(base + '/app/treatments/' + id, { method: 'PATCH', headers: H, body: JSON.stringify({ mealType: 'dinner' }) })).status, 200);
   server.close();
 });
+
+test('doctor list: unread messages reset after the doctor opens them, low and stale data flagged', async () => {
+  require('../lib/security')._resetRateLimits();   // earlier tests used up the sign-ups allowed per hour
+  await new Promise(r => server.listen(0, r));
+  try {
+  const base = `http://127.0.0.1:${server.address().port}`;
+  const j = { 'Content-Type': 'application/json', 'X-EC': '1' };
+  const reg = async (email, role) => (await fetch(base + '/app/register', { method: 'POST', headers: j, body: JSON.stringify({ email, password: 'abcd1234', name: email, role, consent: true }) })).headers.get('set-cookie').split(';')[0];
+  const pc = await reg('par@e.st', 'patient'), dc = await reg('doc@e.st', 'doctor');
+  const me = await (await fetch(base + '/app/me', { headers: { cookie: pc } })).json();
+  const hash = crypto.createHash('sha1').update(me.user.upload.api_secret).digest('hex');
+  const now = Date.now();
+  await fetch(base + '/api/v1/entries', { method: 'POST', headers: { 'Content-Type': 'application/json', 'api-secret': hash }, body: JSON.stringify([{ type: 'sgv', sgv: 50, date: now - 5 * 3600e3 }, { type: 'sgv', sgv: 120, date: now - 4 * 3600e3 }]) });
+  const share = await (await fetch(base + '/app/shares', { method: 'POST', headers: { ...j, cookie: pc }, body: '{}' })).json();
+  await fetch(base + '/app/patients', { method: 'POST', headers: { ...j, cookie: dc }, body: JSON.stringify({ token: share.token }) });
+  await fetch(base + '/app/notes', { method: 'POST', headers: { ...j, cookie: pc }, body: JSON.stringify({ text: 'Night low' }) });
+  await fetch(base + '/app/notes', { method: 'POST', headers: { ...j, cookie: dc }, body: JSON.stringify({ text: 'Call me', share: share.token }) });
+  let list = await (await fetch(base + '/app/patients', { headers: { cookie: dc } })).json();
+  assert.equal(list[0].messages, 1);          // the doctor's own reply is not "unread"
+  assert.equal(list[0].min24, 50);
+  assert.equal(list[0].lows24, 1);
+  let r = await fetch(`${base}/app/patients/${share.token}/read`, { method: 'POST', headers: { ...j, cookie: dc } });
+  assert.equal(r.status, 200);
+  list = await (await fetch(base + '/app/patients', { headers: { cookie: dc } })).json();
+  assert.equal(list[0].messages, 0);
+  r = await fetch(`${base}/app/patients/${share.token}/read`, { method: 'POST', headers: { ...j, cookie: pc } });
+  assert.equal(r.status, 403);                 // only a doctor who has this patient
+  } finally { server.close(); }
+});

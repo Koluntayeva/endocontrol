@@ -476,13 +476,18 @@ route('GET', '/app/patients', async ctx => {
   const rows = db.prepare(`SELECT dp.share_token token, dp.added_at, u.id uid, u.name, u.patient_name, u.birth_year, u.diabetes_type, u.units, u.target_low, u.target_high
     FROM doctor_patients dp JOIN shares s ON s.token = dp.share_token AND s.revoked = 0 AND (s.expires_at IS NULL OR s.expires_at > ?)
     JOIN users u ON u.id = s.user_id WHERE dp.doctor_id = ? ORDER BY dp.added_at DESC`).all(Date.now(), u.id);
-  const since = Date.now() - 14 * 864e5;
+  const now = Date.now(), since = now - 14 * 864e5, day = now - 864e5;
   return rows.map(r => {
-    const st = db.prepare(`SELECT COUNT(*) n, SUM(sgv BETWEEN ? AND ?) inr, SUM(sgv < ?) low, AVG(sgv) mean FROM entries WHERE user_id=? AND type='sgv' AND date>=?`).get(r.target_low, r.target_high, r.target_low, r.uid, since);
+    const lo = r.target_low || 70, hi = r.target_high || 180;
+    const st = db.prepare(`SELECT COUNT(*) n, SUM(sgv BETWEEN ? AND ?) inr, SUM(sgv < ?) low, AVG(sgv) mean FROM entries WHERE user_id=? AND type='sgv' AND date>=?`).get(lo, hi, lo, r.uid, since);
+    const d1 = db.prepare(`SELECT MIN(sgv) min, SUM(sgv < ?) low FROM entries WHERE user_id=? AND type='sgv' AND date>=?`).get(lo, r.uid, day);
     const last = db.prepare('SELECT date, sgv, direction FROM entries WHERE user_id=? AND type=\'sgv\' ORDER BY date DESC LIMIT 1').get(r.uid);
-    const unread = db.prepare('SELECT COUNT(*) n FROM notes WHERE user_id=? AND author_id=? AND created_at > ?').get(r.uid, r.uid, r.added_at).n;
+    // Unread: messages from the family after the doctor last opened this patient's messages.
+    const read = db.prepare('SELECT read_at FROM doctor_reads WHERE doctor_id=? AND user_id=?').get(u.id, r.uid);
+    const unread = db.prepare('SELECT COUNT(*) n FROM notes WHERE user_id=? AND author_id<>? AND created_at > ?').get(r.uid, u.id, Math.max(r.added_at, read ? read.read_at : 0)).n;
     delete r.uid;
-    return { ...r, last: last || null, tir: st.n ? st.inr / st.n * 100 : null, tbr: st.n ? st.low / st.n * 100 : null, mean: st.mean, messages: unread };
+    return { ...r, last: last || null, tir: st.n ? st.inr / st.n * 100 : null, tbr: st.n ? st.low / st.n * 100 : null, mean: st.mean,
+      min24: d1.min ?? null, lows24: d1.low || 0, messages: unread };
   });
 });
 route('POST', '/app/patients', async ctx => {
@@ -492,6 +497,13 @@ route('POST', '/app/patients', async ctx => {
   const s = shareByToken(token); if (!s) throw new HttpError(404, 'share_not_found');
   db.prepare('INSERT OR IGNORE INTO doctor_patients (doctor_id, share_token, added_at) VALUES (?,?,?)').run(u.id, token, Date.now());
   return { ok: true, token };
+});
+route('POST', '/app/patients/:token/read', async ctx => {
+  const u = requireUser(ctx);
+  if (!db.prepare('SELECT 1 FROM doctor_patients WHERE doctor_id=? AND share_token=?').get(u.id, ctx.params.token)) throw new HttpError(403, 'forbidden');
+  const s = shareByToken(ctx.params.token); if (!s) throw new HttpError(404, 'share_not_found');
+  db.prepare(`INSERT INTO doctor_reads (doctor_id, user_id, read_at) VALUES (?,?,?) ON CONFLICT(doctor_id, user_id) DO UPDATE SET read_at=excluded.read_at`).run(u.id, s.user_id, Date.now());
+  return { ok: true };
 });
 route('DELETE', '/app/patients/:token', async ctx => {
   const u = requireUser(ctx);
