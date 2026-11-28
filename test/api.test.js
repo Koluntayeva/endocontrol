@@ -294,3 +294,30 @@ test('doctor list: unread messages reset after the doctor opens them, low and st
   assert.equal(r.status, 403);                 // only a doctor who has this patient
   } finally { server.close(); }
 });
+
+test('Apple Health import: an iPhone Shortcut sends date|value|unit lines with the plain secret', async () => {
+  require('../lib/security')._resetRateLimits();
+  await new Promise(r => server.listen(0, r));
+  try {
+    const base = `http://127.0.0.1:${server.address().port}`;
+    const j = { 'Content-Type': 'application/json', 'X-EC': '1' };
+    const r0 = await fetch(base + '/app/register', { method: 'POST', headers: j, body: JSON.stringify({ email: 'hk@e.st', password: 'abcd1234', name: 'H', consent: true }) });
+    const cookie = r0.headers.get('set-cookie').split(';')[0];
+    const secret = (await (await fetch(base + '/app/me', { headers: { cookie } })).json()).user.upload.api_secret;
+    const t1 = new Date(Date.now() - 10 * 60e3).toISOString(), t2 = new Date(Date.now() - 5 * 60e3).toISOString();
+    const data = `${t1}|6,4|ммоль/л\n${t2}|9.0|mmol/L\nnot a reading\n2026-01-01T08:00:00+05:00|120|mg/dL`;
+    let r = await fetch(base + '/api/v1/health-import', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ secret, data }) });
+    const out = await r.json();
+    assert.equal(out.imported, 3);
+    r = await fetch(base + '/api/v1/health-import', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ secret, data }) });
+    assert.equal((await r.json()).imported, 3); // re-sending does not duplicate
+    const hash = crypto.createHash('sha1').update(secret).digest('hex');
+    const list = await (await fetch(`${base}/api/v1/entries.json?count=10`, { headers: { 'api-secret': hash } })).json();
+    assert.equal(list.length, 3);
+    assert.equal(list[0].sgv, 162); // 9.0 mmol/L
+    assert.equal(list[0].direction, 'DoubleUp');
+    assert.equal(list[1].sgv, 115); // 6,4 mmol/L with a decimal comma
+    r = await fetch(base + '/api/v1/health-import', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ secret: 'nope', data }) });
+    assert.equal(r.status, 401);
+  } finally { server.close(); }
+});

@@ -578,6 +578,40 @@ nsRoute('POST', '/entries(\\.json)?/?', ctx => {
   if (docs.length > 50000) throw bad('too_many');
   return ns.insertEntries(db, u.id, docs, 'api').map(e => ({ ...e, dateString: new Date(e.date).toISOString() }));
 });
+// Apple Health import for iPhone users whose sensor app only writes to Health (AiDEX, LinX, Sibionics…).
+// An iPhone Shortcut sends { secret, data } with one reading per line: "<ISO date> <value> <unit>" (any separator).
+// The value may use a decimal comma; without a unit, values under 35 are taken as mmol/L. Re-sending is harmless.
+nsRoute('POST', '/health-import/?', ctx => {
+  const u = nsNeed(ctx, true);
+  const b = ctx.body || {};
+  const lines = Array.isArray(b.values) ? b.values.map(String) : String(b.data || b.text || '').split(/\r?\n/);
+  if (lines.length > 20000) throw bad('too_many');
+  const iso = /(\d{4}-\d{2}-\d{2})[T ](\d{1,2}:\d{2}(?::\d{2})?(?:[.,]\d+)?)\s*(Z|[+-]\d{2}:?\d{2})?/;
+  const pts = [];
+  for (const line of lines) {
+    const m = iso.exec(line);
+    if (!m) continue;
+    const date = Date.parse(`${m[1]}T${m[2].replace(',', '.')}${m[3] ? m[3].replace(/^([+-]\d{2})(\d{2})$/, '$1:$2') : ''}`);
+    const rest = line.slice(0, m.index) + ' ' + line.slice(m.index + m[0].length);
+    const n = /(\d+(?:[.,]\d+)?)/.exec(rest.replace(/\|/g, ' '));
+    if (!Number.isFinite(date) || !n) continue;
+    let v = Number(n[1].replace(',', '.'));
+    const mg = /mg/i.test(rest) || (!/mmol|ммоль/i.test(rest) && v >= 35);
+    if (!mg) v *= 18.0182;
+    if (v < 20 || v > 600 || date > Date.now() + 10 * 60e3) continue;
+    pts.push({ date, sgv: Math.round(v) });
+  }
+  pts.sort((a, z) => a.date - z.date);
+  const docs = pts.map((p, i) => {
+    const prev = pts[i - 1], dt = prev ? (p.date - prev.date) / 60e3 : 0;
+    const slope = prev && dt > 0 && dt <= 15 ? (p.sgv - prev.sgv) / dt : 0;
+    const direction = slope > 3 ? 'DoubleUp' : slope > 2 ? 'SingleUp' : slope > 1 ? 'FortyFiveUp' : slope < -3 ? 'DoubleDown' : slope < -2 ? 'SingleDown' : slope < -1 ? 'FortyFiveDown' : 'Flat';
+    return { type: 'sgv', date: p.date, sgv: p.sgv, direction, device: 'Apple Health' };
+  });
+  if (docs.length) ns.insertEntries(db, u.id, docs, 'api');
+  const last = docs[docs.length - 1];
+  return { ok: true, received: lines.filter(l => l.trim()).length, imported: docs.length, last: last ? new Date(last.date).toISOString() : null };
+});
 nsRoute('DELETE', '/entries(?:/(?<spec>[^/]+))?', ctx => {
   const u = nsNeed(ctx, true);
   const spec = ctx.params.spec ? ext(ctx.params.spec) : null;

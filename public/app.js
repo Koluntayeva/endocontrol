@@ -866,16 +866,17 @@
     juggluco: { title: 'Juggluco (Android)', uploader: true, steps: 'stepsJuggluco' },
     xdrip: { title: 'xDrip+ (Android)', uploader: true, steps: 'stepsXdrip' },
     iosapps: { title: 'Spike · Diabox · Tomato · Shuggah (iPhone)', uploader: true, steps: 'stepsIos' },
+    health: { title: t('healthTitle'), health: true },
     loop: { title: 'Loop · Trio · iAPS · AndroidAPS', uploader: true, steps: 'stepsLoop' },
     nspull: { title: t('nsPullTitle'), form: 'nightscout' },
     csv: { title: t('csvTitle'), csv: true },
   };
   const BRANDS = [
-    { id: 'libre', ic: 'sensor', name: 'FreeStyle Libre', models: 'Libre 1 · 2 · 2 Plus · 3 · 3 Plus', methods: ['llu', 'juggluco', 'xdrip', 'csv'] },
-    { id: 'dexcom', ic: 'sensor', name: 'Dexcom', models: 'G6 · G7 · ONE · ONE+ · Stelo', methods: ['dexshare', 'xdrip', 'iosapps', 'csv'] },
+    { id: 'libre', ic: 'sensor', name: 'FreeStyle Libre', models: 'Libre 1 · 2 · 2 Plus · 3 · 3 Plus', methods: ['llu', 'juggluco', 'xdrip', 'health', 'csv'] },
+    { id: 'dexcom', ic: 'sensor', name: 'Dexcom', models: 'G6 · G7 · ONE · ONE+ · Stelo', methods: ['dexshare', 'xdrip', 'iosapps', 'health', 'csv'] },
     { id: 'medtronic', ic: 'pump', name: 'Medtronic', models: 'Guardian 3 · 4 · Simplera · 780G', methods: ['csv', 'nspull'] },
     { id: 'eversense', ic: 'sensor', name: 'Eversense', models: 'E3 · 365', methods: ['xdrip', 'csv'] },
-    { id: 'other', ic: 'sensor', name: 'otherCgm', models: 'Sibionics · Aidex · Ottai · Syai · Linx · Glunovo · Yuwell · i3 · Medtrum', methods: ['juggluco', 'xdrip', 'iosapps', 'csv'] },
+    { id: 'other', ic: 'sensor', name: 'otherCgm', models: 'Sibionics · Aidex · Ottai · Syai · Linx · Glunovo · Yuwell · i3 · Medtrum', methods: ['health', 'juggluco', 'xdrip', 'iosapps', 'csv'] },
     { id: 'pump', ic: 'pump', name: 'aidSystems', models: 'Loop · Trio · iAPS · AndroidAPS · Omnipod 5 (CSV)', methods: ['loop', 'csv'] },
     { id: 'ns', ic: 'moon', name: 'Nightscout', models: 'nsModels', methods: ['nspull', 'xdrip'] },
     { id: 'meter', ic: 'bg', name: 'meterName', models: 'meterModels', methods: ['csv'] },
@@ -908,6 +909,11 @@
           <div><label>${esc(t('nsToken'))}</label><input name="token" autocomplete="off"></div><div><label>${esc(t('apiSecret'))} (${esc(t('optional'))})</label><input name="secret" type="password" autocomplete="off"></div>
           <div><button class="btn">${esc(t('connect'))}</button></div></form>` : ''}
         ${M.uploader ? `<ol class="steps">${t(M.steps).split('|').map(s => `<li>${esc(s)}</li>`).join('')}</ol>${uploaderBox(u)}` : ''}
+        ${M.health ? `<p class="small">${esc(t('healthText'))}</p><ol class="steps">${t('stepsHealth').split('|').map(s => `<li>${esc(s)}</li>`).join('')}</ol>
+          <div class="fld"><label>${esc(t('healthUrl'))}</label><div class="copy"><code>${esc(u.base_url + '/api/v1/health-import')}</code><button class="btn sm ghost" data-copy="${esc(u.base_url + '/api/v1/health-import')}">${esc(t('copy'))}</button></div></div>
+          <div class="fld"><label>${esc(t('apiSecret'))}</label><div class="copy"><code>${esc(u.api_secret)}</code><button class="btn sm ghost" data-copy="${esc(u.api_secret)}">${esc(t('copy'))}</button></div></div>
+          <div class="tiny muted">${esc(t('healthNote'))}</div>
+          ${/^http:/.test(u.base_url) ? `<div class="tiny" style="color:var(--high)">${esc(t('httpsNote'))}</div>` : ''}` : ''}
         ${M.csv ? `<p class="small">${esc(t('csvText'))}</p><input type="file" id="csvf" accept=".csv,.txt,.tsv,text/csv"><div class="small" id="csvres" style="margin-top:6px"></div>` : ''}
         <div class="err" data-err></div></div>`; }).join('')}
       <p class="tiny muted">${esc(t('privacyNote'))}</p>`;
