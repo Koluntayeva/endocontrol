@@ -768,3 +768,17 @@ body.has-galert .hypotimer{top:calc(190px + env(safe-area-inset-top))}
 .card.indigo h2.hic svg{color:rgba(255,255,255,.85)}
 @media print{.rphero h2,.rphero .sttile b{color:#000!important}.rphero .small.muted,.rphero .sttile span,.rphero .sttile em{color:#555!important}.rphero .sttile{background:#fff;border:1px solid #ddd}}
 .tirwrap .dn-v{font-weight:700}
+
+/* Ratios as tinted tiles */
+.rtgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:10px}
+.rtmeal,.rtisf{border:0;border-radius:18px;padding:12px 14px;margin:0;background:linear-gradient(160deg,var(--tint),var(--card) 85%)}
+.rtmeal.empty{display:flex;flex-direction:column;align-items:flex-start;gap:4px}
+.rtname{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:650;color:var(--muted)}
+.rtname svg{width:18px;height:18px}
+.rtmeal.yellow .rtname svg{color:#b98400}.rtmeal.peach .rtname svg{color:var(--warm)}.rtmeal.violet .rtname svg{color:var(--accent2)}.rtmeal.sky .rtname svg,.rtisf .rtname svg{color:var(--accent)}
+.rtmeal .rtv{display:block;font-size:22px;font-weight:700;margin:6px 0 2px}
+.rtisf{border-top:0;margin-top:0}.rtisf .rtv{font-size:22px;font-weight:700}
+.rtcalc{margin-top:8px}.rtcalc summary{cursor:pointer;font-size:12.5px;font-weight:600;color:var(--accent);list-style:none}
+.rtcalc summary::-webkit-details-marker{display:none}.rtcalc summary::after{content:" ›"}.rtcalc[open] summary::after{content:" ⌄"}
+@media (max-width:560px){.rtgrid{grid-template-columns:1fr}}
+@media print{.rtmeal,.rtisf{background:#fff;border:1px solid #ddd}}

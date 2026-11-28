@@ -1237,19 +1237,21 @@
     const badge = (c, n) => ({ prelim: ['bad', t('rtPrelim', { n })], low: ['warn', t('rtLow', { n })], medium: ['mid', t('rtMid', { n })], good: ['ok', t('rtGood', { n })] })[c];
     const meal = k => {
       const b = r.byMeal[k];
-      if (!b) return `<div class="rtmeal empty"><b>${esc(mealName(k))}</b><span class="tiny muted">${esc(t('rtNoData'))}</span></div>`;
+      const tone = { breakfast: 'yellow', lunch: 'peach', dinner: 'violet', snack: 'sky' }[k];
+      if (!b) return `<div class="rtmeal empty ${tone}"><b>${esc(mealName(k))}</b><span class="tiny muted">${esc(t('rtNoData'))}</span></div>`;
       const [cls, txt] = badge(b.conf, b.days);
-      return `<div class="rtmeal"><div class="rth"><b>${esc(mealName(k))}</b><span class="rtv">${esc(ratioText(b))}</span></div>
+      return `<div class="rtmeal ${tone}"><div class="rth"><span class="rtname">${icon('meal')}${esc(mealName(k))}</span><span class="rtbadge ${cls}">${esc(txt)}</span></div>
+        <div class="rtv">${esc(ratioText(b))}</div>
         <div class="tiny muted">${esc(t('rtXe', { u: fmtG1(Math.round(12 / b.ratio * 10) / 10) }))}</div>
-        <ul class="rtitems">${b.items.map(m => `<li><b>${esc(fmtDate(m.at, { day: '2-digit', month: '2-digit' }))} ${esc(fmtTime(m.at))}</b>: ${esc(fmtG1(m.ownCarbs))} ${esc(t('gCarbs'))} ÷ ${esc(fmtG1(m.insulin))} ${esc(t('uIns'))} = <b>1:${esc(fmtG1(Math.round(m.base * 10) / 10))}</b>${m.snacks.length ? `<br>+ ${m.snacks.map(x => esc(t('rtSnack', { g: fmtG1(x.carbs), t: fmtTime(x.at) }))).join(' + ')} → (${esc(fmtG1(m.carbs))} ${esc(t('gCarbs'))}) ÷ ${esc(fmtG1(m.insulin))} = <b>1:${esc(fmtG1(Math.round(m.raw * 10) / 10))}</b>` : ''}${m.corrections && m.corrections.length ? `<br><span class="muted">${esc(t('rtCorr', { list: m.corrections.map(c => `${fmtG1(c.insulin)} ${t('uIns')} ${fmtTime(c.at)}`).join(', ') }))}</span>` : ''}${m.low ? ` · <span class="rtlow">${esc(t('rtWasLow'))}</span>` : ''}</li>`).join('')}</ul>
-        <span class="rtbadge ${cls}">${esc(txt)}</span></div>`;
+        <details class="rtcalc"><summary>${esc(t('rtShowCalc', { n: b.items.length }))}</summary><ul class="rtitems">${b.items.map(m => `<li><b>${esc(fmtDate(m.at, { day: '2-digit', month: '2-digit' }))} ${esc(fmtTime(m.at))}</b>: ${esc(fmtG1(m.ownCarbs))} ${esc(t('gCarbs'))} ÷ ${esc(fmtG1(m.insulin))} ${esc(t('uIns'))} = <b>1:${esc(fmtG1(Math.round(m.base * 10) / 10))}</b>${m.snacks.length ? `<br>+ ${m.snacks.map(x => esc(t('rtSnack', { g: fmtG1(x.carbs), t: fmtTime(x.at) }))).join(' + ')} → (${esc(fmtG1(m.carbs))} ${esc(t('gCarbs'))}) ÷ ${esc(fmtG1(m.insulin))} = <b>1:${esc(fmtG1(Math.round(m.raw * 10) / 10))}</b>` : ''}${m.corrections && m.corrections.length ? `<br><span class="muted">${esc(t('rtCorr', { list: m.corrections.map(c => `${fmtG1(c.insulin)} ${t('uIns')} ${fmtTime(c.at)}`).join(', ') }))}</span>` : ''}${m.low ? ` · <span class="rtlow">${esc(t('rtWasLow'))}</span>` : ''}</li>`).join('')}</ul></details>
+        </div>`;
     };
     const isf = r.isf;
     return `<div class="card ratios" id="ratios"><h2 class="hic">${icon('insulin')}${esc(t('rtTitle'))}</h2>
       <div class="rtwarn">⚠️ ${esc(t('rtWarn'))}</div>
       <div class="small muted" style="margin:10px 0 6px">${esc(t('rtIcr'))}</div>
-      ${window.Ratios.MEALS.map(meal).join('')}
-      <div class="rtisf"><div class="small muted">${esc(t('rtIsf'))}</div>
+      <div class="rtgrid">${window.Ratios.MEALS.map(meal).join('')}</div>
+      <div class="rtisf sky"><span class="rtname">${icon('bg')}${esc(t('rtIsf'))}</span>
         ${isf ? `<div class="rth"><span class="rtv">${esc(t('rtIsfVal', { v: G(isf.value), u: UL() }))}</span><span class="rtbadge ${isf.method === 'measured' ? badge(isf.conf, isf.n)[0] : 'bad'}">${esc(isf.method === 'measured' ? t('rtIsfMeasured', { n: isf.n }) : t('rtIsfRule'))}</span></div>
         <div class="tiny muted">${esc(t(isf.method === 'measured' ? 'rtIsfHowM' : 'rtIsfHowR'))}</div>` : `<div class="tiny muted">${esc(t('rtNoData'))}</div>`}</div>
       <p class="tiny muted" style="margin:10px 0 0">${esc(t('rtHow'))} ${esc(t('rtMore'))}</p></div>`;
@@ -1323,12 +1325,13 @@
       }
     }
     const pats = `<div class="card"><h2 class="hic">${icon('ai')}${esc(t('patterns'))}</h2>${insights(d.entries, lo, hi).map(x => `<p class="small" style="margin:6px 0">• ${esc(x)}</p>`).join('')}</div>`;
-    const multi = one ? '' : `<div class="card indigo"><h2 class="hic">${icon('calendar')}${esc(t('tirByDay'))}</h2>${C.dailyBars(perDay)}</div>
-      <div class="card indigo allowbreak"><h2 class="hic">${icon('calendar')}${esc(t('dailyCharts'))}</h2><div class="days">${[...perDay].reverse().map(x => `<div class="daycard"><div class="row small"><b>${esc(fmtDate(x.a, { weekday: 'short', day: '2-digit', month: '2-digit' }))}</b><span class="muted" style="margin-inline-start:auto">${esc(t('tir'))} ${x.st.n ? x.st.tir.toFixed(0) + '%' : '—'} · ${esc(t('mean'))} ${G(x.st.mean)}</span></div>
+    const tirDays = one ? '' : `<div class="card indigo"><h2 class="hic">${icon('calendar')}${esc(t('tirByDay'))}</h2>${C.dailyBars(perDay)}</div>`;
+    const multi = one ? '' : `<div class="card allowbreak"><h2 class="hic">${icon('calendar')}${esc(t('dailyCharts'))}</h2><div class="days">${[...perDay].reverse().map(x => `<div class="daycard"><div class="row small"><b>${esc(fmtDate(x.a, { weekday: 'short', day: '2-digit', month: '2-digit' }))}</b><span class="muted" style="margin-inline-start:auto">${esc(t('tir'))} ${x.st.n ? x.st.tir.toFixed(0) + '%' : '—'} · ${esc(t('mean'))} ${G(x.st.mean)}</span></div>
         ${C.line(x.es, x.a, x.b, { lo, hi, units, treatments: x.ts, locale: locale(), height: 170, thin: true })}
         ${x.ts.length ? `<div class="tiny muted">${x.ts.map(tr => `${fmtTime(tr.mills)} ${esc(trTitle(tr))} ${esc(trValue(tr))}`).join(' · ')}</div>` : ''}</div>`).join('')}</div></div>`;
     let ratios = ''; try { ratios = ratiosCard(await ratiosFor(share)); } catch { ratios = ''; }
-    return `${head}${summary}<div class="grid g2">${tir}${vari}</div>${ratios}${curve}${night}${pats}${multi}
+    // Same order as the home screen: dark cards with the glucose and its charts first, then light cards with numbers.
+    return `${head}${summary}${curve}${one ? night : ''}${tirDays}<div class="grid g2">${tir}${vari}</div>${one ? '' : night}${ratios}${pats}${multi}
       <p class="tiny muted">${esc(t('reportFooter', { date: fmtDT(Date.now()) }))}</p>`;
   }
   function medianGap(es) { const g = []; for (let i = 1; i < Math.min(es.length, 500); i++) g.push(es[i][0] - es[i - 1][0]); g.sort((a, b) => a - b); return g[Math.floor(g.length / 2)] || 5 * 60e3; }
@@ -1355,7 +1358,7 @@
     let off = 0; const sp = $('#dnav'); if (sp) off = +(sp.dataset.off || 0);
     document.querySelectorAll('#per button').forEach(b => b.onclick = () => redraw(+b.dataset.n, 0));
     document.querySelectorAll('#dnav button').forEach(b => b.onclick = () => redraw(1, b.dataset.o === '0' ? 0 : Math.min(0, off + +b.dataset.o)));
-    const p = $('#pdf'); if (p) p.onclick = () => { if (window.EC_DEMO) return toast(t('demoNoPdf')); toast(t('pdfHint')); setTimeout(() => window.print(), 400); };
+    const p = $('#pdf'); if (p) p.onclick = () => { document.querySelectorAll('details.rtcalc').forEach(x => { x.open = true; }); if (window.EC_DEMO) return toast(t('demoNoPdf')); toast(t('pdfHint')); setTimeout(() => window.print(), 400); };
   }
   async function reports() {
     let days = 14, off = 0;
@@ -1690,7 +1693,7 @@
       if (tab === 'notes') {
         const notes = await api('GET', '/app/notes?share=' + encodeURIComponent(token));
         api('POST', '/app/patients/' + encodeURIComponent(token) + '/read').catch(() => {});
-        $('#tb').outerHTML = `<div id="tb"><div class="card"><h2>${esc(name)}</h2>
+        $('#tb').outerHTML = `<div id="tb"><div class="card"><h2 class="hic">${icon('chat')}${esc(name)}</h2>
           ${notes.map(n => `<div class="note ${n.author_role === 'doctor' ? 'doc' : ''}"><div class="meta">${n.kind === 'conclusion' ? '📋 ' + esc(t('conclusion')) + ' · ' : ''}${esc(n.author)} · ${esc(fmtDT(n.created_at))}</div>${esc(n.text)}</div>`).join('') || `<div class="muted small">${esc(t('noMessages'))}</div>`}
           <form id="mf"><textarea id="mt" style="min-height:120px" placeholder="${esc(t('msgHintDoctor'))}"></textarea>
           <div class="row" style="margin-top:6px"><button class="btn" data-k="conclusion">📋 ${esc(t('sendConclusion'))}</button><button class="btn ghost" data-k="message">${esc(t('send'))}</button></div></form></div></div>`;
@@ -1708,8 +1711,13 @@
     const d14 = await getData(now - 14 * 864e5, now + 60e3, share);
     const st = C.stats(d14.entries.map(e => e[1]), lo, hi);
     return `${heroHtml(last, lo, hi, name, last ? esc(ago(last[0])) : esc(t('noData')), '')}
-      <div class="card chartcard">${C.line(d.entries, now - 24 * 3600e3, now + 5 * 60e3, { lo, hi, units: S.units, treatments: d.treatments, locale: locale() })}</div>
-      <div class="card"><h2>14 ${esc(t('days'))}</h2>${metricsHtml(st, lo, hi)}<div style="margin-top:12px">${st.n ? C.tirBlock(st, t, S.units, lo, hi) : ''}</div></div>`;
+      <div class="card chartcard indigo">${C.line(d.entries, now - 24 * 3600e3, now + 5 * 60e3, { lo, hi, units: S.units, treatments: d.treatments, locale: locale() })}</div>
+      <div class="card"><h2 class="hic">${icon('calendar')}14 ${esc(t('days'))}</h2>${st.n ? `<div class="sttiles g4">
+        <div class="sttile"><span>${esc(t('tir'))}</span><b style="color:${st.tir >= 70 ? 'var(--in)' : st.tir >= 50 ? 'var(--high)' : 'var(--low)'}">${st.tir.toFixed(0)}<small>%</small></b><em>${esc(t('goal'))} &gt;70%</em></div>
+        <div class="sttile"><span>${esc(t('tbr'))}</span><b style="color:${st.tbr < 4 ? 'var(--in)' : 'var(--low)'}">${st.tbr.toFixed(1)}<small>%</small></b><em>${esc(t('goal'))} &lt;4%</em></div>
+        <div class="sttile"><span>${esc(t('mean'))}</span><b>${G(st.mean)}<small>${UL()}</small></b><em>CV ${st.cv.toFixed(0)}%</em></div>
+        <div class="sttile"><span>eHbA1c</span><b>${st.gmi.toFixed(1)}<small>%</small></b><em>${esc(t('stGmiHint'))}</em></div></div>
+        <div class="tirwrap" style="margin-top:12px">${C.donut(st, t('inRange'))}${C.tirBlock(st, t, S.units, lo, hi)}</div>` : `<div class="muted">${esc(t('noData'))}</div>`}</div>`;
   }
 
   // Public read-only page opened from a share link (no account needed)
